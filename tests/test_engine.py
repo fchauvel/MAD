@@ -25,8 +25,8 @@ from mad.engine import Agent, CompositeAgent, Action
 
 class DummyAgent(Agent):
 
-    def __init__(self, period = 10):
-        super().__init__()
+    def __init__(self, period = 10, identifier = "Dummy Agent"):
+        super().__init__(identifier)
         self.period = period
         self._counter = 0
         self._action = DummyAction(self)
@@ -82,12 +82,20 @@ class EngineTest(TestCase):
     def test_composite_agent(self):
         agent1 = DummyAgent(10)
         agent2 = DummyAgent(20)
-        simulation = CompositeAgent(agent1, agent2)
+        simulation = CompositeAgent("simulation", agent1, agent2)
 
         simulation._run_until(time=50)
 
         self.assertEqual(5, agent1._counter)
         self.assertEqual(2, agent2._counter)
+
+    def test_localisation_of_components_in_the_hierarchy(self):
+        agent1 = DummyAgent(10, "A1")
+        agent2 = DummyAgent(20, "A2")
+        level1 = CompositeAgent("level1", agent1, agent2)
+        agent3 = DummyAgent(10, "A3")
+        level2 = CompositeAgent("level2", level1, agent3)
+        self.assertIs(agent3, agent1.locate("A3"))
 
 
 if __name__ == "__main__":

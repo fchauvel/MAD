@@ -25,21 +25,41 @@ class Agent:
     Represent an agent that can be simulated such as a turtle, a person or a bathtube.
     """
 
-    def __init__(self):
+    def __init__(self, identifier):
+        self._identifier = identifier
         self._schedule = []
         self._clock = Clock()
+        self._container = None
+
+    @property
+    def is_contained(self):
+        return self.container is not None
+
+    @property
+    def container(self):
+        return self._container
+
+    @container.setter
+    def container(self, new_container):
+        self._container = new_container
+
+    @property
+    def identifier(self):
+        return self._identifier
 
     @property
     def clock(self):
         return self._clock
 
-    def set_clock(self, new_clock):
+    @clock.setter
+    def clock(self, new_clock):
         self._clock = new_clock
 
     @property
     def next_events(self):
         """
-        Return the of this agents, that will be triggered next. There may be several event scheduled at the same time.
+        Return the events that shall be triggered next, that is to say the earliest events in the schedule of this agent.
+        Note that there may be several event scheduled at the same time.
         """
         return self._earliest_of(self._schedule)
 
@@ -65,7 +85,7 @@ class Agent:
         pass
 
     def _run_until(self, time):
-        self.set_clock(Clock())
+        self.clock = Clock()
         self.setup()
         while self._has_more_events \
                 and not self._clock.has_passed(time):
@@ -80,26 +100,43 @@ class Agent:
         """
         print("t=%04d - %s" % (self._clock.time, message))
 
+    def locate(self, identifier):
+        """
+        Locate a component in the hierarchy
+        """
+        if self.is_named(identifier):
+            return self
+        else:
+            if self.is_contained:
+                return self._container.locate(identifier)
+            raise ValueError("Could not locate agent '%s'" % identifier)
+
+    def is_named(self, identifier):
+        return self.identifier == identifier
+
 
 class CompositeAgent(Agent):
     """
     Represent a composite agents, i.e., agents made out of other agents
     """
-    def __init__(self, *args):
-        super().__init__()
-        for each_argument in args:
-            if not isinstance(each_argument, Agent):
-                raise ValueError("Only 'agent' object are expected (found '%s')", type(each_argument))
-        self._inner_agents = args
+    def __init__(self, identifier, *agents):
+        super().__init__(identifier)
+        for each_agent in agents:
+            if not isinstance(each_agent, Agent):
+                raise ValueError("Only 'agent' object are expected (found '%s')", type(each_agent))
+            else:
+                each_agent.container = self
+        self._agents = agents
 
     def setup(self):
-        for each_agent in self._inner_agents:
+        for each_agent in self._agents:
             each_agent.setup()
 
-    def set_clock(self, new_clock):
+    @Agent.clock.setter
+    def clock(self, new_clock):
         self._clock = new_clock
-        for each_agent in self._inner_agents:
-            each_agent.set_clock(new_clock)
+        for each_agent in self._agents:
+            each_agent.clock = new_clock
 
     @property
     def next_events(self):
@@ -107,9 +144,15 @@ class CompositeAgent(Agent):
 
     def _aggregate(self):
         result = []
-        for each_agent in self._inner_agents:
+        for each_agent in self._agents:
             result.extend(each_agent.next_events)
         return result
+
+    def locate(self, identifier):
+        for any_agent in self._agents:
+            if any_agent.is_named(identifier):
+                return any_agent
+        return super().locate(identifier)
 
 
 class Event:
