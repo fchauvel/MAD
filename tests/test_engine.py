@@ -20,20 +20,22 @@
 from unittest import TestCase, main
 from mock import MagicMock
 
-from mad.engine import Agent, Action
+from mad.engine import Agent, CompositeAgent, Action
 
 
 class DummyAgent(Agent):
 
-    def __init__(self):
+    def __init__(self, period = 10):
         super().__init__()
+        self.period = period
         self._counter = 0
         self._action = DummyAction(self)
 
     def setup(self):
-        self.schedule(self._action, 10);
+        self.schedule(self._action, self.period);
 
     def called_once(self):
+        self.log("dummy action (P=%d)" % self.period)
         self._counter += 1
 
 
@@ -45,7 +47,7 @@ class DummyAction(Action):
 
     def fire(self):
         self._subject.called_once()
-        self._subject.schedule(self, 10)
+        self._subject.schedule(self, self._subject.period)
 
 
 class EngineTest(TestCase):
@@ -76,6 +78,16 @@ class EngineTest(TestCase):
         agent._run_until(50)
 
         self.assertEqual(6, agent._counter)
+
+    def test_composite_agent(self):
+        agent1 = DummyAgent(10)
+        agent2 = DummyAgent(20)
+        simulation = CompositeAgent(agent1, agent2)
+
+        simulation._run_until(time=50)
+
+        self.assertEqual(5, agent1._counter)
+        self.assertEqual(2, agent2._counter)
 
 
 if __name__ == "__main__":

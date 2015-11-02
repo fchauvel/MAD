@@ -17,7 +17,7 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from random import choice
+from random import shuffle
 
 
 class Agent:
@@ -30,14 +30,23 @@ class Agent:
         self._clock = Clock()
 
     @property
+    def clock(self):
+        return self._clock
+
+    def set_clock(self, new_clock):
+        self._clock = new_clock
+
+    @property
     def next_events(self):
         """
         Return the of this agents, that will be triggered next. There may be several event scheduled at the same time.
         """
-        if len(self._schedule) == 0:
-            return []
-        earliest = min(self._schedule, key=lambda event: event.time)
-        return [any_event for any_event in self._schedule if any_event.is_earlier_than(earliest)]
+        return self._earliest_of(self._schedule)
+
+    def _earliest_of(self, events):
+        if len(events) == 0: return []
+        earliest = min(events, key=lambda event: event.time)
+        return [any_event for any_event in events if any_event.is_earlier_than(earliest)]
 
     def schedule(self, action, at):
         """
@@ -56,11 +65,51 @@ class Agent:
         pass
 
     def _run_until(self, time):
+        self.set_clock(Clock())
         self.setup()
         while self._has_more_events \
-                and not self._clock.passed(time):
-            next_event = choice(self.next_events)
-            next_event.trigger()
+                and not self._clock.has_passed(time):
+            events = self.next_events
+            shuffle(events)
+            for each_event in events:
+                each_event.trigger()
+
+    def log(self, message):
+        """
+        Log a given message on the standard output
+        """
+        print("t=%04d - %s" % (self._clock.time, message))
+
+
+class CompositeAgent(Agent):
+    """
+    Represent a composite agents, i.e., agents made out of other agents
+    """
+    def __init__(self, *args):
+        super().__init__()
+        for each_argument in args:
+            if not isinstance(each_argument, Agent):
+                raise ValueError("Only 'agent' object are expected (found '%s')", type(each_argument))
+        self._inner_agents = args
+
+    def setup(self):
+        for each_agent in self._inner_agents:
+            each_agent.setup()
+
+    def set_clock(self, new_clock):
+        self._clock = new_clock
+        for each_agent in self._inner_agents:
+            each_agent.set_clock(new_clock)
+
+    @property
+    def next_events(self):
+        return self._earliest_of(self._aggregate())
+
+    def _aggregate(self):
+        result = []
+        for each_agent in self._inner_agents:
+            result.extend(each_agent.next_events)
+        return result
 
 
 class Event:
@@ -111,8 +160,8 @@ class Clock:
     def time(self):
         return self._time
 
-    def passed(self, deadline):
-        return self._time > deadline
+    def has_passed(self, deadline):
+        return self._time >= deadline
 
     def advance_to(self, new_time):
         assert new_time >= self._time, "Time is moving backward (now: %d ; then: %d)" % (self._time, new_time)
