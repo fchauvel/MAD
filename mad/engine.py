@@ -68,11 +68,11 @@ class Agent:
         earliest = min(events, key=lambda event: event.time)
         return [any_event for any_event in events if any_event.is_earlier_than(earliest)]
 
-    def schedule(self, action, at):
+    def schedule_in(self, action, delay):
         """
         Schedule the given action at the given time
         """
-        self._schedule.append(Event(self, action, self._clock.time + at))
+        self._schedule.append(Event(self, action, self._clock.time + delay))
 
     def _discard(self, event):
         self._schedule.remove(event)
@@ -84,7 +84,7 @@ class Agent:
     def setup(self):
         pass
 
-    def _run_until(self, time):
+    def run_until(self, time):
         self.clock = Clock()
         self.setup()
         while self._has_more_events \
@@ -128,14 +128,18 @@ class CompositeAgent(Agent):
                 each_agent.container = self
         self._agents = agents
 
+    @property
+    def agents(self):
+        return self._agents
+
     def setup(self):
-        for each_agent in self._agents:
+        for each_agent in self.agents:
             each_agent.setup()
 
     @Agent.clock.setter
     def clock(self, new_clock):
         self._clock = new_clock
-        for each_agent in self._agents:
+        for each_agent in self.agents:
             each_agent.clock = new_clock
 
     @property
@@ -144,12 +148,12 @@ class CompositeAgent(Agent):
 
     def _aggregate(self):
         result = []
-        for each_agent in self._agents:
+        for each_agent in self.agents:
             result.extend(each_agent.next_events)
         return result
 
     def locate(self, identifier):
-        for any_agent in self._agents:
+        for any_agent in self.agents:
             if any_agent.is_named(identifier):
                 return any_agent
         return super().locate(identifier)

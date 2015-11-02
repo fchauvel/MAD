@@ -32,10 +32,10 @@ class DummyAgent(Agent):
         self._action = DummyAction(self)
 
     def setup(self):
-        self.schedule(self._action, self.period);
+        self.schedule_in(self._action, self.period);
 
     def called_once(self):
-        self.log("dummy action (P=%d)" % self.period)
+        #self.log("dummy action (P=%d)" % self.period)
         self._counter += 1
 
 
@@ -47,7 +47,7 @@ class DummyAction(Action):
 
     def fire(self):
         self._subject.called_once()
-        self._subject.schedule(self, self._subject.period)
+        self._subject.schedule_in(self, self._subject.period)
 
 
 class EngineTest(TestCase):
@@ -56,16 +56,16 @@ class EngineTest(TestCase):
         agent = DummyAgent()
         action = MagicMock(Action)
 
-        agent.schedule(action, at=10)
-        agent.schedule(action, at=20)
-        agent.schedule(action, at=10)
+        agent.schedule_in(action, delay=10)
+        agent.schedule_in(action, delay=20)
+        agent.schedule_in(action, delay=10)
 
         self.assertTrue(len(agent.next_events) == 2)
 
     def test_that_events_are_triggered_and_then_discarded(self):
         agent = DummyAgent()
         action = MagicMock(Action)
-        agent.schedule(action, at=15)
+        agent.schedule_in(action, delay=15)
 
         agent.next_events[0].trigger()
 
@@ -75,16 +75,16 @@ class EngineTest(TestCase):
     def test_running_dummy_simulation(self):
         agent = DummyAgent()
 
-        agent._run_until(50)
+        agent.run_until(50)
 
-        self.assertEqual(6, agent._counter)
+        self.assertEqual(5, agent._counter)
 
     def test_composite_agent(self):
         agent1 = DummyAgent(10)
         agent2 = DummyAgent(20)
         simulation = CompositeAgent("simulation", agent1, agent2)
 
-        simulation._run_until(time=50)
+        simulation.run_until(time=50)
 
         self.assertEqual(5, agent1._counter)
         self.assertEqual(2, agent2._counter)
