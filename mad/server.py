@@ -21,6 +21,7 @@ from random import choice
 
 from mad.engine import Agent, CompositeAgent, Action
 from mad.throttling import StaticThrottling
+from mad.scalability import Controller, UtilisationController
 
 
 class Server(CompositeAgent):
@@ -28,16 +29,18 @@ class Server(CompositeAgent):
     The server receives request and returns a response
     """
 
-    def __init__(self, identifier, service_rate=0.2, throttling=StaticThrottling(0)):
+    def __init__(self, identifier, service_rate=0.2, throttling=StaticThrottling(0), scalability=Controller(0.4)):
         super().__init__(identifier)
         self._service_rate = service_rate
         self._queue = Queue()
         self._cluster = Cluster(self._queue, service_rate)
         self._throttling = throttling
+        self._scalability = scalability
+        self._scalability.cluster = self._cluster
 
     @CompositeAgent.agents.getter
     def agents(self):
-        return [self._queue, self._cluster]
+        return [self._queue, self._cluster, self._scalability]
 
     def composite_setup(self):
         self.initialize_recorder()
@@ -59,7 +62,9 @@ class Server(CompositeAgent):
 
     def record_composite_state(self):
         self.record([("queue length", "%d", self._queue.length),
-                     ("rejection rate", "%f", self._throttling.rejection_rate)])
+                     ("rejection rate", "%f", self._throttling.rejection_rate),
+                     ("utilisation", "%f", self._cluster.utilisation),
+                     ("unit count", "%d", self._cluster.active_unit_count)])
 
 
 class Queue(Agent):
@@ -115,7 +120,10 @@ class Cluster(CompositeAgent):
 
     @property
     def utilisation(self):
-        return len(self.busy_units) / len(self._units) * 100
+        if len(self._units) > 0:
+            return len(self.busy_units) / len(self._units) * 100
+        else:
+            return 100
 
     @property
     def busy_units(self):
