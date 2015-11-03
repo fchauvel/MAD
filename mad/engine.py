@@ -18,6 +18,7 @@
 #
 
 from random import shuffle
+from io import StringIO
 
 
 class Agent:
@@ -30,6 +31,7 @@ class Agent:
         self._schedule = []
         self._clock = Clock()
         self._container = None
+        self._recorder = None
 
     @property
     def is_contained(self):
@@ -84,15 +86,37 @@ class Agent:
     def setup(self):
         pass
 
+    def teardown(self):
+        if self.has_recorder:
+            self._recorder.close()
+
     def run_until(self, time):
         self.clock = Clock()
         self.setup()
-        while self._has_more_events \
-                and not self._clock.has_passed(time):
+        self.record_state()
+        while self._has_more_events and not self._clock.has_passed(time):
             events = self.next_events
             shuffle(events)
             for each_event in events:
                 each_event.trigger()
+            self.record_state()
+        self.teardown()
+
+    def record_state(self):
+        pass
+
+    def record(self, entries):
+        assert self.has_recorder, "Unable to recorder, no recorder defined."
+        self._recorder.record(entries)
+
+    @property
+    def has_recorder(self):
+        return self._recorder is not None
+
+    def initialize_recorder(self):
+        log_file = "log_" + self.identifier.replace(" ", "_") + ".csv"
+        f = open(log_file, "w", encoding="utf-8")
+        self._recorder = Recorder("recorder", f)
 
     def log(self, message):
         """
@@ -136,6 +160,10 @@ class CompositeAgent(Agent):
         for each_agent in self.agents:
             each_agent.setup()
 
+    def teardown(self):
+        for each_agent in self.agents:
+            each_agent.teardown()
+
     @Agent.clock.setter
     def clock(self, new_clock):
         self._clock = new_clock
@@ -157,6 +185,11 @@ class CompositeAgent(Agent):
             if any_agent.is_named(identifier):
                 return any_agent
         return super().locate(identifier)
+
+    def record_state(self):
+        for each_agent in self.agents:
+            each_agent.record_state()
+
 
 
 class Event:
@@ -214,3 +247,44 @@ class Clock:
         assert new_time >= self._time, "Time is moving backward (now: %d ; then: %d)" % (self._time, new_time)
         self._time = new_time
 
+
+class Recorder:
+    """
+    Record the state of an agent
+    """
+
+    def __init__(self, id, output=StringIO()):
+        self._entry_count = 0
+        self._output = output
+
+    def record(self, entry):
+        if self._is_first_record():
+            self._write_header(entry)
+        self._write_record(entry)
+
+    def _is_first_record(self):
+        return self._entry_count == 0
+
+    def _write_header(self, entries):
+        keys = [key for (key, _, _) in entries ]
+        self._write(", ".join(keys))
+        self._new_line()
+
+    def _write_record(self, entries):
+        format = ", ".join([format for (_, format, _) in entries])
+        self._write(format % tuple([value for (_, _, value) in entries]))
+        self._new_line()
+        self._entry_count += 1
+
+    def _new_line(self):
+        self._write("\n")
+
+    def _write(self, text):
+        self._output.write(text)
+
+    def close(self):
+        self._output.close()
+
+    @property
+    def trace(self):
+        return self._output.getvalue()

@@ -20,7 +20,7 @@
 from unittest import TestCase, main
 from mock import MagicMock
 
-from mad.engine import Agent, CompositeAgent, Action
+from mad.engine import Agent, CompositeAgent, Action, Recorder
 
 
 class DummyAgent(Agent):
@@ -97,6 +97,49 @@ class EngineTest(TestCase):
         level2 = CompositeAgent("level2", level1, agent3)
         self.assertIs(agent3, agent1.locate("A3"))
 
+    def test_component_are_terminated(self):
+        agent = DummyAgent()
+        agent.teardown = MagicMock()
+        container = CompositeAgent("container", agent)
+
+        container.run_until(100)
+
+        self.assertEqual(1, agent.teardown.call_count)
+
+
+class RecorderTest(TestCase):
+
+    def test_agent_state_is_recorded(self):
+        agent = DummyAgent(10, "A1")
+        agent.record_state = MagicMock(Recorder)
+
+        agent.run_until(100)
+
+        self.assertEqual(11, agent.record_state.call_count)
+
+    def test_all_agent_state_are_recorded(self):
+        agent = DummyAgent(10, "A1")
+        agent.record_state = MagicMock(Recorder)
+        simulation = CompositeAgent("composite", agent)
+
+        simulation.run_until(100)
+
+        self.assertEqual(11, agent.record_state.call_count)
+
+    def test_recording_state(self):
+        recorder = Recorder("test")
+        recorder.record([
+            ("counter", "%d", 1),
+            ("value", "%.1f", 50.4)
+        ])
+        recorder.record([
+            ("counter", "%d", 2),
+            ("value", "%.1f", 54.3)
+        ])
+        expected = ("counter, value\n"
+                    "1, 50.4\n"
+                    "2, 54.3\n")
+        self.assertEqual(expected, recorder.trace)
 
 if __name__ == "__main__":
     main()
