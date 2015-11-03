@@ -20,7 +20,7 @@
 from unittest import TestCase, main
 from mock import MagicMock
 
-from mad.server import Server
+from mad.server import Server, Queue, Cluster
 from mad.client import Client, Request
 
 
@@ -49,6 +49,36 @@ class ServerTest(TestCase):
         server.run_until(20)
 
         self.assertEqual(0, server.utilisation)
+
+    def test_server_queue_length(self):
+        client = MagicMock(Client)
+        server = Server("server", 0.1)
+        server.setup()
+
+        server.process(Request(client))
+        server.process(Request(client))
+
+        self.assertEqual(1, server.queue_length)
+        server.run_until(50)
+
+        self.assertEqual(0, server.queue_length)
+
+    def test_setting_size_of_cluster(self):
+        cluster = Cluster(Queue(), 0.2)
+        self.assertEqual(1, cluster.active_unit_count)
+
+        cluster.active_unit_count = 4
+        self.assertEqual(4, cluster.active_unit_count)
+
+        cluster.active_unit_count = 2
+        self.assertEqual(2, cluster.active_unit_count)
+
+    def test_setting_negative_size_of_cluster(self):
+        cluster = Cluster(Queue(), 0.2)
+        self.assertEqual(1, cluster.active_unit_count)
+
+        cluster.active_unit_count = -100
+        self.assertEqual(0, cluster.active_unit_count)
 
 
 if __name__ == '__main__':

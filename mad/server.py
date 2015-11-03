@@ -44,6 +44,10 @@ class Server(CompositeAgent):
     def utilisation(self):
         return self._cluster.utilisation
 
+    @property
+    def queue_length(self):
+        return self._queue.length
+
 
 class Queue(Agent):
     """
@@ -82,8 +86,9 @@ class Cluster(CompositeAgent):
 
     def __init__(self, queue, service_rate):
         super().__init__(Cluster.KEY)
+        self._service_rate = service_rate
         self._queue = queue
-        self._units = [ProcessingUnit(queue, service_rate)]
+        self._units = [ProcessingUnit(self, queue, service_rate)]
 
     @CompositeAgent.agents.getter
     def agents(self):
@@ -103,6 +108,40 @@ class Cluster(CompositeAgent):
     def busy_units(self):
         return [ any_unit for any_unit in self._units if any_unit.is_busy ]
 
+    @property
+    def idle_units(self):
+        return [ any_unit for any_unit in self._units if any_unit.is_idle ]
+
+    @property
+    def active_units(self):
+        return [ any_unit for any_unit in self._units if any_unit.is_active ]
+
+    @property
+    def active_unit_count(self):
+        return len(self.active_units)
+
+    @active_unit_count.setter
+    def active_unit_count(self, new_count):
+        count = self.active_unit_count
+        missing_units = new_count - count
+        if missing_units > 0:
+            for i in range(missing_units):
+                self._grow()
+        elif missing_units < 0:
+            for i in range(max(0, new_count), count):
+                self._shrink()
+
+    def _grow(self):
+        self._units.append(ProcessingUnit(self, self._queue, self._service_rate))
+
+    def _shrink(self):
+        assert self.active_unit_count > 0, "Cannot shrink, no more unit!"
+        choice(self.active_units).stop()
+
+    def discard(self, unit):
+        assert unit.is_stopped, "Cannot discard unit '%s', it is not stopped" % unit.identifier
+        self._units.remove(unit)
+
 
 class Completion(Action):
     """
@@ -120,11 +159,14 @@ class ProcessingUnit(Agent):
 
     COUNTER = 0
 
-    def __init__(self, queue, service_rate):
+    def __init__(self, cluster, queue, service_rate):
+        ProcessingUnit.COUNTER += 1
         super().__init__("Unit#%d" % ProcessingUnit.COUNTER)
+        self._cluster = cluster
         self._service_rate = service_rate
         self._queue = queue
         self._request = None
+        self._stopped = False
 
     def process(self):
         if not self._queue.is_empty:
@@ -143,8 +185,26 @@ class ProcessingUnit(Agent):
     def is_busy(self):
         return not self.is_idle
 
+    @property
+    def is_active(self):
+        return not self.is_stopped
+
+    @property
+    def is_stopped(self):
+        return self._stopped
+
     def complete(self):
         assert self.is_busy, "An idle unit cannot complete the processing of a request"
         self._request.reply()
         self._request = None
-        self.process()
+        if self._stopped:
+            self._cluster.discard(self)
+        else:
+            self.process()
+
+    def stop(self):
+        self._stopped = True
+        if self.is_idle:
+            self._cluster.discard(self)
+
+
