@@ -107,7 +107,7 @@ class Agent:
 
     def record(self, entries):
         assert self.has_recorder, "Unable to recorder, no recorder defined."
-        self._recorder.record(entries)
+        self._recorder.record([("time", "%d", self._clock.time)] + entries)
 
     @property
     def has_recorder(self):
@@ -157,8 +157,12 @@ class CompositeAgent(Agent):
         return self._agents
 
     def setup(self):
+        self.composite_setup()
         for each_agent in self.agents:
             each_agent.setup()
+
+    def composite_setup(self):
+        pass
 
     def teardown(self):
         for each_agent in self.agents:
@@ -187,10 +191,12 @@ class CompositeAgent(Agent):
         return super().locate(identifier)
 
     def record_state(self):
+        self.record_composite_state()
         for each_agent in self.agents:
             each_agent.record_state()
 
-
+    def record_composite_state(self):
+        pass
 
 class Event:
     """

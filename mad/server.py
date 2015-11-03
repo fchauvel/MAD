@@ -17,8 +17,10 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.engine import Agent, CompositeAgent, Action
 from random import choice
+
+from mad.engine import Agent, CompositeAgent, Action
+from mad.throttling import StaticThrottling
 
 
 class Server(CompositeAgent):
@@ -26,19 +28,26 @@ class Server(CompositeAgent):
     The server receives request and returns a response
     """
 
-    def __init__(self, identifier, service_rate=0.2):
+    def __init__(self, identifier, service_rate=0.2, throttling=StaticThrottling(0)):
         super().__init__(identifier)
         self._service_rate = service_rate
         self._queue = Queue()
         self._cluster = Cluster(self._queue, service_rate)
+        self._throttling = throttling
 
     @CompositeAgent.agents.getter
     def agents(self):
         return [self._queue, self._cluster]
 
+    def composite_setup(self):
+        self.initialize_recorder()
+
     def process(self, request):
-        self._queue.append(request)
-        self._cluster.new_request()
+        if self._throttling.accepts(request):
+            self._queue.append(request)
+            self._cluster.new_request()
+        else:
+            request.reject()
 
     @property
     def utilisation(self):
@@ -47,6 +56,10 @@ class Server(CompositeAgent):
     @property
     def queue_length(self):
         return self._queue.length
+
+    def record_composite_state(self):
+        self.record([("queue length", "%d", self._queue.length),
+                     ("rejection rate", "%f", self._throttling.rejection_rate)])
 
 
 class Queue(Agent):

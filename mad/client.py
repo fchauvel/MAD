@@ -32,6 +32,9 @@ class Request:
     def reply(self):
         self._sender.accept_response()
 
+    def reject(self):
+        self._sender.request_rejected()
+
 
 class Send(Action):
     """
@@ -76,5 +79,8 @@ class Client(Agent):
 
     def accept_response(self):
         self.log("response received")
+
+    def request_rejected(self):
+        self.log("request rejected!")
 
 
