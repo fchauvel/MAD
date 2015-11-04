@@ -23,12 +23,13 @@ from mock import MagicMock
 
 from mad.client import Client
 from mad.server import Server
+from mad.math import Constant
 
 
 class ClientTest(TestCase):
 
     def test_client_emit_the_proper_number_of_request(self):
-        client = Client("client", 0.2)
+        client = Client("client", Constant(0.2))
         server = MagicMock(Server)
         client.server = server
         client.run_until(100)

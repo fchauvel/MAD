@@ -26,8 +26,13 @@ class ThrottlingPolicy:
     Interface of the throttling policies
     """
 
-    def __init__(self, queue):
-        self._queue = queue
+    @property
+    def queue(self):
+        return self._queue
+
+    @queue.setter
+    def queue(self, new_queue):
+        self._queue = new_queue
 
     def rejects(self, request):
         pass
@@ -41,8 +46,8 @@ class StaticThrottling(ThrottlingPolicy):
     Reject request based on a redefined rejection rate.
     """
 
-    def __init__(self, server, rejection_rate=0.):
-        super().__init__(server)
+    def __init__(self, rejection_rate=0.):
+        super().__init__()
         self._rejection_rate = rejection_rate
 
     @property
@@ -62,10 +67,10 @@ class RandomEarlyDetection(StaticThrottling):
     Random Early Detection algorithm, which increases the rejection rate as the queue filled in
     """
 
-    def __init__(self, queue, capacity):
-        super().__init__(queue)
+    def __init__(self, capacity):
+        super().__init__()
         self._capacity = capacity
 
     def rejects(self, request):
-        self.rejection_rate = (self._queue.length / self._capacity)
+        self.rejection_rate = (self.queue.length / self._capacity)
         return super().rejects(request)

@@ -19,6 +19,7 @@
 
 
 from mad.engine import Agent, Action
+from mad.math import UpperBound, LowerBound
 
 
 class Request:
@@ -56,12 +57,12 @@ class Client(Agent):
 
     def __init__(self, identifier, request_rate):
         super().__init__(identifier)
-        self._request_rate = request_rate
+        self._request_rate = LowerBound(UpperBound(request_rate, 1), 0)
         self._server = None
 
     @property
     def inter_request_period(self):
-        return int(1/self._request_rate)
+        return int(1/self._request_rate.value_at(self.current_time))
 
     @property
     def server(self):
@@ -78,9 +79,9 @@ class Client(Agent):
         self.schedule_in(Send(self), delay=self.inter_request_period)
 
     def accept_response(self):
-        self.log("response received")
+        pass
 
     def request_rejected(self):
-        self.log("request rejected!")
+        pass
 
 

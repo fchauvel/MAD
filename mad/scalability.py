@@ -64,8 +64,9 @@ class Controller(Agent):
 
     def control(self):
         new_signal = self.signal
+        assert new_signal, str(self)
         self.log("Asking for %d unit(s)" % new_signal)
-        self.cluster.active_unit_count = self.signal
+        self.cluster.active_unit_count = new_signal
         self.schedule_next_control()
 
     @property
@@ -90,16 +91,20 @@ class UtilisationController(Controller):
             return round(self.remove_units())
         elif self.is_too_high():
             return round(self.add_units())
+        else:
+            return self.cluster.active_unit_count
 
     def is_too_high(self):
-        return self._cluster.utilisation > self._max
+        return self.cluster.utilisation > self._max
 
     def is_too_low(self):
-        return self._cluster.utilisation < self._min
+        return self.cluster.utilisation < self._min
 
     def add_units(self):
-        return self._cluster.active_unit_count + self._step
+        return self.cluster.active_unit_count + self._step
 
     def remove_units(self):
-        return self._cluster.active_unit_count - self._step
+        return self.cluster.active_unit_count - self._step
 
+    def __str__(self):
+        return "[%d, %d] %d -> %d" % (self._min, self._max, self.cluster.active_unit_count, self._step)

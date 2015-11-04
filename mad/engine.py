@@ -58,6 +58,10 @@ class Agent:
         self._clock = new_clock
 
     @property
+    def current_time(self):
+        return self._clock.time
+
+    @property
     def next_events(self):
         """
         Return the events that shall be triggered next, that is to say the earliest events in the schedule of this agent.

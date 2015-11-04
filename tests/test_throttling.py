@@ -29,26 +29,34 @@ class REDThrottlingPolicy(TestCase):
     def test_RED_do_not_throttle_when_queue_is_empty(self):
         queue = MagicMock(Queue)
         type(queue).length = PropertyMock(return_value=0)
-        throttling = RandomEarlyDetection(queue, 25)
+
+        throttling = RandomEarlyDetection(25)
+        throttling.queue = queue
+
         self.assertTrue(throttling.accepts(None))
 
     def test_RED_throttle_when_queue_is_full(self):
         queue = MagicMock(Queue)
         type(queue).length = PropertyMock(return_value=25)
-        throttling = RandomEarlyDetection(queue, 25)
+
+        throttling = RandomEarlyDetection(25)
+        throttling.queue = queue
+
         self.assertTrue(throttling.rejects(None))
 
 
 class StaticRejectionPolicy(TestCase):
 
     def test_never_throttle_anything(self):
-        server = MagicMock(Queue)
-        throttling = StaticThrottling(server, 0)
+        throttling = StaticThrottling(0)
+        throttling.queue = MagicMock(Queue)
+
         self.assertTrue(throttling.accepts(None))
 
     def test_never_throttle_anything(self):
-        server = MagicMock(Queue)
-        throttling = StaticThrottling(server, 1)
+        throttling = StaticThrottling(1)
+        throttling.queue =  MagicMock(Queue)
+
         self.assertTrue(throttling.rejects(None))
 
 

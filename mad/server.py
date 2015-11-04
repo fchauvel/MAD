@@ -35,6 +35,7 @@ class Server(CompositeAgent):
         self._queue = Queue()
         self._cluster = Cluster(self._queue, service_rate)
         self._throttling = throttling
+        self._throttling.queue = self._queue
         self._scalability = scalability
         self._scalability.cluster = self._cluster
 

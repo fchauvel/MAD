@@ -22,13 +22,19 @@ from mad.server import Server
 from mad.client import Client
 from mad.throttling import RandomEarlyDetection
 from mad.scalability import UtilisationController
+from mad.math import Constant, GaussianNoise
 
+server = Server("server", 0.15,
+                throttling=RandomEarlyDetection(25),
+                scalability=UtilisationController(70, 80, 1))
 
-server = Server("server", 0.1, scalability=UtilisationController(60, 80, 1))
-client = Client("client", 0.2)
-client.server = server
+clients = []
+for i in range(20):
+    client = Client("client %d" % i, GaussianNoise(Constant(0.2), variance=0.05))
+    client.server = server
+    clients.append(client)
 
-simulation = CompositeAgent("simulation", client, server)
+simulation = CompositeAgent("simulation", server, *clients)
 
 simulation.run_until(500)
 
