@@ -202,6 +202,7 @@ class CompositeAgent(Agent):
     def record_composite_state(self):
         pass
 
+
 class Event:
     """
     Represent the planned triggering of an action

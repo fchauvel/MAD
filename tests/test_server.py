@@ -28,6 +28,18 @@ from mad.math import Constant
 
 class ServerTest(TestCase):
 
+
+    def test_server_forward_requests(self):
+        back_ends = [MagicMock(Server), MagicMock(Server)]
+        server = Server("server", 0.1)
+        server.back_ends = back_ends
+
+        server.process(Request(MagicMock(Client)))
+        server.run_until(100)
+
+        for each_back_end in back_ends:
+            self.assertEqual(1, each_back_end.process.call_count)
+
     def test_server_responds_to_request(self):
         client = MagicMock(Client)
         server = Server("server", 0.1)
@@ -38,7 +50,7 @@ class ServerTest(TestCase):
 
         server.run_until(100)
 
-        self.assertEqual(2, client.on_request_successful.call_count)
+        self.assertEqual(2, client.on_completion_of.call_count)
 
     def test_server_utilisation(self):
         client = MagicMock(Client)
@@ -66,7 +78,7 @@ class ServerTest(TestCase):
         self.assertEqual(0, server.queue_length)
 
     def test_setting_size_of_cluster(self):
-        cluster = Cluster(Queue(), Meter(), 0.2)
+        cluster =Server("x", 0.2)._cluster
         self.assertEqual(1, cluster.active_unit_count)
 
         cluster.active_unit_count = 4
@@ -76,7 +88,7 @@ class ServerTest(TestCase):
         self.assertEqual(2, cluster.active_unit_count)
 
     def test_setting_negative_size_of_cluster(self):
-        cluster = Cluster(Queue(), Meter(), 0.2)
+        cluster = Server("x", 0.2)._cluster
         self.assertEqual(1, cluster.active_unit_count)
 
         cluster.active_unit_count = -100

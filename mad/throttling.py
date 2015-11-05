@@ -26,6 +26,9 @@ class ThrottlingPolicy:
     Interface of the throttling policies
     """
 
+    def __init__(self):
+        self._queue = None
+
     @property
     def queue(self):
         return self._queue

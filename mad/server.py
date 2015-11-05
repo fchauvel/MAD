@@ -22,7 +22,8 @@ from random import choice
 from mad.engine import Agent, CompositeAgent, Action
 from mad.throttling import StaticThrottling
 from mad.scalability import Controller, UtilisationController
-from mad.client import Meter
+from mad.client import Request, Send, Meter
+
 
 class Server(CompositeAgent):
     """
@@ -34,18 +35,48 @@ class Server(CompositeAgent):
         self._service_rate = service_rate
         self._queue = Queue()
         self._meter = Meter()
-        self._cluster = Cluster(self._queue, self._meter, service_rate)
+        self._cluster = Cluster(self)
         self._throttling = throttling
         self._throttling.queue = self._queue
         self._scalability = scalability
         self._scalability.cluster = self._cluster
+        self._back_ends = []
 
     @CompositeAgent.agents.getter
     def agents(self):
         return [self._queue, self._cluster, self._scalability]
 
+    def record_composite_state(self):
+        self.record([("queue length", "%d", self._queue.length),
+                     ("rejection count", "%d", self._meter.rejection_count),
+                     ("utilisation", "%f", self._cluster.utilisation),
+                     ("unit count", "%d", self._cluster.active_unit_count),
+                     ("response time", "%d", self.response_time)
+                     ])
+        self._meter.reset()
+
     def composite_setup(self):
         self.initialize_recorder()
+
+    @property
+    def back_ends(self):
+        return self._back_ends
+
+    @back_ends.setter
+    def back_ends(self, new_back_end_list):
+        self._back_ends = new_back_end_list
+
+    @property
+    def queue(self):
+        return self._queue
+
+    @property
+    def meter(self):
+        return self._meter
+
+    @property
+    def service_rate(self):
+        return self._service_rate
 
     def process(self, request):
         if self._throttling.accepts(request):
@@ -67,14 +98,14 @@ class Server(CompositeAgent):
     def response_time(self):
         return self._meter.average_response_time
 
-    def record_composite_state(self):
-        self.record([("queue length", "%d", self._queue.length),
-                     ("rejection count", "%d", self._meter.rejection_count),
-                     ("utilisation", "%f", self._cluster.utilisation),
-                     ("unit count", "%d", self._cluster.active_unit_count),
-                     ("response time", "%d", self.response_time)
-                     ])
-        self._meter.reset()
+    def create_unit(self):
+        new_unit = ProcessingUnit(self)
+        new_unit.clock = self.clock
+        new_unit.setup()
+        return new_unit
+
+    def destroy_unit(self, unit):
+        self._cluster.discard(unit)
 
 
 class Queue(Agent):
@@ -112,12 +143,10 @@ class Cluster(CompositeAgent):
 
     KEY = "cluster"
 
-    def __init__(self, queue, meter, service_rate):
+    def __init__(self, server):
         super().__init__(Cluster.KEY)
-        self._service_rate = service_rate
-        self._queue = queue
-        self._meter = meter
-        self._units = [ProcessingUnit(self, queue, meter, service_rate)]
+        self._server = server
+        self._units = [self._server.create_unit()]
 
     @CompositeAgent.agents.getter
     def agents(self):
@@ -164,7 +193,7 @@ class Cluster(CompositeAgent):
                 self._shrink()
 
     def _grow(self):
-        self._units.append(ProcessingUnit(self, self._queue, self._meter, self._service_rate))
+        self._units.append(self._server.create_unit())
 
     def _shrink(self):
         assert self.active_unit_count > 0, "Cannot shrink, no more unit!"
@@ -187,6 +216,25 @@ class Completion(Action):
         self._subject.complete()
 
 
+class StartProcessing(Action):
+
+    def __init__(self, subject):
+        self._subject = subject
+
+    def fire(self):
+        self._subject.start_processing()
+
+
+class Retry(Action):
+
+    def __init__(self, request, destination):
+        self._request = request
+        self._destination = destination
+
+    def fire(self):
+        self._request.send_to(self._destination)
+
+
 class ProcessingUnit(Agent):
     """
     Represent a single processing unit, i.e., a "server" in queueing systems parlance
@@ -194,24 +242,57 @@ class ProcessingUnit(Agent):
 
     COUNTER = 0
 
-    def __init__(self, cluster, queue, meter, service_rate):
+    def __init__(self, server):
         ProcessingUnit.COUNTER += 1
         super().__init__("Unit#%d" % ProcessingUnit.COUNTER)
-        self._cluster = cluster
-        self._service_rate = service_rate
-        self._queue = queue
-        self._meter = meter
+        self._server = server
+        self._destination = {}
         self._request = None
         self._stopped = False
 
     def process(self):
-        if not self._queue.is_empty:
-            self._request = self._queue.take()
-            self.schedule_in(Completion(self), self.service_time)
+        if not self._server.queue.is_empty:
+            self._request = self._server.queue.take()
+            if len(self._server.back_ends) > 0:
+                self.schedule_in(StartProcessing(self), self.service_time)
+            else:
+                self.schedule_in(Completion(self), self.service_time)
+
+    def start_processing(self):
+        for each_back_end in self._server.back_ends:
+            request = Request(self)
+            self._destination[request] = each_back_end
+            request.send_to(each_back_end)
+
+    def on_completion_of(self, request):
+        if self.all_back_ends_have_replied():
+            self.complete()
+
+    def all_back_ends_have_replied(self):
+        return all([each_request.is_replied for each_request in self._destination.keys()])
+
+    def complete(self):
+        assert self.is_busy, "An idle unit cannot complete the processing of a request"
+        self._request.reply()
+        self._server.meter.new_success(self._request)
+        self._request = None
+        if self._stopped:
+            self._server.destroy_unit(self)
+        else:
+            self.process()
+
+    def stop(self):
+        self._stopped = True
+        if self.is_idle:
+            self._server.destroy_unit(self)
+
+    def on_rejection_of(self, request):
+        retry = Retry(request, self._destination[request])
+        self.schedule_in(retry, 20)
 
     @property
     def service_time(self):
-        return int(1 / self._service_rate)
+        return int(1 / self._server.service_rate)
 
     @property
     def is_idle(self):
@@ -229,19 +310,6 @@ class ProcessingUnit(Agent):
     def is_stopped(self):
         return self._stopped
 
-    def complete(self):
-        assert self.is_busy, "An idle unit cannot complete the processing of a request"
-        self._request.reply()
-        self._meter.new_success(self._request)
-        self._request = None
-        if self._stopped:
-            self._cluster.discard(self)
-        else:
-            self.process()
 
-    def stop(self):
-        self._stopped = True
-        if self.is_idle:
-            self._cluster.discard(self)
 
 

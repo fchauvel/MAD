@@ -47,10 +47,10 @@ class Request:
 
     def reply(self):
         self._completion_time = self._sender.current_time
-        self._sender.on_request_successful()
+        self._sender.on_completion_of(self)
 
     def reject(self):
-        self._sender.on_request_rejected()
+        self._sender.on_rejection_of(self)
 
 
 class Send(Action):
@@ -104,10 +104,10 @@ class Client(Agent):
     def prepare_next_request(self):
         self.schedule_in(Send(self), delay=self.inter_request_period)
 
-    def on_request_successful(self):
+    def on_completion_of(self, request):
         self.prepare_next_request()
 
-    def on_request_rejected(self):
+    def on_rejection_of(self, request):
         self._meter.new_rejection()
         self.prepare_next_request()
 
