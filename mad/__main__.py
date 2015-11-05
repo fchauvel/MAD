@@ -21,12 +21,12 @@ from mad.engine import CompositeAgent
 from mad.server import Server
 from mad.client import Client
 from mad.throttling import RandomEarlyDetection, StaticThrottling
-from mad.scalability import UtilisationController
+from mad.scalability import UtilisationController, FixedCluster
 from mad.math import Constant, GaussianNoise
 
 back_end = Server("back end", 0.1,
                 throttling=StaticThrottling(0.25),
-                scalability=UtilisationController(70, 80, 1))
+                scalability=FixedCluster())
 
 server = Server("server", 0.15,
                 throttling=RandomEarlyDetection(25),

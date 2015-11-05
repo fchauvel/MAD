@@ -35,7 +35,7 @@ class Controller(Agent):
     Abstract controller adjusting the number of active processing unit in a cluster
     """
 
-    def __init__(self, control_rate):
+    def __init__(self, control_rate=0.1):
         super().__init__("scalability controller")
         self._control_rate = control_rate
         self._cluster = None
@@ -70,6 +70,15 @@ class Controller(Agent):
     @property
     def signal(self):
         return self.cluster.active_unit_count
+
+
+class FixedCluster(Controller):
+    """
+    A "does-nothing" control strategy. Returns the current number of units in the cluster
+    """
+
+    def __init__(self):
+        super().__init__(0.1)
 
 
 class UtilisationController(Controller):
