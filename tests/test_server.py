@@ -20,8 +20,10 @@
 from unittest import TestCase, main
 from mock import MagicMock
 
-from mad.server import Server, Queue, Cluster
+from mad.engine import CompositeAgent
+from mad.server import Server, Queue, Cluster, Meter
 from mad.client import Client, Request
+from mad.math import Constant
 
 
 class ServerTest(TestCase):
@@ -36,7 +38,7 @@ class ServerTest(TestCase):
 
         server.run_until(100)
 
-        self.assertEqual(2, client.accept_response.call_count)
+        self.assertEqual(2, client.on_request_successful.call_count)
 
     def test_server_utilisation(self):
         client = MagicMock(Client)
@@ -64,7 +66,7 @@ class ServerTest(TestCase):
         self.assertEqual(0, server.queue_length)
 
     def test_setting_size_of_cluster(self):
-        cluster = Cluster(Queue(), 0.2)
+        cluster = Cluster(Queue(), Meter(), 0.2)
         self.assertEqual(1, cluster.active_unit_count)
 
         cluster.active_unit_count = 4
@@ -74,7 +76,7 @@ class ServerTest(TestCase):
         self.assertEqual(2, cluster.active_unit_count)
 
     def test_setting_negative_size_of_cluster(self):
-        cluster = Cluster(Queue(), 0.2)
+        cluster = Cluster(Queue(), Meter(), 0.2)
         self.assertEqual(1, cluster.active_unit_count)
 
         cluster.active_unit_count = -100

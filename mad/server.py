@@ -22,7 +22,7 @@ from random import choice
 from mad.engine import Agent, CompositeAgent, Action
 from mad.throttling import StaticThrottling
 from mad.scalability import Controller, UtilisationController
-
+from mad.client import Meter
 
 class Server(CompositeAgent):
     """
@@ -33,7 +33,8 @@ class Server(CompositeAgent):
         super().__init__(identifier)
         self._service_rate = service_rate
         self._queue = Queue()
-        self._cluster = Cluster(self._queue, service_rate)
+        self._meter = Meter()
+        self._cluster = Cluster(self._queue, self._meter, service_rate)
         self._throttling = throttling
         self._throttling.queue = self._queue
         self._scalability = scalability
@@ -48,9 +49,10 @@ class Server(CompositeAgent):
 
     def process(self, request):
         if self._throttling.accepts(request):
-            self._queue.append(request)
+            self._queue.put(request)
             self._cluster.new_request()
         else:
+            self._meter.new_rejection()
             request.reject()
 
     @property
@@ -61,11 +63,18 @@ class Server(CompositeAgent):
     def queue_length(self):
         return self._queue.length
 
+    @property
+    def response_time(self):
+        return self._meter.average_response_time
+
     def record_composite_state(self):
         self.record([("queue length", "%d", self._queue.length),
-                     ("rejection rate", "%f", self._throttling.rejection_rate),
+                     ("rejection count", "%d", self._meter.rejection_count),
                      ("utilisation", "%f", self._cluster.utilisation),
-                     ("unit count", "%d", self._cluster.active_unit_count)])
+                     ("unit count", "%d", self._cluster.active_unit_count),
+                     ("response time", "%d", self.response_time)
+                     ])
+        self._meter.reset()
 
 
 class Queue(Agent):
@@ -84,7 +93,7 @@ class Queue(Agent):
             raise ValueError("Cannot take from an empty queue!")
         return self._queue.pop(0)
 
-    def append(self, request):
+    def put(self, request):
         self._queue.append(request)
 
     @property
@@ -103,11 +112,12 @@ class Cluster(CompositeAgent):
 
     KEY = "cluster"
 
-    def __init__(self, queue, service_rate):
+    def __init__(self, queue, meter, service_rate):
         super().__init__(Cluster.KEY)
         self._service_rate = service_rate
         self._queue = queue
-        self._units = [ProcessingUnit(self, queue, service_rate)]
+        self._meter = meter
+        self._units = [ProcessingUnit(self, queue, meter, service_rate)]
 
     @CompositeAgent.agents.getter
     def agents(self):
@@ -154,7 +164,7 @@ class Cluster(CompositeAgent):
                 self._shrink()
 
     def _grow(self):
-        self._units.append(ProcessingUnit(self, self._queue, self._service_rate))
+        self._units.append(ProcessingUnit(self, self._queue, self._meter, self._service_rate))
 
     def _shrink(self):
         assert self.active_unit_count > 0, "Cannot shrink, no more unit!"
@@ -178,15 +188,19 @@ class Completion(Action):
 
 
 class ProcessingUnit(Agent):
+    """
+    Represent a single processing unit, i.e., a "server" in queueing systems parlance
+    """
 
     COUNTER = 0
 
-    def __init__(self, cluster, queue, service_rate):
+    def __init__(self, cluster, queue, meter, service_rate):
         ProcessingUnit.COUNTER += 1
         super().__init__("Unit#%d" % ProcessingUnit.COUNTER)
         self._cluster = cluster
         self._service_rate = service_rate
         self._queue = queue
+        self._meter = meter
         self._request = None
         self._stopped = False
 
@@ -218,6 +232,7 @@ class ProcessingUnit(Agent):
     def complete(self):
         assert self.is_busy, "An idle unit cannot complete the processing of a request"
         self._request.reply()
+        self._meter.new_success(self._request)
         self._request = None
         if self._stopped:
             self._cluster.discard(self)

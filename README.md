@@ -8,3 +8,9 @@ MAD is a discrete event simulator to study the dynamics of microservices archite
 several interacting feedback loops.
 
 More to come soon.
+
+## TODO
+
+* Retry policy on the server (or client?) side, when request are rejected
+* Add a back end to the simulation 
+* Sensitivity Analysis 

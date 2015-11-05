@@ -64,8 +64,6 @@ class Controller(Agent):
 
     def control(self):
         new_signal = self.signal
-        assert new_signal, str(self)
-        self.log("Asking for %d unit(s)" % new_signal)
         self.cluster.active_unit_count = new_signal
         self.schedule_next_control()
 
