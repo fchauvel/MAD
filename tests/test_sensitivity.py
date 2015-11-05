@@ -28,7 +28,7 @@ from mad.sensitivity import ServiceStub
 class TestServiceStub(TestCase):
 
     def test_response_time(self):
-        server = ServiceStub(response_time=20)
+        server = ServiceStub(response_time=20, rejection_rate=0)
         server.setup()
 
         def get_time():
