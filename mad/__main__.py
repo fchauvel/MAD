@@ -23,10 +23,9 @@ from mad.client import Client
 from mad.throttling import RandomEarlyDetection, StaticThrottling
 from mad.scalability import UtilisationController, FixedCluster
 from mad.math import Constant, GaussianNoise
+from mad.sensitivity import ServiceStub
 
-back_end = Server("back end", 0.1,
-                throttling=StaticThrottling(0.25),
-                scalability=FixedCluster())
+back_end = ServiceStub(response_time=15, rejection_rate=0.75)
 
 server = Server("server", 0.15,
                 throttling=RandomEarlyDetection(25),
