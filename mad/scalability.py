@@ -56,7 +56,7 @@ class Controller(Agent):
     def control_period(self):
         return int(1 / self.control_rate)
 
-    def setup(self):
+    def on_start(self):
         self.schedule_next_control()
 
     def schedule_next_control(self):

@@ -32,6 +32,22 @@ class ServiceStub(Agent):
         self._response_time = response_time
         self._throttling = StaticThrottling(rejection_rate)
 
+    @property
+    def response_time(self):
+        return self._response_time
+
+    @response_time.setter
+    def response_time(self, new_response_time):
+        self._response_time = new_response_time
+
+    @property
+    def rejection_rate(self):
+        return self.rejection_rate
+
+    @rejection_rate.setter
+    def rejection_rate(self, new_rejection_rate):
+        self._throttling = StaticThrottling(new_rejection_rate)
+
     def process(self, request):
         if self._throttling.accepts(request):
             self.schedule_in(Reply(self, request), self._response_time)
@@ -70,7 +86,7 @@ class ClientStub(Agent):
     def server(self, new_server):
         self._server = new_server
 
-    def setup(self):
+    def on_start(self):
         self.prepare_next_request()
 
     def prepare_next_request(self):

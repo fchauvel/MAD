@@ -31,7 +31,8 @@ class Agent:
         self._schedule = []
         self._clock = Clock()
         self._container = None
-        self._recorder = None
+        self._recorders = RecorderBroker()
+        self._parameters = []
 
     @property
     def is_contained(self):
@@ -62,6 +63,14 @@ class Agent:
         return self._clock.time
 
     @property
+    def parameters(self):
+        return self._parameters
+
+    @parameters.setter
+    def parameters(self, new_parameters):
+        self._parameters = new_parameters
+
+    @property
     def next_events(self):
         """
         Return the events that shall be triggered next, that is to say the earliest events in the schedule of this agent.
@@ -88,15 +97,17 @@ class Agent:
         return len(self.next_events) > 0
 
     def setup(self):
-        pass
+       pass
 
     def teardown(self):
-        if self.has_recorder:
-            self._recorder.close()
+        self._recorders[self.identifier].close()
+
+    def on_start(self):
+        pass
 
     def run_until(self, time):
         self.clock = Clock()
-        self.setup()
+        self.on_start()
         self.record_state()
         while self._has_more_events and not self._clock.has_passed(time):
             events = self.next_events
@@ -104,23 +115,21 @@ class Agent:
             for each_event in events:
                 each_event.trigger()
             self.record_state()
-        self.teardown()
 
     def record_state(self):
         pass
 
     def record(self, entries):
-        assert self.has_recorder, "Unable to recorder, no recorder defined."
-        self._recorder.record([("time", "%d", self._clock.time)] + entries)
+        all_entries = self._parameters + [("time", "%d", self._clock.time)] + entries
+        self._recorders[self.identifier].record(all_entries)
 
     @property
-    def has_recorder(self):
-        return self._recorder is not None
+    def recorders(self):
+        return self._recorders
 
-    def initialize_recorder(self):
-        log_file = "log_" + self.identifier.replace(" ", "_") + ".csv"
-        f = open(log_file, "w", encoding="utf-8")
-        self._recorder = Recorder("recorder", f)
+    @recorders.setter
+    def recorders(self, new_recorders):
+        self._recorders = new_recorders
 
     def log(self, message):
         """
@@ -160,13 +169,30 @@ class CompositeAgent(Agent):
     def agents(self):
         return self._agents
 
+    @Agent.parameters.setter
+    def parameters(self, new_parameters):
+        Agent.parameters.fset(self, new_parameters)
+        for each_agent in self.agents:
+            each_agent.parameters = new_parameters
+
+    @Agent.recorders.setter
+    def recorders(self, new_recorders):
+        Agent.recorders.fset(self, new_recorders)
+        for each_agent in self.agents:
+            each_agent.recorders = new_recorders
+
+    def on_start(self):
+        self.on_start_composite()
+        for each_agent in self.agents:
+            each_agent.on_start()
+
+    def on_start_composite(self):
+        pass
+
     def setup(self):
-        self.composite_setup()
+        super().setup()
         for each_agent in self.agents:
             each_agent.setup()
-
-    def composite_setup(self):
-        pass
 
     def teardown(self):
         for each_agent in self.agents:
@@ -296,6 +322,27 @@ class Recorder:
     def close(self):
         self._output.close()
 
-    @property
-    def trace(self):
-        return self._output.getvalue()
+
+class RecorderBroker:
+    """
+    Provide access to a set of recorders by keys. It creates a new recorder, when it meets an unknown key
+    """
+    def default_factory(name):
+        return Recorder(name, RecorderBroker._file_for(name))
+
+    def _file_for(name):
+        log_file = "log_" + name.replace(" ", "_") + ".csv"
+        return open(log_file, "w", encoding="utf-8")
+
+    def __init__(self, factory=default_factory):
+        self._factory = factory
+        self._recorders = {}
+
+    def __getitem__(self, key):
+        if key in self._recorders.keys():
+            return self._recorders[key]
+        else:
+            recorder = self._factory(key)
+            self._recorders[key] = recorder
+            return recorder
+

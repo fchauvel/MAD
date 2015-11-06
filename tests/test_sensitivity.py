@@ -30,7 +30,7 @@ class TestServiceStub(TestCase):
 
     def test_response_time(self):
         server = ServiceStub(response_time=20, rejection_rate=0)
-        server.setup()
+        server.on_start()
 
         def get_time():
             return server.current_time

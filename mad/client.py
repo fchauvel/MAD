@@ -88,8 +88,7 @@ class Client(Agent):
     def server(self, new_server):
         self._server = new_server
 
-    def setup(self):
-        self.initialize_recorder()
+    def on_start(self):
         self.prepare_next_request()
 
     def record_state(self):

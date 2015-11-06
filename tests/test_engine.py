@@ -17,10 +17,11 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from io import StringIO
 from unittest import TestCase, main
 from mock import MagicMock
 
-from mad.engine import Agent, CompositeAgent, Action, Recorder
+from mad.engine import Agent, CompositeAgent, Action, Recorder, RecorderBroker
 
 
 class DummyAgent(Agent):
@@ -31,7 +32,7 @@ class DummyAgent(Agent):
         self._counter = 0
         self._action = DummyAction(self)
 
-    def setup(self):
+    def on_start(self):
         self.schedule_in(self._action, self.period);
 
     def called_once(self):
@@ -97,15 +98,13 @@ class EngineTest(TestCase):
         level2 = CompositeAgent("level2", level1, agent3)
         self.assertIs(agent3, agent1.locate("A3"))
 
-    def test_component_are_terminated(self):
-        agent = DummyAgent()
-        agent.teardown = MagicMock()
-        container = CompositeAgent("container", agent)
+    def test_agents_can_have_parameters(self):
+        agent = DummyAgent(10, "A1")
+        simulation = CompositeAgent("composite", agent)
 
-        container.run_until(100)
+        simulation.parameters = [("name", "%d", 23)]
 
-        self.assertEqual(1, agent.teardown.call_count)
-
+        self.assertEqual("name", agent.parameters[0][0])
 
 class RecorderTest(TestCase):
 
@@ -127,7 +126,8 @@ class RecorderTest(TestCase):
         self.assertEqual(11, agent.record_state.call_count)
 
     def test_recording_state(self):
-        recorder = Recorder("test")
+        output = StringIO()
+        recorder = Recorder("test", output)
         recorder.record([
             ("counter", "%d", 1),
             ("value", "%.1f", 50.4)
@@ -139,7 +139,25 @@ class RecorderTest(TestCase):
         expected = ("counter, value\n"
                     "1, 50.4\n"
                     "2, 54.3\n")
-        self.assertEqual(expected, recorder.trace)
+        self.assertEqual(expected, output.getvalue())
+
+    def test_recording(self):
+        collector = StringIO()
+        factory = MagicMock(side_effect=[Recorder("A", collector)])
+        recording = RecorderBroker(factory)
+        recording["A"].record([("value", "%d", 1), ("rate", "%.1f", 0.2)])
+        recording["A"].record([("value", "%d", 2), ("rate", "%.1f", 0.4)])
+
+        expectation = ("value, rate\n"
+                      "1, 0.2\n"
+                      "2, 0.4\n")
+
+        self.assertEqual(expectation, collector.getvalue())
+
+
+
+
+
 
 if __name__ == "__main__":
     main()

@@ -17,23 +17,39 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.engine import CompositeAgent
+from mad.engine import CompositeAgent, RecorderBroker
 from mad.server import Server
 from mad.throttling import RandomEarlyDetection, StaticThrottling
 from mad.scalability import UtilisationController, FixedCluster
 from mad.sensitivity import ServiceStub, ClientStub
 
-back_end = ServiceStub(response_time=15, rejection_rate=0.75)
 
-server = Server("server", 0.15,
-                throttling=RandomEarlyDetection(25),
-                scalability=UtilisationController(70, 80, 1))
-server.back_ends = [back_end]
 
-client = ClientStub(emission_rate=0.5)
-client.server = server
+recorders = RecorderBroker()
 
-simulation = CompositeAgent("simulation", back_end, server, client)
+for rate in range(0, 101, 5):
+    rejection_rate = rate / 100
+    for run in range(0, 100):
+        print("\rRejection rate: %.2f ; Run %d" % (rejection_rate, run), end="")
 
-simulation.run_until(500)
 
+        back_end = ServiceStub(15, rejection_rate)
+
+        server = Server("server", 0.15,
+                        throttling=RandomEarlyDetection(25),
+                        scalability=UtilisationController(70, 80, 1))
+        server.back_ends = [back_end]
+
+        client = ClientStub(emission_rate=0.5)
+        client.server = server
+
+        simulation = CompositeAgent("simulation", back_end, server, client)
+        simulation.parameters = [
+            ("rejection_rate", "%f", rejection_rate),
+            ("run", "%d", run)
+        ]
+        simulation.recorders = recorders
+        simulation.setup()
+        simulation.run_until(500)
+
+simulation.teardown()

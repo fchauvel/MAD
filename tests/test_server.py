@@ -43,7 +43,7 @@ class ServerTest(TestCase):
     def test_server_responds_to_request(self):
         client = MagicMock(Client)
         server = Server("server", 0.1)
-        server.setup()
+        server.on_start()
 
         server.process(Request(client))
         server.process(Request(client))
@@ -55,7 +55,7 @@ class ServerTest(TestCase):
     def test_server_utilisation(self):
         client = MagicMock(Client)
         server = Server("server", 0.1)
-        server.setup()
+        server.on_start()
 
         server.process(Request(client))
 
@@ -67,7 +67,7 @@ class ServerTest(TestCase):
     def test_server_queue_length(self):
         client = MagicMock(Client)
         server = Server("server", 0.1)
-        server.setup()
+        server.on_start()
 
         server.process(Request(client))
         server.process(Request(client))

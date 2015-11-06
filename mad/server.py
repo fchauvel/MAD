@@ -61,9 +61,6 @@ class Server(CompositeAgent):
                      ])
         self._meter.reset()
 
-    def composite_setup(self):
-        self.initialize_recorder()
-
     @property
     def back_ends(self):
         return self._back_ends
@@ -111,7 +108,7 @@ class Server(CompositeAgent):
     def create_unit(self):
         new_unit = ProcessingUnit(self)
         new_unit.clock = self.clock
-        new_unit.setup()
+        new_unit.on_start()
         return new_unit
 
     def destroy_unit(self, unit):

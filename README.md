@@ -12,4 +12,5 @@ More to come soon.
 ## TODO
 
 * Measure rejection rate on the client-side of the server
-* Sensitivity Analysis 
+* Sensitivity Analysis
+* Refactor duplicate between Client and ClientStub
