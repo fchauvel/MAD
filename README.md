@@ -11,8 +11,5 @@ More to come soon.
 
 ## TODO
 
-* Retry policy on the server (or client?) side, when request are rejected
-* Measure the arrival rate on the server side
 * Measure rejection rate on the client-side of the server
-* Make a fake server, on which one can control both its response time and its rejection rate
 * Sensitivity Analysis 

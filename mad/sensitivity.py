@@ -18,6 +18,7 @@
 #
 
 from mad.engine import Agent, Action
+from mad.client import Request
 from mad.throttling import StaticThrottling
 
 
@@ -49,3 +50,55 @@ class Reply(Action):
 
     def fire(self):
         self._request.reply()
+
+
+class ClientStub(Agent):
+    """
+    A client stub that send request at a fixed rate, regardless of whether they are rejected or successful
+    """
+
+    def __init__(self, emission_rate=0.5):
+        super().__init__("client stub")
+        self._emission_rate = emission_rate
+        self._server = None
+
+    @property
+    def server(self):
+        return self._server
+
+    @server.setter
+    def server(self, new_server):
+        self._server = new_server
+
+    def setup(self):
+        self.prepare_next_request()
+
+    def prepare_next_request(self):
+        self.schedule_in(SendRequest(self), self.inter_request_time)
+
+    @property
+    def inter_request_time(self):
+        return round(1/self._emission_rate)
+
+    def send_request(self):
+        Request(self).send_to(self.server)
+        self.prepare_next_request()
+
+    def on_completion_of(self, request):
+        pass
+
+    def on_rejection_of(self, request):
+        pass
+
+
+class SendRequest(Action):
+    """
+    Trigger the sending of a single request
+    """
+
+    def __init__(self, subject):
+        super().__init__()
+        self._subject = subject
+
+    def fire(self):
+        self._subject.send_request()

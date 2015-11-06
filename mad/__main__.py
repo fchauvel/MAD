@@ -19,27 +19,21 @@
 
 from mad.engine import CompositeAgent
 from mad.server import Server
-from mad.client import Client
 from mad.throttling import RandomEarlyDetection, StaticThrottling
 from mad.scalability import UtilisationController, FixedCluster
-from mad.math import Constant, GaussianNoise
-from mad.sensitivity import ServiceStub
+from mad.sensitivity import ServiceStub, ClientStub
 
 back_end = ServiceStub(response_time=15, rejection_rate=0.75)
 
 server = Server("server", 0.15,
                 throttling=RandomEarlyDetection(25),
                 scalability=UtilisationController(70, 80, 1))
-
 server.back_ends = [back_end]
 
-clients = []
-for i in range(20):
-    client = Client("client %d" % i, GaussianNoise(Constant(0.2), variance=0.05))
-    client.server = server
-    clients.append(client)
+client = ClientStub(emission_rate=0.5)
+client.server = server
 
-simulation = CompositeAgent("simulation", back_end, server, *clients)
+simulation = CompositeAgent("simulation", back_end, server, client)
 
 simulation.run_until(500)
 

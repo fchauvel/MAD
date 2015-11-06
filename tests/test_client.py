@@ -58,6 +58,14 @@ class RequestTest(TestCase):
 
 class MeterTest(TestCase):
 
+    def test_request_count(self):
+        meter = Meter()
+
+        meter.new_request()
+        meter.new_request()
+
+        self.assertEqual(2, meter.request_count)
+
     def test_response_time(self):
         request = MagicMock(Request)
         type(request).response_time = PropertyMock(side_effect = [5, 15])

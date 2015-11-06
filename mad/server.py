@@ -18,19 +18,23 @@
 #
 
 from random import choice
+from collections import namedtuple
 
 from mad.engine import Agent, CompositeAgent, Action
 from mad.throttling import StaticThrottling
 from mad.scalability import Controller, UtilisationController
+from mad.backoff import ExponentialBackOff
 from mad.client import Request, Send, Meter
 
+
+Service = namedtuple("Service", ["endpoint", "back_off"])
 
 class Server(CompositeAgent):
     """
     The server receives request and returns a response
     """
 
-    def __init__(self, identifier, service_rate=0.2, throttling=StaticThrottling(0), scalability=Controller(0.4)):
+    def __init__(self, identifier, service_rate=0.2, throttling=StaticThrottling(0), scalability=Controller(0.4), back_off=ExponentialBackOff.factory):
         super().__init__(identifier)
         self._service_rate = service_rate
         self._queue = Queue()
@@ -40,6 +44,7 @@ class Server(CompositeAgent):
         self._throttling.queue = self._queue
         self._scalability = scalability
         self._scalability.cluster = self._cluster
+        self._back_off_factory = back_off
         self._back_ends = []
 
     @CompositeAgent.agents.getter
@@ -51,7 +56,8 @@ class Server(CompositeAgent):
                      ("rejection count", "%d", self._meter.rejection_count),
                      ("utilisation", "%f", self._cluster.utilisation),
                      ("unit count", "%d", self._cluster.active_unit_count),
-                     ("response time", "%d", self.response_time)
+                     ("response time", "%d", self.response_time),
+                     ("request count", "%d", self._meter.request_count)
                      ])
         self._meter.reset()
 
@@ -64,7 +70,10 @@ class Server(CompositeAgent):
 
     @back_ends.setter
     def back_ends(self, new_back_end_list):
-        self._back_ends = new_back_end_list
+        self.back_ends.clear()
+        for each_back_end in new_back_end_list:
+            back_off = self._back_off_factory()
+            self._back_ends.append(Service(each_back_end, back_off))
 
     @property
     def queue(self):
@@ -79,6 +88,7 @@ class Server(CompositeAgent):
         return self._service_rate
 
     def process(self, request):
+        self._meter.new_request()
         if self._throttling.accepts(request):
             self._queue.put(request)
             self._cluster.new_request()
@@ -262,9 +272,10 @@ class ProcessingUnit(Agent):
         for each_back_end in self._server.back_ends:
             request = Request(self)
             self._destination[request] = each_back_end
-            request.send_to(each_back_end)
+            request.send_to(each_back_end.endpoint)
 
     def on_completion_of(self, request):
+        self._destination[request].back_off.new_success()
         if self.all_back_ends_have_replied():
             self.complete()
 
@@ -287,8 +298,9 @@ class ProcessingUnit(Agent):
             self._server.destroy_unit(self)
 
     def on_rejection_of(self, request):
-        retry = Retry(request, self._destination[request])
-        self.schedule_in(retry, 20)
+        self._destination[request].back_off.new_rejection()
+        retry = Retry(request, self._destination[request].endpoint)
+        self.schedule_in(retry, self._destination[request].back_off.delay)
 
     @property
     def service_time(self):

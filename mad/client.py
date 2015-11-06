@@ -120,9 +120,17 @@ class Meter:
     NO_RESPONSE_TIME = -1
 
     def __init__(self):
+        self._request_count = 0
         self._total_response_time = 0
         self._success_count = 0
         self._rejection_count = 0
+
+    def new_request(self):
+        self._request_count += 1
+
+    @property
+    def request_count(self):
+        return self._request_count
 
     def new_success(self, request):
         self._success_count += 1
