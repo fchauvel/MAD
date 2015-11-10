@@ -22,6 +22,72 @@ from mad.client import Request
 from mad.throttling import StaticThrottling
 
 
+class SensitivityAnalysis:
+    """
+    A sensitivity analysis that varies all input parameter, one at a time.
+    """
+
+    def __init__(self):
+        self._run_count = 10
+        self._parameters = {}
+        self._simulation_end = 500
+
+    @property
+    def parameters(self):
+        return self._parameters
+
+    def parameters(self, new_parameters):
+        self._parameters = {each_parameter.name: each_parameter for each_parameter in new_parameters}
+
+    @property
+    def run_count(self):
+        return self._run_count
+
+    @run_count.setter
+    def run_count(self, new_count):
+        self._run_count = new_count
+
+    def run(self):
+        for each_parameter in self.parameters:
+            for each_value in each_parameter.domain:
+                for each_run in range(self.run_count):
+                    self.one_run(each_parameter, each_value, each_run)
+
+    def one_run(self, parameter, value, run):
+        print("%s: %f (%3d)\t" % (parameter.name, value, run), end="")
+        simulation = self.create_simulation()
+        simulation.parameters = [
+            ("sensitivity", "%s", parameter.name),
+            (parameter.name, parameter.format, value),
+            ("run", "%d", run)
+        ]
+        simulation.setup()
+        simulation.run_until(self._simulation_end)
+
+    def create_simulation(self):
+        pass
+
+
+class Parameter:
+    """
+    A parameter to be varied in a sensitivity analysis
+    """
+
+    def __init__(self, name, min, max, step, scaling=lambda x: x):
+        self._name = name
+        self._lower_bound = min
+        self._upper_bound = max
+        self._step = step
+        self._scaling = scaling
+
+    @property
+    def domain(self):
+        current = self._lower_bound
+        while current <= self._upper_bound:
+            yield self._scaling(current)
+            current += self._step
+
+
 class ServiceStub(Agent):
     """
     A service stub, on which one can adjust the response time and the rejection rate

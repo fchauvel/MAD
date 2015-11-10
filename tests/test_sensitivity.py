@@ -19,11 +19,41 @@
 
 
 from unittest import TestCase
-from mock import MagicMock, PropertyMock
+from mock import MagicMock, PropertyMock, patch
 
 from mad.client import Client, Request
 from mad.server import Server
 from mad.sensitivity import ServiceStub, ClientStub
+from mad.sensitivity import SensitivityAnalysis, Parameter
+
+
+class TestSensitivityAnalysis(TestCase):
+
+    def test_run(self):
+        analysis = SensitivityAnalysis()
+        analysis.parameters = [
+            Parameter("x", 0, 10, 1),
+            Parameter("y", 0, 20, 1),
+            Parameter("z", 0, 10, 2)
+        ]
+        analysis.run_count = 100
+
+        with patch.object(SensitivityAnalysis, "one_run") as mock:
+            analysis.run()
+
+        self.assertEqual((11 + 21 + 6) * 100, mock.call_count)
+
+
+class TestParameter(TestCase):
+
+    def test_domain(self):
+        parameter = Parameter("x", 0, 10, 1)
+        self.assertEqual(11, len(list(parameter.domain)))
+
+    def test_scaling(self):
+        parameter = Parameter("x", 0, 100, 20, scaling = lambda x: x / 100)
+
+        self.assertEqual([0, 0.2, 0.4, 0.6, 0.8, 1.0], list(parameter.domain))
 
 
 class TestServiceStub(TestCase):

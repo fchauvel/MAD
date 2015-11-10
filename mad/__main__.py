@@ -24,26 +24,29 @@ from mad.scalability import UtilisationController, FixedCluster
 from mad.sensitivity import ServiceStub, ClientStub
 
 
+def create_simulation():
+    back_end = ServiceStub(15, rejection_rate)
+
+    server = Server("server", 0.15,
+                    throttling=RandomEarlyDetection(25),
+                    scalability=UtilisationController(70, 80, 1))
+    server.back_ends = [back_end]
+
+    client = ClientStub(emission_rate=0.5)
+    client.server = server
+
+    return CompositeAgent("simulation", back_end, server, client)
+
+
 
 recorders = RecorderBroker()
 
-for rate in range(0, 101, 5):
-    rejection_rate = rate / 100
+for each_value in range(0, 101, 5):
+    rejection_rate = each_value / 100
     for run in range(0, 100):
         print("\rRejection rate: %.2f ; Run %d" % (rejection_rate, run), end="")
 
-
-        back_end = ServiceStub(15, rejection_rate)
-
-        server = Server("server", 0.15,
-                        throttling=RandomEarlyDetection(25),
-                        scalability=UtilisationController(70, 80, 1))
-        server.back_ends = [back_end]
-
-        client = ClientStub(emission_rate=0.5)
-        client.server = server
-
-        simulation = CompositeAgent("simulation", back_end, server, client)
+        simulation = create_simulation()
         simulation.parameters = [
             ("rejection_rate", "%f", rejection_rate),
             ("run", "%d", run)
