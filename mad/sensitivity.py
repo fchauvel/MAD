@@ -17,9 +17,44 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.engine import Agent, Action
+from mad.engine import Agent, CompositeAgent, Action, RecorderBroker
+from mad.server import Server
 from mad.client import Request
-from mad.throttling import StaticThrottling
+from mad.throttling import RandomEarlyDetection, StaticThrottling
+from mad.scalability import UtilisationController
+
+
+class Simulation(CompositeAgent):
+    """
+    The simulation that is run during the sensitivity analysis
+    """
+
+    def __init__(self):
+        super().__init__("simulation")
+        self._back_end = ServiceStub(15, rejection_rate=0.)
+        self._server = Server("server", 0.15,
+                              throttling=RandomEarlyDetection(25),
+                              scalability=UtilisationController(70, 80, 1))
+        self._server.back_ends = [self._back_end]
+
+        self._client = ClientStub(emission_rate=0.5)
+        self._client.server = self._server
+
+    @CompositeAgent.agents.getter
+    def agents(self):
+        return [self._back_end, self._server, self._client]
+
+    @property
+    def server(self):
+        return self._server
+
+    @property
+    def client(self):
+        return self._client
+
+    @property
+    def back_end(self):
+        return self._back_end
 
 
 class SensitivityAnalysis:
@@ -48,24 +83,23 @@ class SensitivityAnalysis:
         self._run_count = new_count
 
     def run(self):
+        recorders = RecorderBroker()
         for each_parameter in self.parameters:
             for each_value in each_parameter.domain:
                 for each_run in range(self.run_count):
-                    self.one_run(each_parameter, each_value, each_run)
+                    self.one_run(recorders, each_parameter, each_value, each_run)
 
-    def one_run(self, parameter, value, run):
-        print("%s: %f (%3d)\t" % (parameter.name, value, run), end="")
-        simulation = self.create_simulation()
+    def one_run(self, recorders, parameter, value, run):
+        print("\r%s: %.2f (Run %3d)" % (parameter.name, value, run), end="")
+        simulation = Simulation()
         simulation.parameters = [
             ("sensitivity", "%s", parameter.name),
             (parameter.name, parameter.format, value),
             ("run", "%d", run)
         ]
+        simulation.recorders = recorders
         simulation.setup()
         simulation.run_until(self._simulation_end)
-
-    def create_simulation(self):
-        pass
 
 
 class Parameter:
@@ -73,12 +107,21 @@ class Parameter:
     A parameter to be varied in a sensitivity analysis
     """
 
-    def __init__(self, name, min, max, step, scaling=lambda x: x):
+    def __init__(self, name, format, min, max, step, scaling=lambda x: x):
         self._name = name
+        self._format = format
         self._lower_bound = min
         self._upper_bound = max
         self._step = step
         self._scaling = scaling
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def format(self):
+        return self._format
 
     @property
     def domain(self):
@@ -86,6 +129,18 @@ class Parameter:
         while current <= self._upper_bound:
             yield self._scaling(current)
             current += self._step
+
+    def setup(self, value, simulation):
+        pass
+
+
+class RejectionRate(Parameter):
+
+    def __init__(self):
+        super().__init__("rejection rate", "%.2f", 0, 100, 5, scaling=lambda x: x/100)
+
+    def setup(self, value, simulation):
+        simulation.back_end.rejection_rate = value
 
 
 class ServiceStub(Agent):
