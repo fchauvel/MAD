@@ -83,14 +83,16 @@ class SensitivityAnalysis:
         self._run_count = new_count
 
     def run(self):
-        recorders = RecorderBroker()
         for each_parameter in self.parameters:
+            recorders = RecorderBroker(prefix=each_parameter.name)
             for each_value in each_parameter.domain:
                 for each_run in range(self.run_count):
                     self.one_run(recorders, each_parameter, each_value, each_run)
+            recorders.close_all()
+            print("\r - %s ... DONE                  " % each_parameter.name)
 
     def one_run(self, recorders, parameter, value, run):
-        print("\r%s: %.2f (Run %3d)" % (parameter.name, value, run), end="")
+        print("\r - %s: %.2f (Run %3d)" % (parameter.name, value, run), end="")
         simulation = Simulation()
         simulation.parameters = [
             ("sensitivity", "%s", parameter.name),
@@ -141,6 +143,24 @@ class RejectionRate(Parameter):
 
     def setup(self, value, simulation):
         simulation.back_end.rejection_rate = value
+
+
+class ResponseTime(Parameter):
+
+    def __init__(self):
+        super().__init__("3rd party response time", "%d", 5, 20, 2)
+
+    def setup(self, value, simulation):
+        simulation.back_end.response_time = value
+
+
+class ClientRequestRate(Parameter):
+
+    def __init__(self):
+        super().__init__("client emission time", "%.2f", 5, 50, 5, scaling=lambda x:1/x)
+
+    def setup(self, value, simulation):
+        simulation.client.emission_rate = value
 
 
 class ServiceStub(Agent):
@@ -198,6 +218,14 @@ class ClientStub(Agent):
         super().__init__("client stub")
         self._emission_rate = emission_rate
         self._server = None
+
+    @property
+    def emission_rate(self):
+        return self._emission_rate
+
+    @emission_rate.setter
+    def emission_rate(self, new_emission_rate):
+        self._emission_rate = new_emission_rate
 
     @property
     def server(self):

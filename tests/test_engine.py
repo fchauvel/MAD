@@ -106,6 +106,7 @@ class EngineTest(TestCase):
 
         self.assertEqual("name", agent.parameters[0][0])
 
+
 class RecorderTest(TestCase):
 
     def test_agent_state_is_recorded(self):
@@ -144,7 +145,7 @@ class RecorderTest(TestCase):
     def test_recording(self):
         collector = StringIO()
         factory = MagicMock(side_effect=[Recorder("A", collector)])
-        recording = RecorderBroker(factory)
+        recording = RecorderBroker("", factory)
         recording["A"].record([("value", "%d", 1), ("rate", "%.1f", 0.2)])
         recording["A"].record([("value", "%d", 2), ("rate", "%.1f", 0.4)])
 

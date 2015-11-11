@@ -327,14 +327,18 @@ class RecorderBroker:
     """
     Provide access to a set of recorders by keys. It creates a new recorder, when it meets an unknown key
     """
-    def default_factory(name):
-        return Recorder(name, RecorderBroker._file_for(name))
+    def default_factory(prefix, name):
+        return Recorder(name, RecorderBroker._file_for(prefix, name))
 
-    def _file_for(name):
-        log_file = "log_" + name.replace(" ", "_") + ".csv"
+    def _file_for(prefix, name):
+        log_file = RecorderBroker._escape(prefix) + "_log_" + RecorderBroker._escape(name) + ".csv"
         return open(log_file, "w", encoding="utf-8")
 
-    def __init__(self, factory=default_factory):
+    def _escape(text):
+        return text.replace(" ", "_")
+
+    def __init__(self, prefix="", factory=default_factory):
+        self._prefix = prefix
         self._factory = factory
         self._recorders = {}
 
@@ -342,7 +346,10 @@ class RecorderBroker:
         if key in self._recorders.keys():
             return self._recorders[key]
         else:
-            recorder = self._factory(key)
+            recorder = self._factory(self._prefix, key)
             self._recorders[key] = recorder
             return recorder
 
+    def close_all(self):
+        for (_, each_recorder) in self._recorders.items():
+            each_recorder.close()

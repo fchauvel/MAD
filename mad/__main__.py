@@ -17,10 +17,21 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.sensitivity import SensitivityAnalysis, RejectionRate
+from mad import __version__
+from mad.sensitivity import SensitivityAnalysis, RejectionRate, ResponseTime, ClientRequestRate
+
+HEADER = "MAD v%s - Copyright (C) 2015, Franck Chauvel\n\n" \
+         "This program comes with ABSOLUTELY NO WARRANTY\n" \
+         "This is free software, and you are welcome to redistribute it\n" \
+         "under certain conditions.\n"
 
 
+print(HEADER % __version__)
+
+print("Sensitivity Analysis:")
 analysis = SensitivityAnalysis()
 analysis.run_count = 5
-analysis.parameters = [ RejectionRate() ]
+analysis.parameters = [ RejectionRate(), ResponseTime(), ClientRequestRate() ]
 analysis.run()
+
+print("That's all folks.")
