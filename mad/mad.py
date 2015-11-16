@@ -21,8 +21,8 @@
 from sys import stdout
 
 from mad import __version__
-from mad.sensitivity import SensitivityAnalysis, RejectionRate, ResponseTime, ClientRequestRate, SensitivityAnalysisListener
-
+from mad.experiments.sensitivity import SensitivityAnalysis, RejectionRate, ResponseTime, ClientRequestRate, SensitivityAnalysisListener
+from mad.experiments.sandbox import Sandbox
 
 class Mad:
     """
@@ -36,7 +36,8 @@ class Mad:
         analysis.run()
 
     def sandbox(self):
-        print("Sandbox!")
+        sandbox = Sandbox()
+        sandbox.run()
 
 
 class UI:
@@ -97,6 +98,8 @@ class Controller(SensitivityAnalysisListener):
         self._ui.show(" - %s ... DONE                  " % parameter.name)
 
     def _sandbox(self):
+        self._ui.print("------------")
+        self._ui.print("Sandbox")
         self._mad.sandbox()
 
     def run(self, commands):

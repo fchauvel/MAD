@@ -19,12 +19,13 @@
 
 
 from unittest import TestCase
+
 from mock import MagicMock, PropertyMock, patch
 
 from mad.client import Client, Request
 from mad.server import Server
-from mad.sensitivity import ServiceStub, ClientStub
-from mad.sensitivity import SensitivityAnalysis, Parameter
+from mad.experiments.sensitivity import ServiceStub, ClientStub
+from mad.experiments.sensitivity import SensitivityAnalysis, Parameter
 
 
 class TestSensitivityAnalysis(TestCase):
