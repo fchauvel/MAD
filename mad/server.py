@@ -63,8 +63,9 @@ class Server(CompositeAgent):
                      ("utilisation", "%f", self._cluster.utilisation),
                      ("unit count", "%d", self._cluster.active_unit_count),
                      ("response time", "%d", self.response_time),
-                     ("request count", "%d", self._meter.request_count)
-                     ] + emission_rates)
+                     ("request count", "%d", self._meter.request_count),
+                     ("throughput", "%d", self._meter.throughput)]
+                    + emission_rates)
         self._meter.reset()
         for each_back_end in self._back_ends:
             each_back_end.meter.reset()

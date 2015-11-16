@@ -57,15 +57,28 @@ class Simulation(CompositeAgent):
         return self._back_end
 
 
+class SensitivityAnalysisListener:
+    """
+    Interface for object reacting to the progress of the sensitivity Analysis
+    """
+
+    def sensitivity_of(self, parameter, value, run):
+        pass
+
+    def sensitivity_analysis_complete(self, parameter):
+        pass
+
+
 class SensitivityAnalysis:
     """
     A sensitivity analysis that varies all input parameter, one at a time.
     """
 
-    def __init__(self):
+    def __init__(self, listener=SensitivityAnalysisListener()):
         self._run_count = 10
         self._parameters = {}
         self._simulation_end = 500
+        self._listener = listener
 
     @property
     def parameters(self):
@@ -89,10 +102,10 @@ class SensitivityAnalysis:
                 for each_run in range(self.run_count):
                     self.one_run(recorders, each_parameter, each_value, each_run)
             recorders.close_all()
-            print("\r - %s ... DONE                  " % each_parameter.name)
+            self._listener.sensitivity_analysis_complete(each_parameter)
 
     def one_run(self, recorders, parameter, value, run):
-        print("\r - %s: %.2f (Run %3d)" % (parameter.name, value, run), end="")
+        self._listener.sensitivity_of(parameter, value, run)
         simulation = Simulation()
         simulation.recorders = recorders
         simulation.parameters = [

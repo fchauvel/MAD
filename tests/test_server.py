@@ -77,7 +77,7 @@ class ServerTest(TestCase):
         self.assertEqual(0, server.queue_length)
 
     def test_setting_size_of_cluster(self):
-        cluster =Server("x", 0.2)._cluster
+        cluster = Server("x", 0.2)._cluster
         self.assertEqual(1, cluster.active_unit_count)
 
         cluster.active_unit_count = 4

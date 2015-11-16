@@ -58,6 +58,28 @@ class RequestTest(TestCase):
 
 class MeterTest(TestCase):
 
+    def test_zero_throughput(self):
+        meter = Meter()
+        self.assertEqual(0, meter.throughput)
+
+    def test_valid_throughput(self):
+        fake_request = MagicMock(Request)
+        type(fake_request).response_time = PropertyMock(side_effect = [5, 15])
+        meter = Meter()
+        meter.new_success(fake_request)
+        meter.new_success(fake_request)
+
+        self.assertEqual(2, meter.throughput)
+
+    def test_valid_throughput(self):
+        fake_request = MagicMock(Request)
+        type(fake_request).response_time = PropertyMock(side_effect = [5, 15])
+        meter = Meter()
+        meter.new_success(fake_request)
+        meter.reset()
+
+        self.assertEqual(0, meter.throughput)
+
     def test_request_count(self):
         meter = Meter()
 

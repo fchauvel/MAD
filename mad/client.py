@@ -128,6 +128,10 @@ class Meter:
         self._request_count += 1
 
     @property
+    def throughput(self):
+        return self._success_count
+
+    @property
     def request_count(self):
         return self._request_count
 
