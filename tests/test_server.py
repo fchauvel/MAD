@@ -28,7 +28,6 @@ from mad.math import Constant
 
 class ServerTest(TestCase):
 
-
     def test_server_forward_requests(self):
         back_ends = [MagicMock(Server), MagicMock(Server)]
         server = Server("server", 0.1)

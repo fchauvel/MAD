@@ -94,12 +94,12 @@ class SensitivityAnalysis:
     def one_run(self, recorders, parameter, value, run):
         print("\r - %s: %.2f (Run %3d)" % (parameter.name, value, run), end="")
         simulation = Simulation()
+        simulation.recorders = recorders
         simulation.parameters = [
-            ("sensitivity", "%s", parameter.name),
-            (parameter.name, parameter.format, value),
+            ("subject", parameter.format, value),
             ("run", "%d", run)
         ]
-        simulation.recorders = recorders
+        parameter.setup(value, simulation)
         simulation.setup()
         simulation.run_until(self._simulation_end)
 
@@ -139,7 +139,7 @@ class Parameter:
 class RejectionRate(Parameter):
 
     def __init__(self):
-        super().__init__("rejection rate", "%.2f", 0, 100, 5, scaling=lambda x: x/100)
+        super().__init__("back end rejection rate", "%.2f", 0, 100, 10, scaling=lambda x: x/100)
 
     def setup(self, value, simulation):
         simulation.back_end.rejection_rate = value
@@ -148,7 +148,7 @@ class RejectionRate(Parameter):
 class ResponseTime(Parameter):
 
     def __init__(self):
-        super().__init__("3rd party response time", "%d", 5, 20, 2)
+        super().__init__("back end response time", "%d", 5, 20, 2)
 
     def setup(self, value, simulation):
         simulation.back_end.response_time = value

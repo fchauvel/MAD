@@ -27,7 +27,8 @@ from mad.backoff import ExponentialBackOff
 from mad.client import Request, Send, Meter
 
 
-Service = namedtuple("Service", ["endpoint", "back_off"])
+Service = namedtuple("Service", ["endpoint", "back_off", "meter"])
+
 
 class Server(CompositeAgent):
     """
@@ -52,14 +53,21 @@ class Server(CompositeAgent):
         return [self._queue, self._cluster, self._scalability]
 
     def record_composite_state(self):
+        emission_rates = []
+        for each_back_end in enumerate(self._back_ends):
+            emission_rate = ("emission count %d" % each_back_end[0], "%d", each_back_end[1].meter.request_count)
+            emission_rates.append(emission_rate)
+
         self.record([("queue length", "%d", self._queue.length),
                      ("rejection count", "%d", self._meter.rejection_count),
                      ("utilisation", "%f", self._cluster.utilisation),
                      ("unit count", "%d", self._cluster.active_unit_count),
                      ("response time", "%d", self.response_time),
                      ("request count", "%d", self._meter.request_count)
-                     ])
+                     ] + emission_rates)
         self._meter.reset()
+        for each_back_end in self._back_ends:
+            each_back_end.meter.reset()
 
     @property
     def back_ends(self):
@@ -70,7 +78,7 @@ class Server(CompositeAgent):
         self.back_ends.clear()
         for each_back_end in new_back_end_list:
             back_off = self._back_off_factory()
-            self._back_ends.append(Service(each_back_end, back_off))
+            self._back_ends.append(Service(each_back_end, back_off, Meter()))
 
     @property
     def queue(self):
@@ -234,12 +242,13 @@ class StartProcessing(Action):
 
 class Retry(Action):
 
-    def __init__(self, request, destination):
+    def __init__(self, request, back_end):
         self._request = request
-        self._destination = destination
+        self._back_end = back_end
 
     def fire(self):
-        self._request.send_to(self._destination)
+        self._back_end.meter.new_request()
+        self._request.send_to(self._back_end.endpoint)
 
 
 class ProcessingUnit(Agent):
@@ -269,6 +278,7 @@ class ProcessingUnit(Agent):
         for each_back_end in self._server.back_ends:
             request = Request(self)
             self._destination[request] = each_back_end
+            each_back_end.meter.new_request()
             request.send_to(each_back_end.endpoint)
 
     def on_completion_of(self, request):
@@ -296,7 +306,7 @@ class ProcessingUnit(Agent):
 
     def on_rejection_of(self, request):
         self._destination[request].back_off.new_rejection()
-        retry = Retry(request, self._destination[request].endpoint)
+        retry = Retry(request, self._destination[request])
         self.schedule_in(retry, self._destination[request].back_off.delay)
 
     @property

@@ -20,17 +20,23 @@
 from mad import __version__
 from mad.sensitivity import SensitivityAnalysis, RejectionRate, ResponseTime, ClientRequestRate
 
-HEADER = "MAD v%s - Copyright (C) 2015, Franck Chauvel\n\n" \
-         "This program comes with ABSOLUTELY NO WARRANTY\n" \
-         "This is free software, and you are welcome to redistribute it\n" \
-         "under certain conditions.\n"
+VERSION = "MAD v%s" % __version__
+COPYRIGHT = "Copyright (C) 2015 Franck Chauvel"
+
+DISCLAIMER = "This program comes with ABSOLUTELY NO WARRANTY\n" \
+             "This is free software, and you are welcome to redistribute it\n" \
+             "under certain conditions."
 
 
-print(HEADER % __version__)
+print(VERSION)
+print(COPYRIGHT)
+print()
+print(DISCLAIMER)
+print()
 
 print("Sensitivity Analysis:")
 analysis = SensitivityAnalysis()
-analysis.run_count = 5
+analysis.run_count = 100
 analysis.parameters = [ RejectionRate(), ResponseTime(), ClientRequestRate() ]
 analysis.run()
 
