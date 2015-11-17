@@ -22,6 +22,7 @@ from mad.simulation import CompositeAgent
 from mad.server import Server
 from mad.throttling import RandomEarlyDetection, TailDrop
 from mad.scalability import UtilisationController
+from mad.backoff import ConstantDelay
 
 
 class Sandbox:
@@ -35,19 +36,23 @@ class Sandbox:
         server_C.back_ends = [back_end]
 
         server_B = Server("server_B", 0.15,
-                          throttling=RandomEarlyDetection(30),
-                          scalability=UtilisationController(70, 80, 2))
+                          throttling=TailDrop(50),
+                          scalability=UtilisationController(70, 80, 1))
         server_B.back_ends = [ server_C ]
 
         server_A = Server("server_A", 0.15,
                           throttling=RandomEarlyDetection(20),
-                          scalability=UtilisationController(70, 80, 1))
+                          scalability=UtilisationController(70, 80, 2),
+                          back_off = ConstantDelay.factory)
         server_A.back_ends = [ server_B ]
 
-        client = ClientStub()
-        client.server = server_A
+        clients = []
+        for each_client in range(1, 10):
+            client = ClientStub(emission_rate=0.1)
+            client.server = server_A
+            clients.append(client)
 
-        simulation = CompositeAgent("sandbox", client, server_A, server_B, server_C, back_end)
+        simulation = CompositeAgent("sandbox", server_A, server_B, server_C, back_end, *clients)
         simulation.setup()
 
         simulation.run_until(1000)

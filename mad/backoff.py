@@ -21,7 +21,6 @@
 from random import randint
 
 
-
 class BackOffStrategy:
     """
     The interface of all back off strategies
@@ -33,6 +32,25 @@ class BackOffStrategy:
     @property
     def delay(self):
         return self._delay
+
+    def new_success(self):
+        pass
+
+    def new_rejection(self):
+        pass
+
+
+class ConstantDelay(BackOffStrategy):
+    """
+    Generate a constant delay
+    """
+
+    @staticmethod
+    def factory():
+        return ConstantDelay()
+
+    def __init__(self, delay=15):
+        super().__init__(delay)
 
 
 class ExponentialBackOff(BackOffStrategy):

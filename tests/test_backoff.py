@@ -20,7 +20,14 @@
 from unittest import TestCase
 from mock import patch
 
-from mad.backoff import ExponentialBackOff
+from mad.backoff import ExponentialBackOff, ConstantDelay
+
+
+class TestConstantDelay(TestCase):
+
+    def test_delay(self):
+        backoff = ConstantDelay(5)
+        self.assertEqual(5, backoff.delay)
 
 
 class TestExponentialBackOff(TestCase):
