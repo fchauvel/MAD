@@ -20,7 +20,7 @@
 from mad.simulation import Agent, CompositeAgent, Action, RecorderBroker
 from mad.server import Server
 from mad.client import Request
-from mad.throttling import RandomEarlyDetection, StaticThrottling
+from mad.throttling import RED, StaticThrottling
 from mad.scalability import UtilisationController
 
 
@@ -33,7 +33,7 @@ class Simulation(CompositeAgent):
         super().__init__("simulation")
         self._back_end = ServiceStub(15, rejection_rate=0.)
         self._server = Server("server", 0.15,
-                              throttling=RandomEarlyDetection(25),
+                              throttling=RED(20, 30),
                               scalability=UtilisationController(70, 80, 1))
         self._server.back_ends = [self._back_end]
 

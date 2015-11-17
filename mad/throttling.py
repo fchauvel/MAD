@@ -81,15 +81,43 @@ class TailDrop(ThrottlingPolicy):
         return self._queue.length >= self._capacity
 
 
-class RandomEarlyDetection(StaticThrottling):
-    """
-    Random Early Detection algorithm, which increases the rejection rate as the queue filled in
-    """
+class RED(ThrottlingPolicy):
 
-    def __init__(self, capacity):
-        super().__init__()
-        self._capacity = capacity
+    def __init__(self, min, max, maxp=1., w=0.25):
+        assert min >= 0, "Minimum queue length must be positive"
+        assert max >= 0, "Maximum queue length must be positive"
+        assert max > min, "min must be greater than max"
+        assert 0 <= maxp <= 1, "maxp must be within [0, 1]"
+        self._min = min
+        self._max = max
+        self._maxp = maxp
+        self._w = w
+        self._avg = 0
+        self._count = -1
 
     def rejects(self, request):
-        self.rejection_rate = (self.queue.length / self._capacity)
-        return super().rejects(request)
+        self._adjust_average_queue_length()
+        print("QL: %d ; AVG-QL: %.2f" % (self.queue.length, self._avg), end="\n")
+        if self._min <= self._avg < self._max:
+            self._count += 1
+            if random() < self._threshold:
+                self._count = 0
+                return True
+        elif self._avg >= self._max:
+            self._count = 0
+            return True
+        else:
+            self._count = -1
+            return False
+
+    def _adjust_average_queue_length(self):
+        self._avg = self._avg * (1 - self._w) + self._w * self.queue.length
+
+    @property
+    def _threshold(self):
+        pb = self._maxp * self._queue_level
+        return pb / (1 - self._count * pb)
+
+    @property
+    def _queue_level(self):
+        return (self._avg - self._min) / (self._max - self._min)

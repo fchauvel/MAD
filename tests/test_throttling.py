@@ -22,28 +22,29 @@ from mock import MagicMock, PropertyMock
 
 from mad.client import Request
 from mad.server import Queue
-from mad.throttling import StaticThrottling, RandomEarlyDetection, TailDrop
+from mad.throttling import StaticThrottling, TailDrop, RED
 
 
-class REDThrottlingPolicy(TestCase):
 
-    def test_RED_do_not_throttle_when_queue_is_empty(self):
+class TestRED(TestCase):
+
+    def _fake_queue(self, sizes):
         queue = MagicMock(Queue)
-        type(queue).length = PropertyMock(return_value=0)
+        type(queue).length = PropertyMock(side_effect=sizes)
+        return queue
 
-        throttling = RandomEarlyDetection(25)
-        throttling.queue = queue
+    def test_average_queue_length(self):
+        throttling = RED(10, 15, 1.0, 0.25)
+        throttling.queue = self._fake_queue(sizes=[5,6,7,8])
 
-        self.assertTrue(throttling.accepts(None))
+        self.assertTrue(throttling.accepts(MagicMock(Request)))
 
-    def test_RED_throttle_when_queue_is_full(self):
-        queue = MagicMock(Queue)
-        type(queue).length = PropertyMock(return_value=25)
+    def test_average_queue_length(self):
+        throttling = RED(10, 15, 1.0, 0.25)
+        throttling._avg = 20
+        throttling.queue = self._fake_queue(sizes=[25,26,27,28])
 
-        throttling = RandomEarlyDetection(25)
-        throttling.queue = queue
-
-        self.assertTrue(throttling.rejects(None))
+        self.assertTrue(throttling.rejects(MagicMock(Request)))
 
 
 class StaticRejectionPolicy(TestCase):
