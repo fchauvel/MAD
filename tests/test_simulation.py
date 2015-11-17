@@ -21,7 +21,7 @@ from io import StringIO
 from unittest import TestCase, main
 from mock import MagicMock
 
-from mad.engine import Agent, CompositeAgent, Action, Recorder, RecorderBroker
+from mad.simulation import Agent, CompositeAgent, Action, Recorder, RecorderBroker
 
 
 class DummyAgent(Agent):

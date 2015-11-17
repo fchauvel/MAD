@@ -20,7 +20,7 @@
 from unittest import TestCase, main
 from mock import MagicMock
 
-from mad.engine import CompositeAgent
+from mad.simulation import CompositeAgent
 from mad.server import Server, Queue, Cluster, Meter
 from mad.client import Client, Request
 from mad.math import Constant

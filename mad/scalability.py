@@ -17,7 +17,7 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.engine import Agent, Action
+from mad.simulation import Agent, Action
 
 
 class Control(Action):

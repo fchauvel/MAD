@@ -20,8 +20,9 @@
 from unittest import TestCase, main
 from mock import MagicMock, PropertyMock
 
+from mad.client import Request
 from mad.server import Queue
-from mad.throttling import StaticThrottling, RandomEarlyDetection
+from mad.throttling import StaticThrottling, RandomEarlyDetection, TailDrop
 
 
 class REDThrottlingPolicy(TestCase):
@@ -58,6 +59,23 @@ class StaticRejectionPolicy(TestCase):
         throttling.queue =  MagicMock(Queue)
 
         self.assertTrue(throttling.rejects(None))
+
+
+class TestTailDrop(TestCase):
+
+    def test_reject_when_queue_is_full(self):
+        throttling = TailDrop(capacity=5)
+        throttling.queue = MagicMock(Queue)
+        type(throttling.queue).length = PropertyMock(side_effect=[5])
+
+        self.assertTrue(throttling.rejects(None))
+
+    def test_accepts_when_queue_is_not_full(self):
+        throttling = TailDrop(capacity=5)
+        throttling.queue = MagicMock(Queue)
+        type(throttling.queue).length = PropertyMock(side_effect=[2])
+
+        self.assertTrue(throttling.accepts(MagicMock(Request)))
 
 
 if __name__ == "__main__":

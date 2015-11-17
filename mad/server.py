@@ -20,7 +20,7 @@
 from random import choice
 from collections import namedtuple
 
-from mad.engine import Agent, CompositeAgent, Action
+from mad.simulation import Agent, CompositeAgent, Action
 from mad.throttling import StaticThrottling
 from mad.scalability import Controller, UtilisationController
 from mad.backoff import ExponentialBackOff

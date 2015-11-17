@@ -18,7 +18,7 @@
 #
 
 
-from mad.engine import Agent, Action
+from mad.simulation import Agent, Action
 from mad.math import UpperBound, LowerBound
 
 

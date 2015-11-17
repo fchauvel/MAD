@@ -18,9 +18,9 @@
 #
 
 from mad.experiments.sensitivity import ClientStub, ServiceStub
-from mad.engine import CompositeAgent
+from mad.simulation import CompositeAgent
 from mad.server import Server
-from mad.throttling import RandomEarlyDetection
+from mad.throttling import RandomEarlyDetection, TailDrop
 from mad.scalability import UtilisationController
 
 
@@ -29,12 +29,17 @@ class Sandbox:
     def run(self):
         back_end = ServiceStub(15, rejection_rate=0.)
 
-        server_B = Server("server_A", 0.15,
-                          throttling=RandomEarlyDetection(30),
+        server_C = Server("server_C", 0.15,
+                          throttling=TailDrop(30),
                           scalability=UtilisationController(70, 80, 1))
-        server_B.back_ends = [ back_end ]
+        server_C.back_ends = [back_end]
 
-        server_A = Server("server_B", 0.15,
+        server_B = Server("server_B", 0.15,
+                          throttling=RandomEarlyDetection(30),
+                          scalability=UtilisationController(70, 80, 2))
+        server_B.back_ends = [ server_C ]
+
+        server_A = Server("server_A", 0.15,
                           throttling=RandomEarlyDetection(20),
                           scalability=UtilisationController(70, 80, 1))
         server_A.back_ends = [ server_B ]
@@ -42,7 +47,7 @@ class Sandbox:
         client = ClientStub()
         client.server = server_A
 
-        simulation = CompositeAgent("sandbox", client, server_A, server_B, back_end)
+        simulation = CompositeAgent("sandbox", client, server_A, server_B, server_C, back_end)
         simulation.setup()
 
         simulation.run_until(1000)

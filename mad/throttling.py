@@ -65,6 +65,22 @@ class StaticThrottling(ThrottlingPolicy):
         return random() < self.rejection_rate
 
 
+class TailDrop(ThrottlingPolicy):
+    """
+    Tail drop: reject all the request once the queue is filled up to capacity
+    """
+
+    def __init__(self, capacity):
+        super().__init__()
+        self._capacity = capacity
+
+    def rejects(self, request):
+        return self._queue_is_full()
+
+    def _queue_is_full(self):
+        return self._queue.length >= self._capacity
+
+
 class RandomEarlyDetection(StaticThrottling):
     """
     Random Early Detection algorithm, which increases the rejection rate as the queue filled in
