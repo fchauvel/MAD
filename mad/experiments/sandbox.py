@@ -55,4 +55,5 @@ class Sandbox:
         simulation = CompositeAgent("sandbox", server_A, server_B, server_C, back_end, *clients)
         simulation.setup()
 
-        simulation.run_until(1000)
+        with open("sandbox.log", "w+") as trace:
+            simulation.run_until(1000, trace)

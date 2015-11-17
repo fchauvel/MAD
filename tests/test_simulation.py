@@ -53,6 +53,12 @@ class DummyAction(Action):
 
 class EngineTest(TestCase):
 
+    def test_qualified_identifier(self):
+        agent = DummyAgent(identifier="bob")
+        simulation = CompositeAgent("simulation", agent)
+
+        self.assertEqual("simulation/bob", agent.qualified_identifier)
+
     def test_that_scheduled_action_are_visible(self):
         agent = DummyAgent()
         action = MagicMock(Action)

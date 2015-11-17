@@ -29,6 +29,9 @@ class Control(Action):
     def fire(self):
         self._subject.control()
 
+    def __str__(self):
+        return "Adjust unit count"
+
 
 class Controller(Agent):
     """

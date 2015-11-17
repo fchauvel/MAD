@@ -221,6 +221,9 @@ class Reply(Action):
     def fire(self):
         self._request.reply()
 
+    def __str__(self):
+        return "replying to request"
+
 
 class ClientStub(Agent):
     """
@@ -280,3 +283,6 @@ class SendRequest(Action):
 
     def fire(self):
         self._subject.send_request()
+
+    def __str__(self):
+        return "Sending request"

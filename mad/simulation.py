@@ -51,6 +51,13 @@ class Agent:
         return self._identifier
 
     @property
+    def qualified_identifier(self):
+        if self.is_contained:
+            return self.container.qualified_identifier + "/" + self.identifier
+        else:
+            return self.identifier
+
+    @property
     def clock(self):
         return self._clock
 
@@ -105,7 +112,7 @@ class Agent:
     def on_start(self):
         pass
 
-    def run_until(self, time):
+    def run_until(self, time, trace=None):
         self.clock = Clock()
         self.on_start()
         self.record_state()
@@ -113,7 +120,7 @@ class Agent:
             events = self.next_events
             shuffle(events)
             for each_event in events:
-                each_event.trigger()
+                each_event.trigger(trace)
             self.record_state()
 
     def record_state(self):
@@ -192,6 +199,7 @@ class CompositeAgent(Agent):
     def setup(self):
         super().setup()
         for each_agent in self.agents:
+            each_agent.container = self
             each_agent.setup()
 
     def teardown(self):
@@ -250,7 +258,9 @@ class Event:
     def is_earlier_than(self, other_event):
         return self.time <= other_event.time
 
-    def trigger(self):
+    def trigger(self, trace=None):
+        if trace:
+            print("%5d: %40s -- %s" % (self._time, self._context.qualified_identifier, str(self.action)), file=trace)
         self._context._clock.advance_to(self._time)
         self._action.fire()
         self._context._discard(self)
@@ -263,6 +273,9 @@ class Action:
 
     def fire(self):
         pass
+
+    def __str__(self):
+        return "Unknown Action"
 
 
 class Clock:

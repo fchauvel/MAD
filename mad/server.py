@@ -209,7 +209,9 @@ class Cluster(CompositeAgent):
                 self._shrink()
 
     def _grow(self):
-        self._units.append(self._server.create_unit())
+        new_unit = self._server.create_unit()
+        new_unit.container = self
+        self._units.append(new_unit)
 
     def _shrink(self):
         assert self.active_unit_count > 0, "Cannot shrink, no more unit!"
@@ -231,6 +233,9 @@ class Completion(Action):
     def fire(self):
         self._subject.complete()
 
+    def __str__(self):
+        return "%s ending processing" % self._subject.identifier
+
 
 class StartProcessing(Action):
 
@@ -239,6 +244,9 @@ class StartProcessing(Action):
 
     def fire(self):
         self._subject.start_processing()
+
+    def __str__(self):
+        return "%s starting processing" % self._subject.identifier
 
 
 class Retry(Action):
@@ -250,6 +258,9 @@ class Retry(Action):
     def fire(self):
         self._back_end.meter.new_request()
         self._request.send_to(self._back_end.endpoint)
+
+    def __str__(self):
+        return "retrying request"
 
 
 class ProcessingUnit(Agent):
