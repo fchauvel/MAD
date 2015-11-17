@@ -20,7 +20,7 @@
 from unittest import TestCase
 from mock import patch
 
-from mad.backoff import ExponentialBackOff, ConstantDelay
+from mad.backoff import ExponentialBackOff, ConstantDelay, FibonacciDelay
 
 
 class TestConstantDelay(TestCase):
@@ -28,6 +28,20 @@ class TestConstantDelay(TestCase):
     def test_delay(self):
         backoff = ConstantDelay(5)
         self.assertEqual(5, backoff.delay)
+
+
+class TestFibonacciDelay(TestCase):
+
+    def test_delay(self):
+        fibonacci_sequence = [(0, 0), (1, 1), (2, 1), (3, 2), (4, 3), (5, 5), (6, 8), (7, 13), (8, 21), (9, 34)]
+        for (n, fib) in fibonacci_sequence:
+            self.assertEqual(10 * fib, self._delay_after_n_rejection(10, n), "Wrong delay after %d retries" % n)
+
+    def _delay_after_n_rejection(self, delay, n):
+        backoff = FibonacciDelay(delay)
+        for i in range(n):
+            backoff.new_rejection()
+        return backoff.delay
 
 
 class TestExponentialBackOff(TestCase):

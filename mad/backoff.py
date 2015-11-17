@@ -21,26 +21,7 @@
 from random import randint
 
 
-class BackOffStrategy:
-    """
-    The interface of all back off strategies
-    """
-
-    def __init__(self, delay):
-        self._delay = delay
-
-    @property
-    def delay(self):
-        return self._delay
-
-    def new_success(self):
-        pass
-
-    def new_rejection(self):
-        pass
-
-
-class ConstantDelay(BackOffStrategy):
+class ConstantDelay:
     """
     Generate a constant delay
     """
@@ -49,11 +30,51 @@ class ConstantDelay(BackOffStrategy):
     def factory():
         return ConstantDelay()
 
-    def __init__(self, delay=15):
+    def __init__(self, delay=10):
+        self._delay = delay
+        self._rejection_count = 0
+
+    def new_rejection(self):
+        self._rejection_count += 1
+
+    def new_success(self):
+        self._rejection_count = 0
+
+    @property
+    def delay(self):
+        return self._delay * self._factor
+
+    @property
+    def _factor(self):
+        return 1
+
+
+class FibonacciDelay(ConstantDelay):
+    """
+    Delay computed according following the Fibonacci sequence
+    """
+
+    @staticmethod
+    def factory():
+        """
+        :return: a new instance of exponential back off strategy
+        """
+        return FibonacciDelay()
+
+    def __init__(self, delay=10):
         super().__init__(delay)
 
+    @ConstantDelay._factor.getter
+    def _factor(self):
+        return self._fib(self._rejection_count)
 
-class ExponentialBackOff(BackOffStrategy):
+    def _fib(self, n):
+        if n == 0: return 0
+        elif n == 1: return 1
+        else: return self._fib(n-1) + self._fib(n-2)
+
+
+class ExponentialBackOff(ConstantDelay):
     """
     Exponential backoff, extend the delay by a random factor between 0 and 2^r-1, where r is the number
     of rejections
@@ -68,18 +89,8 @@ class ExponentialBackOff(BackOffStrategy):
 
     def __init__(self, base_delay=10):
         super().__init__(base_delay)
-        self._rejection_count = 0
 
-    def new_rejection(self):
-        self._rejection_count += 1
-
-    def new_success(self):
-        self._rejection_count = 0
-
-    @BackOffStrategy.delay.getter
-    def delay(self):
-        return super().delay * self._factor()
-
+    @ConstantDelay._factor.getter
     def _factor(self):
         return randint(0, 2 ** self._rejection_count - 1)
 
