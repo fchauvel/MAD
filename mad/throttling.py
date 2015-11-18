@@ -97,7 +97,6 @@ class RED(ThrottlingPolicy):
 
     def rejects(self, request):
         self._adjust_average_queue_length()
-        print("QL: %d ; AVG-QL: %.2f" % (self.queue.length, self._avg), end="\n")
         if self._min <= self._avg < self._max:
             self._count += 1
             if random() < self._threshold:

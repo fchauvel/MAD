@@ -81,8 +81,13 @@ class FixedCluster(Controller):
     A "does-nothing" control strategy. Returns the current number of units in the cluster
     """
 
-    def __init__(self):
+    def __init__(self, cluster_size = 10):
         super().__init__(0.1)
+        self._cluster_size = cluster_size
+
+    @Controller.signal.getter
+    def signal(self):
+        return self._cluster_size
 
 
 class UtilisationController(Controller):

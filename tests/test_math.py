@@ -20,7 +20,7 @@
 from unittest import TestCase, main
 from mock import MagicMock, patch
 
-from mad.math import Function, Constant, GaussianNoise, LowerBound, UpperBound
+from mad.math import Point, Function, Constant, GaussianNoise, LowerBound, UpperBound, Interpolation
 
 
 class TestConstant(TestCase):
@@ -42,6 +42,17 @@ class TestGaussianNoise(TestCase):
             self.assertEqual(28, noisy_function.value_at(1))
             self.assertEqual(28, noisy_function.value_at(10))
             self.assertEqual(28, noisy_function.value_at(100))
+
+
+class TestInterpolation(TestCase):
+
+    def test_interpolation(self):
+        function = Interpolation(default=20, points=[Point(0, 0), Point(10, 20)])
+        self.assertEqual(0, function.value_at(0))
+        self.assertEqual(20, function.value_at(10))
+        self.assertEqual(10, function.value_at(5))
+        self.assertEqual(20, function.value_at(31))
+        self.assertEqual(20, function.value_at(-1))
 
 
 class TestLowerBound(TestCase):

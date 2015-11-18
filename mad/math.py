@@ -18,6 +18,7 @@
 #
 
 from random import gauss
+from collections import namedtuple
 
 
 class Function:
@@ -39,6 +40,36 @@ class Constant(Function):
 
     def value_at(self, time):
         return self._value
+
+
+Point = namedtuple("Point", ["time", "value"])
+
+
+class Interpolation(Function):
+
+    def __init__(self, default, points):
+        self._default = default
+        self._points = sorted(points, key=lambda p: p.time)
+
+    def value_at(self, time):
+        if len(self._points) == 0:
+            return self._default
+        if self._points[0].time > time or time > self._points[-1].time:
+            return self._default
+        else:
+            (lower, upper) = self._find_bounds(time)
+            return self._interpolate_between(time, lower, upper)
+
+    def _find_bounds(self, time):
+        for (index, point) in enumerate(self._points):
+            if point.time >= time:
+                return (self._points[index-1], point)
+        raise ValueError("Could not find bounds for time=%d in points '%s'" % (time, str(self._points)))
+
+    @staticmethod
+    def _interpolate_between(time, lower, upper):
+        return lower.value + (upper.value - lower.value) * ((time - lower.time) / (upper.time - lower.time) )
+
 
 
 class FunctionDecorator(Function):
