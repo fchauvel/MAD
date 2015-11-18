@@ -28,7 +28,7 @@ from mad.backoff import ConstantDelay, FibonacciDelay
 class Sandbox:
 
     def run(self):
-        back_end = ServiceStub(15, rejection_rate=0.)
+        back_end = ServiceStub(response_time=15, rejection_rate=0.)
 
         server_C = Server("server_C", 0.15,
                           throttling=TailDrop(30),
@@ -48,7 +48,7 @@ class Sandbox:
 
         clients = []
         for each_client in range(1, 10):
-            client = ClientStub(emission_rate=0.1)
+            client = ClientStub(name="Client %d" % each_client, emission_rate=0.1)
             client.server = server_A
             clients.append(client)
 
@@ -56,4 +56,10 @@ class Sandbox:
         simulation.setup()
 
         with open("sandbox.log", "w+") as trace:
-            simulation.run_until(1000, trace)
+            simulation.trace = trace
+            simulation.run_until(1000)
+
+
+if __name__ == "__main__":
+    sandbox = Sandbox()
+    sandbox.run()

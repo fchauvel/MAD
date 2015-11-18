@@ -181,8 +181,8 @@ class ServiceStub(Agent):
     A service stub, on which one can adjust the response time and the rejection rate
     """
 
-    def __init__(self, response_time=10, rejection_rate=0.1):
-        super().__init__("Service Stub")
+    def __init__(self, name="Service Stub", response_time=10, rejection_rate=0.1):
+        super().__init__(name)
         self._response_time = response_time
         self._throttling = StaticThrottling(rejection_rate)
 
@@ -230,8 +230,8 @@ class ClientStub(Agent):
     A client stub that send request at a fixed rate, regardless of whether they are rejected or successful
     """
 
-    def __init__(self, emission_rate=0.5):
-        super().__init__("client stub")
+    def __init__(self, name="client stub", emission_rate=0.5):
+        super().__init__(name)
         self._emission_rate = emission_rate
         self._server = None
 

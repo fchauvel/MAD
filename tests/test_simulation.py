@@ -17,6 +17,7 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+
 from io import StringIO
 from unittest import TestCase, main
 from mock import MagicMock
@@ -58,6 +59,30 @@ class EngineTest(TestCase):
         simulation = CompositeAgent("simulation", agent)
 
         self.assertEqual("simulation/bob", agent.qualified_identifier)
+
+    def test_trace_is_none_by_default(self):
+        agent = DummyAgent()
+        self.assertIsNone(agent.trace)
+
+    def test_trace_can_be_set(self):
+        agent = DummyAgent()
+        output = StringIO()
+        agent.trace = output
+        self.assertIs(output, agent.trace)
+
+    def test_composite_set_trace_recursively(self):
+        agent = DummyAgent()
+        composite = CompositeAgent("container", agent)
+        output = StringIO()
+        composite.trace = output
+        self.assertIs(output, agent.trace)
+
+    def test_log_are_written_on_the_debug_trace(self):
+        agent = DummyAgent()
+        output = StringIO()
+        agent.trace = output
+        agent.log("test message")
+        self.assertTrue("test message" in output.getvalue())
 
     def test_that_scheduled_action_are_visible(self):
         agent = DummyAgent()

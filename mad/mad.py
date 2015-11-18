@@ -24,6 +24,7 @@ from mad import __version__
 from mad.experiments.sensitivity import SensitivityAnalysis, RejectionRate, ResponseTime, ClientRequestRate, SensitivityAnalysisListener
 from mad.experiments.sandbox import Sandbox
 
+
 class Mad:
     """
     Facade that provide access to all the experiments supported by MAD

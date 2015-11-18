@@ -30,7 +30,7 @@ class Control(Action):
         self._subject.control()
 
     def __str__(self):
-        return "Adjust unit count"
+        return "Scaling"
 
 
 class Controller(Agent):
@@ -67,6 +67,7 @@ class Controller(Agent):
 
     def control(self):
         new_signal = self.signal
+        self.log("Unit Count = %d" % new_signal)
         self.cluster.active_unit_count = new_signal
         self.schedule_next_control()
 

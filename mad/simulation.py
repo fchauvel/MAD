@@ -33,6 +33,7 @@ class Agent:
         self._container = None
         self._recorders = RecorderBroker()
         self._parameters = []
+        self._trace = None
 
     @property
     def is_contained(self):
@@ -68,6 +69,14 @@ class Agent:
     @property
     def current_time(self):
         return self._clock.time
+
+    @property
+    def trace(self):
+        return self._trace
+
+    @trace.setter
+    def trace(self, new_output):
+        self._trace = new_output
 
     @property
     def parameters(self):
@@ -112,7 +121,7 @@ class Agent:
     def on_start(self):
         pass
 
-    def run_until(self, time, trace=None):
+    def run_until(self, time):
         self.clock = Clock()
         self.on_start()
         self.record_state()
@@ -120,7 +129,8 @@ class Agent:
             events = self.next_events
             shuffle(events)
             for each_event in events:
-                each_event.trigger(trace)
+                self.clock.advance_to(each_event._time)
+                each_event.trigger()
             self.record_state()
 
     def record_state(self):
@@ -138,11 +148,13 @@ class Agent:
     def recorders(self, new_recorders):
         self._recorders = new_recorders
 
-    def log(self, message):
+    def log(self, message, kind="INFO"):
         """
-        Log a given message on the standard output
+        Append the given message on the debug trace
         """
-        print("t=%04d - %s" % (self._clock.time, message))
+        if self._trace:
+            print("%4d: %10s %40s --- %s" % (self._clock.time, kind, self.qualified_identifier, message), file=self._trace)
+            self._trace.flush()
 
     def locate(self, identifier):
         """
@@ -187,6 +199,12 @@ class CompositeAgent(Agent):
         Agent.recorders.fset(self, new_recorders)
         for each_agent in self.agents:
             each_agent.recorders = new_recorders
+
+    @Agent.trace.setter
+    def trace(self, new_output):
+        Agent.trace.fset(self, new_output)
+        for each_agent in self.agents:
+            each_agent.trace = new_output
 
     def on_start(self):
         self.on_start_composite()
@@ -258,10 +276,8 @@ class Event:
     def is_earlier_than(self, other_event):
         return self.time <= other_event.time
 
-    def trigger(self, trace=None):
-        if trace:
-            print("%5d: %40s -- %s" % (self._time, self._context.qualified_identifier, str(self.action)), file=trace)
-        self._context._clock.advance_to(self._time)
+    def trigger(self):
+        self._context.log(str(self.action), "EVENT")
         self._action.fire()
         self._context._discard(self)
 

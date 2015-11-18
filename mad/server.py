@@ -97,8 +97,9 @@ class Server(CompositeAgent):
         self._meter.new_request()
         if self._throttling.accepts(request):
             self._queue.put(request)
-            self._cluster.new_request()
+            self._cluster.check_out_for_requests()
         else:
+            self.log("request rejected")
             self._meter.new_rejection()
             request.reject()
 
@@ -117,6 +118,7 @@ class Server(CompositeAgent):
     def create_unit(self):
         new_unit = ProcessingUnit(self)
         new_unit.clock = self.clock
+        new_unit.trace = self.trace
         new_unit.on_start()
         return new_unit
 
@@ -141,6 +143,7 @@ class Queue(Agent):
         return self._queue.pop(0)
 
     def put(self, request):
+        self.log("request enqueued (length = %d)" % self.length)
         self._queue.append(request)
 
     @property
@@ -168,7 +171,7 @@ class Cluster(CompositeAgent):
     def agents(self):
         return self._units
 
-    def new_request(self):
+    def check_out_for_requests(self):
         for any_unit in self._units:
             if any_unit.is_idle:
                 any_unit.process()
@@ -212,6 +215,7 @@ class Cluster(CompositeAgent):
         new_unit = self._server.create_unit()
         new_unit.container = self
         self._units.append(new_unit)
+        new_unit.process()
 
     def _shrink(self):
         assert self.active_unit_count > 0, "Cannot shrink, no more unit!"
@@ -219,6 +223,7 @@ class Cluster(CompositeAgent):
 
     def discard(self, unit):
         assert unit.is_stopped, "Cannot discard unit '%s', it is not stopped" % unit.identifier
+        self.log("Terminating %s" % unit.identifier)
         self._units.remove(unit)
 
 
@@ -246,7 +251,7 @@ class StartProcessing(Action):
         self._subject.start_processing()
 
     def __str__(self):
-        return "%s starting processing" % self._subject.identifier
+        return "Starting processing"
 
 
 class Retry(Action):
@@ -280,6 +285,7 @@ class ProcessingUnit(Agent):
 
     def process(self):
         if not self._server.queue.is_empty:
+            self.log("Request assigned to %s" % self.identifier)
             self._request = self._server.queue.take()
             if len(self._server.back_ends) > 0:
                 self.schedule_in(StartProcessing(self), self.service_time)
@@ -287,13 +293,16 @@ class ProcessingUnit(Agent):
                 self.schedule_in(Completion(self), self.service_time)
 
     def start_processing(self):
+        self.log("Requesting %d back-ends" % len(self._server.back_ends))
         for each_back_end in self._server.back_ends:
+            self.log("Sending request to %s" % each_back_end.endpoint.identifier)
             request = Request(self)
             self._destination[request] = each_back_end
             each_back_end.meter.new_request()
             request.send_to(each_back_end.endpoint)
 
     def on_completion_of(self, request):
+        self.log("request successful")
         self._destination[request].back_off.new_success()
         if self.all_back_ends_have_replied():
             self.complete()
@@ -312,11 +321,13 @@ class ProcessingUnit(Agent):
             self.process()
 
     def stop(self):
+        self.log("Stopping")
         self._stopped = True
         if self.is_idle:
             self._server.destroy_unit(self)
 
     def on_rejection_of(self, request):
+        self.log("request rejected")
         self._destination[request].back_off.new_rejection()
         retry = Retry(request, self._destination[request])
         self.schedule_in(retry, self._destination[request].back_off.delay)
