@@ -17,13 +17,14 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.experiments.sensitivity import ClientStub, ServiceStub
+from mad.experiments.sensitivity import ServiceStub
 from mad.simulation import CompositeAgent
+from mad.client import ClientStub
 from mad.server import Server
 from mad.throttling import TailDrop, RED
 from mad.scalability import UtilisationController, FixedCluster
 from mad.backoff import ConstantDelay, FibonacciDelay
-
+from mad.math import Interpolation, Point, GaussianNoise
 
 class Sandbox:
 
@@ -31,13 +32,15 @@ class Sandbox:
         back_end = ServiceStub(response_time=15, rejection_rate=0.)
 
         server_C = Server("server_C", 0.15,
-                          throttling=TailDrop(30),
-                          scalability=FixedCluster(10))
+                          throttling=TailDrop(10),
+                          scalability=UtilisationController(70, 80, 1),
+                          back_off = FibonacciDelay.factory)
         server_C.back_ends = [back_end]
 
         server_B = Server("server_B", 0.15,
-                          throttling=RED(10, 15),
-                          scalability=UtilisationController(70, 80, 1))
+                          throttling=TailDrop(30),
+                          scalability=UtilisationController(70, 80, 1),
+                          back_off = FibonacciDelay.factory)
         server_B.back_ends = [ server_C ]
 
         server_A = Server("server_A", 0.15,
@@ -46,9 +49,10 @@ class Sandbox:
                           back_off = FibonacciDelay.factory)
         server_A.back_ends = [ server_B ]
 
+        oscillation = GaussianNoise(Interpolation(20, [Point(750, 2), Point(1250, 20)]), 1)
         clients = []
         for each_client in range(1, 10):
-            client = ClientStub(name="Client %d" % each_client, emission_rate=0.1)
+            client = ClientStub(name="Client %d" % each_client, inter_request_period=oscillation)
             client.server = server_A
             clients.append(client)
 
@@ -57,7 +61,7 @@ class Sandbox:
 
         with open("sandbox.log", "w+") as trace:
             simulation.trace = trace
-            simulation.run_until(1000)
+            simulation.run_until(2000)
 
 
 if __name__ == "__main__":

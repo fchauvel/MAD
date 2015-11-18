@@ -24,7 +24,7 @@ from mock import MagicMock, PropertyMock, patch
 
 from mad.client import Client, Request
 from mad.server import Server
-from mad.experiments.sensitivity import ServiceStub, ClientStub
+from mad.experiments.sensitivity import ServiceStub
 from mad.experiments.sensitivity import SensitivityAnalysis, Parameter
 
 
@@ -78,14 +78,3 @@ class TestServiceStub(TestCase):
         self.assertEqual(20, request._completion_time)
 
 
-class TestClientStub(TestCase):
-
-    def test_emission_rate(self):
-        server = MagicMock(Server)
-
-        client = ClientStub(emission_rate=0.5)
-        client.server = server
-
-        client.run_until(100)
-
-        self.assertEqual(50, server.process.call_count)

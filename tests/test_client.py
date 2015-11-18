@@ -21,7 +21,7 @@
 from unittest import TestCase, main
 from mock import MagicMock, PropertyMock
 
-from mad.client import Client, Meter, Request
+from mad.client import Client, ClientStub, Meter, Request
 from mad.server import Server
 from mad.math import Constant
 
@@ -33,7 +33,7 @@ class ClientTest(TestCase):
         def server_response(request):
             request.reply()
 
-        client = Client("client", Constant(0.2))
+        client = Client("client", Constant(5))
         server = MagicMock(Server)
         server.process.side_effect = server_response
         client.server = server
@@ -118,6 +118,18 @@ class MeterTest(TestCase):
 
         self.assertEqual(0, meter.rejection_count)
 
+
+class TestClientStub(TestCase):
+
+    def test_emission_rate(self):
+        server = MagicMock(Server)
+
+        client = ClientStub(inter_request_period=Constant(5))
+        client.server = server
+
+        client.run_until(100)
+
+        self.assertEqual(20, server.process.call_count)
 
 
 if __name__ == "__main__":

@@ -64,21 +64,24 @@ class Send(Action):
     def fire(self):
         self._sender.send_request()
 
+    def __str__(self):
+        return "Sending request"
+
 
 class Client(Agent):
     """
-    A 'client' emits requests at a fixed frequency
+    A 'client' emits requests at a fixed interval
     """
 
-    def __init__(self, identifier, request_rate):
+    def __init__(self, identifier, inter_request_period):
         super().__init__(identifier)
-        self._request_rate = LowerBound(UpperBound(request_rate, 1), 0)
+        self._inter_request_period = LowerBound(inter_request_period, 1)
         self._server = None
         self._meter = Meter()
 
     @property
     def inter_request_period(self):
-        return int(1/self._request_rate.value_at(self.current_time))
+        return int(self._inter_request_period.value_at(self.current_time))
 
     @property
     def server(self):
@@ -109,6 +112,25 @@ class Client(Agent):
     def on_rejection_of(self, request):
         self._meter.new_rejection()
         self.prepare_next_request()
+
+
+class ClientStub(Client):
+    """
+    A client stub that send request at a fixed rate, regardless of whether they are rejected or successful
+    """
+
+    def __init__(self, name="client stub", inter_request_period=10):
+        super().__init__(name, inter_request_period)
+
+    def send_request(self):
+        Request(self).send_to(self.server)
+        self.prepare_next_request()
+
+    def on_completion_of(self, request):
+        pass
+
+    def on_rejection_of(self, request):
+        pass
 
 
 class Meter:
