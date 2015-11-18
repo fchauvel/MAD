@@ -20,11 +20,8 @@
 
 from unittest import TestCase
 
-from mock import MagicMock, PropertyMock, patch
+from mock import patch
 
-from mad.client import Client, Request
-from mad.server import Server
-from mad.experiments.sensitivity import ServiceStub
 from mad.experiments.sensitivity import SensitivityAnalysis, Parameter
 
 
@@ -55,26 +52,4 @@ class TestParameter(TestCase):
         parameter = Parameter("x", "%d", 0, 100, 20, scaling = lambda x: x / 100)
 
         self.assertEqual([0, 0.2, 0.4, 0.6, 0.8, 1.0], list(parameter.domain))
-
-
-class TestServiceStub(TestCase):
-
-    def test_response_time(self):
-        server = ServiceStub(response_time=20, rejection_rate=0)
-        server.on_start()
-
-        def get_time():
-            return server.current_time
-
-        client = MagicMock(Client)
-        type(client).current_time = PropertyMock(side_effect = get_time)
-
-        request = Request(client)
-        request.send_to(server)
-
-        server.run_until(50)
-
-        self.assertTrue(request.is_replied)
-        self.assertEqual(20, request._completion_time)
-
 

@@ -20,6 +20,7 @@
 from random import choice
 from collections import namedtuple
 
+from mad.math import Constant
 from mad.simulation import Agent, CompositeAgent, Action
 from mad.throttling import StaticThrottling
 from mad.scalability import Controller, UtilisationController
@@ -30,14 +31,63 @@ from mad.client import Request, Send, Meter
 Service = namedtuple("Service", ["endpoint", "back_off", "meter"])
 
 
+class ServiceStub(Agent):
+    """
+    A service stub, on which one can adjust the response time and the rejection rate
+    """
+
+    def __init__(self, name="Service Stub", response_time=10, rejection_rate=0.1):
+        super().__init__(name)
+        self._response_time = response_time
+        self._throttling = StaticThrottling(rejection_rate)
+
+    @property
+    def response_time(self):
+        return self._response_time
+
+    @response_time.setter
+    def response_time(self, new_response_time):
+        self._response_time = new_response_time
+
+    @property
+    def rejection_rate(self):
+        return self.rejection_rate
+
+    @rejection_rate.setter
+    def rejection_rate(self, new_rejection_rate):
+        self._throttling = StaticThrottling(new_rejection_rate)
+
+    def process(self, request):
+        if self._throttling.accepts(request):
+            self.schedule_in(Reply(self, request), self._response_time)
+        else:
+            request.reject()
+
+
+class Reply(Action):
+    """
+    Reply to the given request
+    """
+
+    def __init__(self, subject, request):
+        self._subject = subject
+        self._request = request
+
+    def fire(self):
+        self._request.reply()
+
+    def __str__(self):
+        return "replying to request"
+
+
 class Server(CompositeAgent):
     """
     The server receives request and returns a response
     """
 
-    def __init__(self, identifier, service_rate=0.2, throttling=StaticThrottling(0), scalability=Controller(0.4), back_off=ExponentialBackOff.factory):
+    def __init__(self, identifier, service_time=Constant(5), throttling=StaticThrottling(0), scalability=Controller(0.4), back_off=ExponentialBackOff.factory):
         super().__init__(identifier)
-        self._service_rate = service_rate
+        self._service_time = service_time
         self._queue = Queue()
         self._meter = Meter()
         self._cluster = Cluster(self)
@@ -90,8 +140,8 @@ class Server(CompositeAgent):
         return self._meter
 
     @property
-    def service_rate(self):
-        return self._service_rate
+    def service_time(self):
+        return self._service_time.value_at(self.current_time)
 
     def process(self, request):
         self._meter.new_request()
@@ -277,11 +327,15 @@ class ProcessingUnit(Agent):
 
     def __init__(self, server):
         ProcessingUnit.COUNTER += 1
-        super().__init__("Unit#%d" % ProcessingUnit.COUNTER)
+        super().__init__("Unit %d" % ProcessingUnit.COUNTER)
         self._server = server
         self._destination = {}
         self._request = None
         self._stopped = False
+
+    @property
+    def service_time(self):
+        return self._server.service_time
 
     def process(self):
         if not self._server.queue.is_empty:
@@ -331,10 +385,6 @@ class ProcessingUnit(Agent):
         self._destination[request].back_off.new_rejection()
         retry = Retry(request, self._destination[request])
         self.schedule_in(retry, self._destination[request].back_off.delay)
-
-    @property
-    def service_time(self):
-        return int(1 / self._server.service_rate)
 
     @property
     def is_idle(self):

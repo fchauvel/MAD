@@ -18,19 +18,39 @@
 #
 
 from unittest import TestCase, main
-from mock import MagicMock
+from mock import MagicMock, PropertyMock
 
-from mad.simulation import CompositeAgent
-from mad.server import Server, Queue, Cluster, Meter
-from mad.client import Client, Request
 from mad.math import Constant
+from mad.server import Server, ServiceStub
+from mad.client import Client, Request
+
+
+class TestServiceStub(TestCase):
+
+    def test_response_time(self):
+        server = ServiceStub(response_time=20, rejection_rate=0)
+        server.on_start()
+
+        def get_time():
+            return server.current_time
+
+        client = MagicMock(Client)
+        type(client).current_time = PropertyMock(side_effect = get_time)
+
+        request = Request(client)
+        request.send_to(server)
+
+        server.run_until(50)
+
+        self.assertTrue(request.is_replied)
+        self.assertEqual(20, request._completion_time)
 
 
 class ServerTest(TestCase):
 
     def test_server_forward_requests(self):
         back_ends = [MagicMock(Server), MagicMock(Server)]
-        server = Server("server", 0.1)
+        server = Server("server", Constant(10))
         server.back_ends = back_ends
 
         server.process(Request(MagicMock(Client)))
@@ -41,7 +61,7 @@ class ServerTest(TestCase):
 
     def test_server_responds_to_request(self):
         client = MagicMock(Client)
-        server = Server("server", 0.1)
+        server = Server("server", Constant(10))
         server.on_start()
 
         server.process(Request(client))
@@ -53,7 +73,7 @@ class ServerTest(TestCase):
 
     def test_server_utilisation(self):
         client = MagicMock(Client)
-        server = Server("server", 0.1)
+        server = Server("server", Constant(10))
         server.on_start()
 
         server.process(Request(client))
@@ -65,7 +85,7 @@ class ServerTest(TestCase):
 
     def test_server_queue_length(self):
         client = MagicMock(Client)
-        server = Server("server", 0.1)
+        server = Server("server", Constant(10))
         server.on_start()
 
         server.process(Request(client))
@@ -77,7 +97,7 @@ class ServerTest(TestCase):
         self.assertEqual(0, server.queue_length)
 
     def test_setting_size_of_cluster(self):
-        cluster = Server("x", 0.2)._cluster
+        cluster = Server("x", Constant(5))._cluster
         self.assertEqual(1, cluster.active_unit_count)
 
         cluster.active_unit_count = 4
@@ -87,7 +107,7 @@ class ServerTest(TestCase):
         self.assertEqual(2, cluster.active_unit_count)
 
     def test_setting_negative_size_of_cluster(self):
-        cluster = Server("x", 0.2)._cluster
+        cluster = Server("x", Constant(5))._cluster
         self.assertEqual(1, cluster.active_unit_count)
 
         cluster.active_unit_count = -100

@@ -17,41 +17,44 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.experiments.sensitivity import ServiceStub
 from mad.simulation import CompositeAgent
 from mad.client import ClientStub
-from mad.server import Server
+from mad.server import Server, ServiceStub
 from mad.throttling import TailDrop, RED
 from mad.scalability import UtilisationController, FixedCluster
-from mad.backoff import ConstantDelay, FibonacciDelay
-from mad.math import Interpolation, Point, GaussianNoise
+from mad.backoff import ConstantDelay, FibonacciDelay, ExponentialBackOff
+from mad.math import Constant, Interpolation, Point, GaussianNoise
+
 
 class Sandbox:
 
     def run(self):
-        back_end = ServiceStub(response_time=15, rejection_rate=0.)
+        back_end = ServiceStub(response_time=15, rejection_rate=0.6)
 
-        server_C = Server("server_C", 0.15,
-                          throttling=TailDrop(10),
+        server_C = Server("server_C",
+                          service_time=Constant(5),
+                          throttling=RED(50, 100),
                           scalability=UtilisationController(70, 80, 1),
                           back_off = FibonacciDelay.factory)
         server_C.back_ends = [back_end]
 
-        server_B = Server("server_B", 0.15,
-                          throttling=TailDrop(30),
+        server_B = Server("server_B",
+                          service_time=Constant(2),
+                          throttling=TailDrop(5),
                           scalability=UtilisationController(70, 80, 1),
                           back_off = FibonacciDelay.factory)
         server_B.back_ends = [ server_C ]
 
-        server_A = Server("server_A", 0.15,
-                          throttling=RED(10, 20),
+        server_A = Server("server_A",
+                          service_time=Constant(2),
+                          throttling=RED(20, 30),
                           scalability=UtilisationController(70, 80, 2),
-                          back_off = FibonacciDelay.factory)
+                          back_off = ConstantDelay.factory)
         server_A.back_ends = [ server_B ]
 
-        oscillation = GaussianNoise(Interpolation(20, [Point(750, 2), Point(1250, 20)]), 1)
+        oscillation = GaussianNoise(Interpolation(10, [Point(750, 2), Point(1250, 10)]), 5)
         clients = []
-        for each_client in range(1, 10):
+        for each_client in range(1, 20):
             client = ClientStub(name="Client %d" % each_client, inter_request_period=oscillation)
             client.server = server_A
             clients.append(client)
