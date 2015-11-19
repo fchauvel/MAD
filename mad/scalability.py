@@ -38,9 +38,9 @@ class Controller(Agent):
     Abstract controller adjusting the number of active processing unit in a cluster
     """
 
-    def __init__(self, control_rate=0.1):
+    def __init__(self, control_period=10):
         super().__init__("scalability controller")
-        self._control_rate = control_rate
+        self._control_period = control_period
         self._cluster = None
 
     @property
@@ -52,12 +52,8 @@ class Controller(Agent):
         self._cluster = cluster
 
     @property
-    def control_rate(self):
-        return self._control_rate
-
-    @property
     def control_period(self):
-        return int(1 / self.control_rate)
+        return self._control_period
 
     def on_start(self):
         self.schedule_next_control()
@@ -95,8 +91,8 @@ class UtilisationController(Controller):
     Control the number of active processing units
     """
 
-    def __init__(self, min, max, step):
-        super().__init__(0.1)
+    def __init__(self, period, min, max, step):
+        super().__init__(period)
         self._min = min
         self._max = max
         self._step = step

@@ -71,7 +71,6 @@ class Interpolation(Function):
         return lower.value + (upper.value - lower.value) * ((time - lower.time) / (upper.time - lower.time) )
 
 
-
 class FunctionDecorator(Function):
     """
     Decorate a given function
@@ -83,6 +82,19 @@ class FunctionDecorator(Function):
     @property
     def delegate(self):
         return self._delegate
+
+
+class Cycle(FunctionDecorator):
+    """
+    Repeat the selected segment of the given function
+    """
+
+    def __init__(self, delegate,  width):
+        super().__init__(delegate)
+        self._width = width
+
+    def value_at(self, time):
+        return self._delegate.value_at(time % self._width)
 
 
 class GaussianNoise(FunctionDecorator):

@@ -18,41 +18,65 @@
 #
 
 from unittest import TestCase, main
-from mock import MagicMock, patch
+from mock import patch
 
-from mad.math import Point, Function, Constant, GaussianNoise, LowerBound, UpperBound, Interpolation
+from mad.math import Point, Constant, GaussianNoise, LowerBound, UpperBound, Interpolation, Cycle
 
 
-class TestConstant(TestCase):
+class TestFunction(TestCase):
+
+    def _verify_points(self, function, points):
+        for (each_time, each_value) in points:
+            self.assertEqual(each_value, function.value_at(each_time), "f(%d) != %d (found %d)" % (each_time, each_value, function.value_at(each_time)) )
+
+
+class TestConstant(TestFunction):
 
     def test_constant_are_always_the_same(self):
         constant = Constant(25)
 
-        self.assertEqual(25, constant.value_at(1))
-        self.assertEqual(25, constant.value_at(10))
-        self.assertEqual(25, constant.value_at(100))
+        self._verify_points(
+            constant,
+            [Point(1, 25), Point(10, 25), Point(100, 25)]
+        )
 
 
-class TestGaussianNoise(TestCase):
+class TestGaussianNoise(TestFunction):
 
     def test_noise(self):
-        noisy_function = GaussianNoise(Constant(25))
+        function = GaussianNoise(Constant(25))
 
-        with patch.object(noisy_function, "_noise", return_value=3):
-            self.assertEqual(28, noisy_function.value_at(1))
-            self.assertEqual(28, noisy_function.value_at(10))
-            self.assertEqual(28, noisy_function.value_at(100))
+        with patch.object(function, "_noise", return_value=3):
+            self._verify_points(
+                function,
+                [Point(1, 28), Point(10, 28), Point(100, 28)]
+            )
 
 
-class TestInterpolation(TestCase):
+class TestInterpolation(TestFunction):
 
     def test_interpolation(self):
         function = Interpolation(default=20, points=[Point(0, 0), Point(10, 20)])
-        self.assertEqual(0, function.value_at(0))
-        self.assertEqual(20, function.value_at(10))
-        self.assertEqual(10, function.value_at(5))
-        self.assertEqual(20, function.value_at(31))
-        self.assertEqual(20, function.value_at(-1))
+        self._verify_points(
+            function,
+            [Point(0, 0),
+             Point(10, 20),
+             Point(5, 10),
+             Point(31, 20),
+             Point(-1, 20)])
+
+
+class TestCycle(TestFunction):
+
+    def test_cycling(self):
+        function = Cycle(Interpolation(20, [Point(0,0), Point(10, 10), Point(20, 0)]), 20)
+        self._verify_points(
+            function,
+            [ Point(0, 0), Point(5, 5),
+              Point(10, 10), Point(15, 5),
+              Point(20, 0), Point(25, 5),
+              Point(30, 10), Point(35, 5),
+              Point(40, 0) ])
 
 
 class TestLowerBound(TestCase):

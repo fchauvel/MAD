@@ -29,26 +29,26 @@ from mad.math import Constant, Interpolation, Point, GaussianNoise
 class Sandbox:
 
     def run(self):
-        back_end = ServiceStub(response_time=15, rejection_rate=0.6)
+        back_end = ServiceStub(response_time=15, rejection_rate=0)
 
         server_C = Server("server_C",
                           service_time=Constant(5),
                           throttling=RED(50, 100),
-                          scalability=UtilisationController(70, 80, 1),
+                          scalability=UtilisationController(period=10, min=40, max=60, step=2),
                           back_off = FibonacciDelay.factory)
         server_C.back_ends = [back_end]
 
         server_B = Server("server_B",
                           service_time=Constant(2),
-                          throttling=TailDrop(5),
-                          scalability=UtilisationController(70, 80, 1),
+                          throttling=TailDrop(15),
+                          scalability=UtilisationController(period=30, min=70, max=80, step=1),
                           back_off = FibonacciDelay.factory)
         server_B.back_ends = [ server_C ]
 
         server_A = Server("server_A",
                           service_time=Constant(2),
                           throttling=RED(20, 30),
-                          scalability=UtilisationController(70, 80, 2),
+                          scalability=UtilisationController(period=5, min=70, max=80, step=2),
                           back_off = ConstantDelay.factory)
         server_A.back_ends = [ server_B ]
 

@@ -19,7 +19,7 @@
 
 
 from mad.simulation import Agent, Action
-from mad.math import UpperBound, LowerBound
+from mad.math import LowerBound
 
 
 class Request:
