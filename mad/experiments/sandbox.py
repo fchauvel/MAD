@@ -39,21 +39,21 @@ class Sandbox:
         server_C.back_ends = [back_end]
 
         server_B = Server("server_B",
-                          service_time=Constant(3),
+                          service_time=Constant(2),
                           throttling=TailDrop(15),
-                          scalability=Controller(period=30, strategy=UtilisationThreshold(min=40, max=60, step=1)),
+                          scalability=Controller(period=40, strategy=Limited(UtilisationThreshold(min=40, max=60, step=1), 30)),
                           back_off = ExponentialBackOff.factory)
         server_B.back_ends = [ server_C ]
 
         server_A = Server("server_A",
                           service_time=Constant(2),
                           throttling=TailDrop(15),
-                          scalability=Controller(period=40, strategy=UtilisationThreshold(min=40, max=60, step=1)),
-                          back_off = ConstantDelay.factory)
+                          scalability=Controller(period=30, strategy=Limited(UtilisationThreshold(min=40, max=60, step=1), 30)),
+                          back_off = ExponentialBackOff.factory)
         server_A.back_ends = [ server_B ]
 
         #oscillation = Cycle(GaussianNoise(Interpolation(10, [Point(0, 25), Point(200, 2), Point(400, 25)]), 5), 400)
-        work_load = Constant(15)
+        work_load = GaussianNoise(Constant(15), 5)
         clients = []
         for each_client in range(1, 20):
             client = ClientStub(name="Client %d" % each_client, inter_request_period=work_load)

@@ -94,6 +94,22 @@ class EngineTest(TestCase):
 
         self.assertTrue(len(agent.next_events) == 2)
 
+    def test_setup_is_called_recursively(self):
+        agents = [MagicMock(Agent) for i in range(5)]
+        simulation = CompositeAgent("sut", *agents)
+        simulation.setup()
+
+        for each_agent in agents:
+            self.assertEqual(1, each_agent.setup.call_count)
+
+    def test_teardown_is_called_recursively(self):
+        agents = [MagicMock(Agent) for i in range(5)]
+        simulation = CompositeAgent("sut", *agents)
+        simulation.teardown()
+
+        for each_agent in agents:
+            self.assertEqual(1, each_agent.teardown.call_count)
+
     def test_that_events_are_triggered_and_then_discarded(self):
         agent = DummyAgent()
         action = MagicMock(Action)
