@@ -23,7 +23,7 @@ from collections import namedtuple
 from mad.math import Constant
 from mad.simulation import Agent, CompositeAgent, Action
 from mad.throttling import StaticThrottling
-from mad.scalability import Controller, UtilisationController
+from mad.autoscaling import Controller, UtilisationThreshold
 from mad.backoff import ExponentialBackOff
 from mad.client import Request, Send, Meter
 
@@ -85,7 +85,7 @@ class Server(CompositeAgent):
     The server receives request and returns a response
     """
 
-    def __init__(self, identifier, service_time=Constant(5), throttling=StaticThrottling(0), scalability=Controller(0.4), back_off=ExponentialBackOff.factory):
+    def __init__(self, identifier, service_time=Constant(5), throttling=StaticThrottling(0), scalability=Controller(10), back_off=ExponentialBackOff.factory):
         super().__init__(identifier)
         self._service_time = service_time
         self._queue = Queue()

@@ -21,7 +21,7 @@ from mad.simulation import Agent, CompositeAgent, Action, RecorderBroker
 from mad.server import Server
 from mad.client import Request
 from mad.throttling import RED, StaticThrottling
-from mad.scalability import UtilisationController
+from mad.autoscaling import UtilisationThreshold
 
 
 class Simulation(CompositeAgent):
@@ -34,7 +34,7 @@ class Simulation(CompositeAgent):
         self._back_end = ServiceStub(15, rejection_rate=0.)
         self._server = Server("server", 0.15,
                               throttling=RED(20, 30),
-                              scalability=UtilisationController(70, 80, 1))
+                              scalability=UtilisationThreshold(70, 80, 1))
         self._server.back_ends = [self._back_end]
 
         self._client = ClientStub(emission_rate=0.5)

@@ -21,7 +21,7 @@ from mad.simulation import CompositeAgent
 from mad.client import ClientStub
 from mad.server import Server, ServiceStub
 from mad.throttling import TailDrop, RED, StaticThrottling
-from mad.scalability import UtilisationController, FixedCluster
+from mad.autoscaling import Controller, UtilisationThreshold, FixedCluster, Limited
 from mad.backoff import ConstantDelay, FibonacciDelay, ExponentialBackOff
 from mad.math import Constant, Interpolation, Point, GaussianNoise, Cycle
 
@@ -33,29 +33,30 @@ class Sandbox:
 
         server_C = Server("server_C",
                           service_time=Constant(5),
-                          throttling=TailDrop(20),
-                          scalability=UtilisationController(period=20, min=40, max=60, step=1),
+                          throttling=TailDrop(15),
+                          scalability=Controller(period=30, strategy=Limited(UtilisationThreshold(min=40, max=60, step=1), 10)),
                           back_off = ConstantDelay.factory)
         server_C.back_ends = [back_end]
 
         server_B = Server("server_B",
-                          service_time=Constant(2),
-                          throttling=TailDrop(20),
-                          scalability=UtilisationController(period=30, min=70, max=80, step=1),
-                          back_off = ConstantDelay.factory)
+                          service_time=Constant(3),
+                          throttling=TailDrop(15),
+                          scalability=Controller(period=30, strategy=UtilisationThreshold(min=40, max=60, step=1)),
+                          back_off = ExponentialBackOff.factory)
         server_B.back_ends = [ server_C ]
 
         server_A = Server("server_A",
                           service_time=Constant(2),
-                          throttling=StaticThrottling(0),
-                          scalability=UtilisationController(period=30, min=70, max=80, step=1),
+                          throttling=TailDrop(15),
+                          scalability=Controller(period=40, strategy=UtilisationThreshold(min=40, max=60, step=1)),
                           back_off = ConstantDelay.factory)
         server_A.back_ends = [ server_B ]
 
-        oscillation = Cycle(GaussianNoise(Interpolation(10, [Point(0, 25), Point(200, 2), Point(400, 25)]), 5), 400)
+        #oscillation = Cycle(GaussianNoise(Interpolation(10, [Point(0, 25), Point(200, 2), Point(400, 25)]), 5), 400)
+        work_load = Constant(15)
         clients = []
         for each_client in range(1, 20):
-            client = ClientStub(name="Client %d" % each_client, inter_request_period=oscillation)
+            client = ClientStub(name="Client %d" % each_client, inter_request_period=work_load)
             client.server = server_A
             clients.append(client)
 
