@@ -72,6 +72,21 @@ class Controller(Agent):
         return self.cluster.active_unit_count
 
 
+class Limited(Controller):
+
+    def __init__(self, delegate, upperbound):
+        super().__init__()
+        self._upperbound = upperbound
+        self._delegate = delegate
+
+    @Controller.signal.getter
+    def signal(self):
+        response = self._delegate.signal
+        if response < self._upperbound:
+            return response
+        else:
+            return self._upperbound
+
 class FixedCluster(Controller):
     """
     A "does-nothing" control strategy. Returns the current number of units in the cluster

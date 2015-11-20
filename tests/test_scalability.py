@@ -21,7 +21,7 @@ from unittest import TestCase
 from mock import MagicMock, PropertyMock
 
 from mad.server import Cluster
-from mad.scalability import UtilisationController
+from mad.scalability import Controller, UtilisationController, Limited
 
 
 class UtilisationControllerTest(TestCase):
@@ -31,7 +31,7 @@ class UtilisationControllerTest(TestCase):
         type(cluster).utilisation = PropertyMock(return_value=100)
         type(cluster).active_unit_count = PropertyMock(return_value=50)
 
-        controller = UtilisationController(min=80, max=90, step=2)
+        controller = UtilisationController(10, min=80, max=90, step=2)
         controller.cluster = cluster
 
         self.assertAlmostEqual(52, controller.signal, places=6)
@@ -41,7 +41,24 @@ class UtilisationControllerTest(TestCase):
         type(cluster).utilisation = PropertyMock(return_value=60)
         type(cluster).active_unit_count = PropertyMock(return_value=50)
 
-        controller = UtilisationController(min=80, max=90, step=2)
+        controller = UtilisationController(10, min=80, max=90, step=2)
         controller.cluster = cluster
 
         self.assertAlmostEqual(48, controller.signal, places=6)
+
+
+class TestLimited(TestCase):
+
+    def test_signal_within_limits(self):
+        controller = MagicMock(Controller)
+        type(controller).signal = PropertyMock(return_value = 25)
+
+        sut = Limited(controller, 20)
+        self.assertEqual(20, sut.signal)
+
+    def test_signal_outside_limits(self):
+        controller = MagicMock(Controller)
+        type(controller).signal = PropertyMock(return_value = 25)
+
+        sut = Limited(controller, 40)
+        self.assertEqual(25, sut.signal)
