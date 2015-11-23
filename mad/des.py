@@ -21,6 +21,45 @@ from random import shuffle
 from io import StringIO
 
 
+class Event:
+    """
+    Represent the planned triggering of an action
+    """
+
+    def __init__(self, context, action, time):
+        self._context = context
+        self._action = action
+        self._time = time
+
+    @property
+    def action(self):
+        return self._action
+
+    @property
+    def time(self):
+        return self._time
+
+    def is_earlier_than(self, other_event):
+        return self.time <= other_event.time
+
+    def trigger(self):
+        self._context.log(str(self.action), "EVENT")
+        self._action.fire()
+        self._context._discard(self)
+
+
+class Action:
+    """
+    Represent an action performed by an agent.
+    """
+
+    def fire(self):
+        pass
+
+    def __str__(self):
+        return "Unknown Action"
+
+
 class Agent:
     """
     Represent an agent that can be simulated such as a turtle, a person or a bathtube.
@@ -32,6 +71,7 @@ class Agent:
         self._clock = Clock()
         self._container = None
         self._recorders = RecorderBroker()
+        self._record_period = None
         self._parameters = []
         self._trace = None
 
@@ -119,10 +159,11 @@ class Agent:
         self._recorders[self.identifier].close()
 
     def on_start(self):
-        pass
+        self._schedule_next_record()
 
-    def run_until(self, time):
+    def run_until(self, time, record_every=10):
         self.clock = Clock()
+        self._record_period = record_every
         self.on_start()
         self.record_state()
         while self._has_more_events and not self._clock.has_passed(time):
@@ -131,14 +172,18 @@ class Agent:
             for each_event in events:
                 self.clock.advance_to(each_event._time)
                 each_event.trigger()
-            self.record_state()
+
+    def _schedule_next_record(self):
+        if self._record_period:
+            self.schedule_in(RecordState(self), self._record_period)
 
     def record_state(self):
-        pass
-
-    def record(self, entries):
-        all_entries = self._parameters + [("time", "%d", self._clock.time)] + entries
+        all_entries = self._parameters + [("time", "%d", self._clock.time)] + self.state_entries()
         self._recorders[self.identifier].record(all_entries)
+        self._schedule_next_record()
+
+    def state_entries(self):
+        return []
 
     @property
     def recorders(self):
@@ -169,6 +214,22 @@ class Agent:
 
     def is_named(self, identifier):
         return self.identifier == identifier
+
+
+class RecordState(Action):
+    """
+    Record the state of the given component
+    """
+
+    def __init__(self, subject):
+        super().__init__()
+        self._subject = subject
+
+    def fire(self):
+        self._subject.record_state()
+
+    def __str__(self):
+        return "Recording state"
 
 
 class CompositeAgent(Agent):
@@ -232,7 +293,7 @@ class CompositeAgent(Agent):
 
     @property
     def next_events(self):
-        return self._earliest_of(self._aggregate())
+        return self._earliest_of(self._schedule + self._aggregate())
 
     def _aggregate(self):
         result = []
@@ -247,51 +308,12 @@ class CompositeAgent(Agent):
         return super().locate(identifier)
 
     def record_state(self):
-        self.record_composite_state()
+        super().record_state()
         for each_agent in self.agents:
             each_agent.record_state()
 
-    def record_composite_state(self):
-        pass
 
 
-class Event:
-    """
-    Represent the planned triggering of an action
-    """
-
-    def __init__(self, context, action, time):
-        self._context = context
-        self._action = action
-        self._time = time
-
-    @property
-    def action(self):
-        return self._action
-
-    @property
-    def time(self):
-        return self._time
-
-    def is_earlier_than(self, other_event):
-        return self.time <= other_event.time
-
-    def trigger(self):
-        self._context.log(str(self.action), "EVENT")
-        self._action.fire()
-        self._context._discard(self)
-
-
-class Action:
-    """
-    Represent an action performed by an agent.
-    """
-
-    def fire(self):
-        pass
-
-    def __str__(self):
-        return "Unknown Action"
 
 
 class Clock:

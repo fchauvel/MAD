@@ -22,7 +22,7 @@ from io import StringIO
 from unittest import TestCase, main
 from mock import MagicMock
 
-from mad.simulation import Agent, CompositeAgent, Action, Recorder, RecorderBroker
+from mad.des import Agent, CompositeAgent, Action, Recorder, RecorderBroker
 
 
 class DummyAgent(Agent):
@@ -137,6 +137,16 @@ class EngineTest(TestCase):
         self.assertEqual(5, agent1._counter)
         self.assertEqual(2, agent2._counter)
 
+    def test_adjusting_the_rate_of_state_record(self):
+        agent = DummyAgent(10)
+        agent.state_entries = MagicMock()
+        agent.run_until(50, record_every=10)
+
+        self.assertEqual(6, agent.state_entries.call_count)
+
+
+class TestCompositeAgent(TestCase):
+
     def test_localisation_of_components_in_the_hierarchy(self):
         agent1 = DummyAgent(10, "A1")
         agent2 = DummyAgent(20, "A2")
@@ -145,7 +155,7 @@ class EngineTest(TestCase):
         level2 = CompositeAgent("level2", level1, agent3)
         self.assertIs(agent3, agent1.locate("A3"))
 
-    def test_agents_can_have_parameters(self):
+    def test_parameters_are_set_recursively(self):
         agent = DummyAgent(10, "A1")
         simulation = CompositeAgent("composite", agent)
 
@@ -153,16 +163,17 @@ class EngineTest(TestCase):
 
         self.assertEqual("name", agent.parameters[0][0])
 
+    def test_adjusting_the_rate_of_state_record(self):
+        agent = DummyAgent(10)
+        agent.state_entries = MagicMock()
+        simulation = CompositeAgent("sut", agent)
+
+        simulation.run_until(50, record_every=10)
+
+        self.assertEqual(6, agent.state_entries.call_count)
+
 
 class RecorderTest(TestCase):
-
-    def test_agent_state_is_recorded(self):
-        agent = DummyAgent(10, "A1")
-        agent.record_state = MagicMock(Recorder)
-
-        agent.run_until(100)
-
-        self.assertEqual(11, agent.record_state.call_count)
 
     def test_all_agent_state_are_recorded(self):
         agent = DummyAgent(10, "A1")

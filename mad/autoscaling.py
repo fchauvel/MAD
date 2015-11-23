@@ -17,7 +17,7 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.simulation import Agent, Action
+from mad.des import Agent, Action
 
 
 class AutoScalingStrategy:
@@ -115,8 +115,6 @@ class Limited(AutoScalingStrategy):
         if response < self._capacity:
             return response
         return self._capacity
-
-
 
 
 class Control(Action):

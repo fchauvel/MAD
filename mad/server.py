@@ -21,7 +21,7 @@ from random import choice
 from collections import namedtuple
 
 from mad.math import Constant
-from mad.simulation import Agent, CompositeAgent, Action
+from mad.des import Agent, CompositeAgent, Action
 from mad.throttling import StaticThrottling
 from mad.autoscaling import Controller, UtilisationThreshold
 from mad.backoff import ExponentialBackOff
@@ -102,23 +102,24 @@ class Server(CompositeAgent):
     def agents(self):
         return [self._queue, self._cluster, self._scalability]
 
-    def record_composite_state(self):
-        emission_rates = []
-        for each_back_end in enumerate(self._back_ends):
-            emission_rate = ("emission count %d" % each_back_end[0], "%d", each_back_end[1].meter.request_count)
-            emission_rates.append(emission_rate)
-
-        self.record([("queue length", "%d", self._queue.length),
+    def state_entries(self):
+        entries = [("queue length", "%d", self._queue.length),
                      ("rejection count", "%d", self._meter.rejection_count),
                      ("utilisation", "%f", self._cluster.utilisation),
                      ("unit count", "%d", self._cluster.active_unit_count),
                      ("response time", "%d", self.response_time),
                      ("request count", "%d", self._meter.request_count),
                      ("throughput", "%d", self._meter.throughput)]
-                    + emission_rates)
+
+        for each_back_end in enumerate(self._back_ends):
+            emission_rate = ("emission count %d" % each_back_end[0], "%d", each_back_end[1].meter.request_count)
+            entries.append(emission_rate)
+
         self._meter.reset()
         for each_back_end in self._back_ends:
             each_back_end.meter.reset()
+
+        return entries
 
     @property
     def back_ends(self):

@@ -17,7 +17,7 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.simulation import Agent, CompositeAgent, Action, RecorderBroker
+from mad.des import Agent, CompositeAgent, Action, RecorderBroker
 from mad.server import Server
 from mad.client import Request
 from mad.throttling import RED, StaticThrottling

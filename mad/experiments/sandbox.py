@@ -17,7 +17,7 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.simulation import CompositeAgent
+from mad.des import CompositeAgent
 from mad.client import ClientStub
 from mad.server import Server, ServiceStub
 from mad.throttling import TailDrop, RED, StaticThrottling
@@ -65,7 +65,7 @@ class Sandbox:
 
         with open("sandbox.log", "w+") as trace:
             simulation.trace = trace
-            simulation.run_until(2000)
+            simulation.run_until(2000, record_every=10)
 
 
 if __name__ == "__main__":

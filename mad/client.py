@@ -18,7 +18,7 @@
 #
 
 
-from mad.simulation import Agent, Action
+from mad.des import Agent, Action
 from mad.math import LowerBound
 
 
@@ -94,11 +94,10 @@ class Client(Agent):
     def on_start(self):
         self.prepare_next_request()
 
-    def record_state(self):
-        self.record([
-            ("rejection", "%d", self._meter.rejection_count)
-        ])
+    def state_entries(self):
+        entries = [("rejection", "%d", self._meter.rejection_count)]
         self._meter.reset()
+        return entries
 
     def send_request(self):
         Request(self).send_to(self._server)
