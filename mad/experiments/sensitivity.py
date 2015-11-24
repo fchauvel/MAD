@@ -18,10 +18,11 @@
 #
 
 from mad.des import Agent, CompositeAgent, Action, RecorderBroker
-from mad.server import Server
-from mad.client import Request
-from mad.throttling import RED, StaticThrottling
-from mad.autoscaling import UtilisationThreshold
+from mad.server import Server, ServiceStub
+from mad.client import Request, ClientStub
+from mad.throttling import TailDrop
+from mad.autoscaling import Controller, UtilisationThreshold
+from mad.math import Constant
 
 
 class Simulation(CompositeAgent):
@@ -31,13 +32,14 @@ class Simulation(CompositeAgent):
 
     def __init__(self):
         super().__init__("simulation")
-        self._back_end = ServiceStub(15, rejection_rate=0.)
-        self._server = Server("server", 0.15,
-                              throttling=RED(20, 30),
-                              scalability=UtilisationThreshold(70, 80, 1))
+        self._back_end = ServiceStub(response_time=10, rejection_rate=0.)
+        self._server = Server("server",
+                              service_time=Constant(2),
+                              throttling=TailDrop(20),
+                              scalability=Controller(period=40, strategy=UtilisationThreshold(70, 80, 1)))
         self._server.back_ends = [self._back_end]
 
-        self._client = ClientStub(emission_rate=0.5)
+        self._client = ClientStub(name="client", inter_request_period=Constant(5))
         self._client.server = self._server
 
     @CompositeAgent.agents.getter
@@ -114,7 +116,7 @@ class SensitivityAnalysis:
         ]
         parameter.setup(value, simulation)
         simulation.setup()
-        simulation.run_until(self._simulation_end)
+        simulation.run_until(self._simulation_end, record_every=10)
 
 
 class Parameter:
