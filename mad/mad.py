@@ -96,7 +96,7 @@ class Controller(SensitivityAnalysisListener):
         self._ui.show(" - %s: %.2f (Run %3d)" % (parameter.name, value, run))
 
     def sensitivity_analysis_complete(self, parameter):
-        self._ui.show(" - %s ... DONE                  " % parameter.name)
+        self._ui.print(" - %s ... DONE                  " % parameter.name)
 
     def _sandbox(self):
         self._ui.print("------------")

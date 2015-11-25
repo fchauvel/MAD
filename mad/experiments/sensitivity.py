@@ -22,7 +22,7 @@ from mad.server import Server, ServiceStub
 from mad.client import Request, ClientStub
 from mad.throttling import TailDrop
 from mad.autoscaling import Controller, UtilisationThreshold
-from mad.math import Constant
+from mad.math import Constant, GaussianNoise
 
 
 class Simulation(CompositeAgent):
@@ -37,9 +37,10 @@ class Simulation(CompositeAgent):
                               service_time=Constant(2),
                               throttling=TailDrop(20),
                               scalability=Controller(period=40, strategy=UtilisationThreshold(70, 80, 1)))
+        self._server._is_recording_active = True
         self._server.back_ends = [self._back_end]
 
-        self._client = ClientStub(name="client", inter_request_period=Constant(5))
+        self._client = ClientStub(name="client", inter_request_period=GaussianNoise(Constant(5), 5))
         self._client.server = self._server
 
     @CompositeAgent.agents.getter
@@ -172,7 +173,7 @@ class ResponseTime(Parameter):
 class ClientRequestRate(Parameter):
 
     def __init__(self):
-        super().__init__("client emission time", "%.2f", 5, 50, 5, scaling=lambda x:1/x)
+        super().__init__("client emission time", "%.2f", 1, 50, 5)
 
     def setup(self, value, simulation):
         simulation.client.emission_rate = value

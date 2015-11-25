@@ -72,6 +72,7 @@ class Agent:
         self._container = None
         self._recorders = RecorderBroker()
         self._record_period = None
+        self._is_recording_active = False
         self._parameters = []
         self._trace = None
 
@@ -178,8 +179,9 @@ class Agent:
             self.schedule_in(RecordState(self), self._record_period)
 
     def record_state(self):
-        all_entries = self._parameters + [("time", "%d", self._clock.time)] + self.state_entries()
-        self._recorders[self.identifier].record(all_entries)
+        if self._is_recording_active:
+            all_entries = self._parameters + [("time", "%d", self._clock.time)] + self.state_entries()
+            self._recorders[self.identifier].record(all_entries)
         self._schedule_next_record()
 
     def state_entries(self):

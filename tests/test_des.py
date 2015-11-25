@@ -139,6 +139,7 @@ class EngineTest(TestCase):
 
     def test_adjusting_the_rate_of_state_record(self):
         agent = DummyAgent(10)
+        agent._is_recording_active = True
         agent.state_entries = MagicMock()
         agent.run_until(50, record_every=10)
 
@@ -163,14 +164,19 @@ class TestCompositeAgent(TestCase):
 
         self.assertEqual("name", agent.parameters[0][0])
 
-    def test_adjusting_the_rate_of_state_record(self):
-        agent = DummyAgent(10)
-        agent.state_entries = MagicMock()
-        simulation = CompositeAgent("sut", agent)
+    def test_recording_is_done_recursively(self):
+        agent1 = DummyAgent(10)
+        agent1.state_entries = MagicMock()
+        agent1._is_recording_active = True
+        agent2 = DummyAgent(10)
+        agent2.state_entries = MagicMock()
+
+        simulation = CompositeAgent("sut", agent1, agent2)
 
         simulation.run_until(50, record_every=10)
 
-        self.assertEqual(6, agent.state_entries.call_count)
+        self.assertEqual(6, agent1.state_entries.call_count)
+        self.assertEqual(0, agent2.state_entries.call_count)
 
 
 class RecorderTest(TestCase):
