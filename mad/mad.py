@@ -88,22 +88,16 @@ class Controller:
         self._mad = engine
         self._ui = ui
         self._legal_commands = {
-            "-sa": self._sensitivity_analysis,
-            "--sensitivity-analysis": self._sensitivity_analysis,
-            "-sb": self._sandbox,
-            "--sandbox": self._sandbox
+            "-sa": self._mad.sensitivity_analysis,
+            "--sensitivity-analysis": self._mad.sensitivity_analysis,
+            "-sb": self._mad.sandbox,
+            "--sandbox": self._mad.sandbox
         }
-
-    def _sensitivity_analysis(self):
-        self._mad.sensitivity_analysis()
-
-    def _sandbox(self):
-        self._mad.sandbox()
 
     def run(self, commands):
         self._mad.start_up()
         if len(commands) == 0:
-            self._sensitivity_analysis()
+            self._mad.sensitivity_analysis()
         else:
             for each_command in commands:
                 if self._is_defined(each_command):
