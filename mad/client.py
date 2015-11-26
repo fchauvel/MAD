@@ -83,6 +83,10 @@ class Client(Agent):
     def inter_request_period(self):
         return int(self._inter_request_period.value_at(self.current_time))
 
+    @inter_request_period.setter
+    def inter_request_period(self, new_period):
+        self._inter_request_period = LowerBound(new_period, 1)
+
     @property
     def server(self):
         return self._server

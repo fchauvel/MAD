@@ -22,6 +22,7 @@ from mad.server import Server, ServiceStub
 from mad.client import Request, ClientStub
 from mad.throttling import TailDrop
 from mad.autoscaling import Controller, UtilisationThreshold
+from mad.backoff import ConstantDelay
 from mad.math import Constant, GaussianNoise
 
 
@@ -36,7 +37,8 @@ class Simulation(CompositeAgent):
         self._server = Server("server",
                               service_time=Constant(2),
                               throttling=TailDrop(20),
-                              scalability=Controller(period=40, strategy=UtilisationThreshold(70, 80, 1)))
+                              scalability=Controller(period=40, strategy=UtilisationThreshold(70, 80, 1)),
+                              back_off=ConstantDelay.factory)
         self._server._is_recording_active = True
         self._server.back_ends = [self._back_end]
 
@@ -60,16 +62,25 @@ class Simulation(CompositeAgent):
         return self._back_end
 
 
-class SensitivityAnalysisListener:
+class SensitivityAnalysisController:
     """
-    Interface for object reacting to the progress of the sensitivity Analysis
+    A controller (as in Model-View-Controller) for the Sensitivity Analysis
     """
+
+    def __init__(self, ui):
+        self._ui = ui
+
+    def execute(self):
+        analysis = SensitivityAnalysis(listener=self)
+        analysis.run_count = 100
+        analysis.parameters = [ RejectionRate(), ResponseTime(), ClientRequestRate() ]
+        analysis.run()
 
     def sensitivity_of(self, parameter, value, run):
-        pass
+        self._ui.show(" - %s: %.2f (Run %3d)" % (parameter.name, value, run))
 
     def sensitivity_analysis_complete(self, parameter):
-        pass
+        self._ui.print(" - %s ... DONE                  " % parameter.name)
 
 
 class SensitivityAnalysis:
@@ -77,10 +88,11 @@ class SensitivityAnalysis:
     A sensitivity analysis that varies all input parameter, one at a time.
     """
 
-    def __init__(self, listener=SensitivityAnalysisListener()):
+    def __init__(self, listener):
+        assert listener, "no listener given"
         self._run_count = 10
         self._parameters = {}
-        self._simulation_end = 500
+        self._simulation_end = 1000
         self._listener = listener
 
     @property
@@ -117,7 +129,7 @@ class SensitivityAnalysis:
         ]
         parameter.setup(value, simulation)
         simulation.setup()
-        simulation.run_until(self._simulation_end, record_every=10)
+        simulation.run_until(self._simulation_end, record_every=20)
 
 
 class Parameter:
@@ -176,5 +188,6 @@ class ClientRequestRate(Parameter):
         super().__init__("client emission time", "%.2f", 1, 50, 5)
 
     def setup(self, value, simulation):
-        simulation.client.emission_rate = value
+        simulation.client.inter_request_period = GaussianNoise(Constant(value), 5)
+
 

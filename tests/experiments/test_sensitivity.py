@@ -20,15 +20,15 @@
 
 from unittest import TestCase
 
-from mock import patch
+from mock import patch, MagicMock
 
-from mad.experiments.sensitivity import SensitivityAnalysis, Parameter
+from mad.experiments.sensitivity import SensitivityAnalysis, Parameter, SensitivityAnalysisController
 
 
 class TestSensitivityAnalysis(TestCase):
 
     def test_run(self):
-        analysis = SensitivityAnalysis()
+        analysis = SensitivityAnalysis(listener=MagicMock(SensitivityAnalysisController))
         analysis.parameters = [
             Parameter("x", "%d", 0, 10, 1),
             Parameter("y", "%d", 0, 20, 1),

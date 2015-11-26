@@ -21,7 +21,7 @@
 from sys import stdout
 
 from mad import __version__
-from mad.experiments.sensitivity import SensitivityAnalysis, RejectionRate, ResponseTime, ClientRequestRate, SensitivityAnalysisListener
+from mad.experiments.sensitivity import SensitivityAnalysisController
 from mad.experiments.sandbox import Sandbox
 
 
@@ -30,13 +30,21 @@ class Mad:
     Facade that provide access to all the experiments supported by MAD
     """
 
-    def sensitivity_analysis(self, controller):
-        analysis = SensitivityAnalysis(listener=controller)
-        analysis.run_count = 100
-        analysis.parameters = [ RejectionRate(), ResponseTime(), ClientRequestRate() ]
-        analysis.run()
+    def __init__(self):
+        self._ui = None
+
+    def start_up(self):
+        self._ui.print_version()
+        self._ui.print_copyright()
+        self._ui.print_disclaimer()
+
+    def sensitivity_analysis(self):
+        analysis = SensitivityAnalysisController(self._ui)
+        analysis.execute()
 
     def sandbox(self):
+        self._ui.print("------------")
+        self._ui.print("Sandbox")
         sandbox = Sandbox()
         sandbox.run()
 
@@ -71,9 +79,9 @@ class UI:
         print(message, file=self._output, end="\r")
 
 
-class Controller(SensitivityAnalysisListener):
+class Controller:
     """
-    Synchronize the Facade with the UI
+    Parse the command line and trigger the proper command on the controller
     """
 
     def __init__(self, engine=Mad(), ui=UI()):
@@ -87,26 +95,13 @@ class Controller(SensitivityAnalysisListener):
         }
 
     def _sensitivity_analysis(self):
-        self._ui.print("---------------------")
-        self._ui.print("Sensitivity Analysis:")
-        self._mad.sensitivity_analysis(self)
-        self._ui.print("")
-
-    def sensitivity_of(self, parameter, value, run):
-        self._ui.show(" - %s: %.2f (Run %3d)" % (parameter.name, value, run))
-
-    def sensitivity_analysis_complete(self, parameter):
-        self._ui.print(" - %s ... DONE                  " % parameter.name)
+        self._mad.sensitivity_analysis()
 
     def _sandbox(self):
-        self._ui.print("------------")
-        self._ui.print("Sandbox")
         self._mad.sandbox()
 
     def run(self, commands):
-        self._ui.print_version()
-        self._ui.print_copyright()
-        self._ui.print_disclaimer()
+        self._mad.start_up()
         if len(commands) == 0:
             self._sensitivity_analysis()
         else:
