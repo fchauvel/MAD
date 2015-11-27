@@ -25,29 +25,6 @@ from mad.experiments.sensitivity import SensitivityAnalysisController
 from mad.experiments.sandbox import Sandbox
 
 
-class Mad:
-    """
-    Facade that provide access to all the experiments supported by MAD
-    """
-
-    def __init__(self):
-        self._ui = None
-
-    def start_up(self):
-        self._ui.print_version()
-        self._ui.print_copyright()
-        self._ui.print_disclaimer()
-
-    def sensitivity_analysis(self):
-        analysis = SensitivityAnalysisController(self._ui)
-        analysis.execute()
-
-    def sandbox(self):
-        self._ui.print("------------")
-        self._ui.print("Sandbox")
-        sandbox = Sandbox()
-        sandbox.run()
-
 
 class UI:
     """
@@ -56,17 +33,6 @@ class UI:
 
     def __init__(self, output = stdout):
         self._output = output
-
-    def print_version(self):
-        self.print("MAD v%s" % __version__)
-
-    def print_copyright(self):
-        self.print("Copyright (C) 2015 Franck Chauvel")
-
-    def print_disclaimer(self):
-        self.print("This program comes with ABSOLUTELY NO WARRANTY\n"
-                   "This is free software, and you are welcome to redistribute it\n"
-                   "under certain conditions.")
 
     def unknown_command(self, command, candidates):
         self.print("Error: Unknown command '%s'" % command)
@@ -80,39 +46,94 @@ class UI:
 
 
 class Controller:
-    """
-    Parse the command line and trigger the proper command on the controller
-    """
 
-    def __init__(self, engine=Mad(), ui=UI()):
-        self._mad = engine
+    def __init__(self, ui):
         self._ui = ui
-        self._legal_commands = {
-            "-sa": self._mad.sensitivity_analysis,
-            "--sensitivity-analysis": self._mad.sensitivity_analysis,
-            "-sb": self._mad.sandbox,
-            "--sandbox": self._mad.sandbox
-        }
 
-    def run(self, commands):
-        self._mad.start_up()
-        if len(commands) == 0:
-            self._mad.sensitivity_analysis()
+    def print_version(self):
+        self._ui.print("MAD v%s" % __version__)
+
+    def print_copyright(self):
+        self._ui.print("Copyright (C) 2015 Franck Chauvel")
+
+    def print_disclaimer(self):
+        self._ui.print("This program comes with ABSOLUTELY NO WARRANTY\n"
+                       "This is free software, and you are welcome to redistribute it\n"
+                        "under certain conditions.")
+
+    def sandbox(self):
+        self._ui.print("------------")
+        self._ui.print("Sandbox")
+        sandbox = Sandbox()
+        sandbox.run()
+
+    def sensitivity_analysis(self):
+        self._ui.print("------------")
+        self._ui.print("Sensitivity Analysis")
+        analysis = SensitivityAnalysisController(self._ui)
+        analysis.execute()
+
+    def unknown_command(self, command):
+        if command is None:
+            self._ui.print("Error: no option given")
         else:
-            for each_command in commands:
-                if self._is_defined(each_command):
-                    self._execute(each_command)
-                else:
-                    self._ui.unknown_command(each_command, self._legal_command_names())
-
-    def _is_defined(self, command):
-        return command in self._legal_commands
-
-    def _execute(self, command):
-        self._legal_commands[command]()
-
-    def _legal_command_names(self):
-        return [ name for name in self._legal_commands ]
+            self._ui.print("Unknown option '%s'" % command)
 
 
+class Command:
 
+    def send_to(self, controller):
+        pass
+
+
+class Macro(Command):
+
+    def __init__(self, *steps):
+        self._steps = steps
+
+    def send_to(self, controller):
+        for each_step in self._steps:
+            each_step.send_to(controller)
+
+
+class SensitivityAnalysis(Command):
+
+    def send_to(self, controller):
+        controller.sensitivity_analysis()
+
+
+class Sandbox(Command):
+
+    def send_to(self, controller):
+        controller.sandbox()
+
+
+class UnknownCommand(Command):
+
+    def __init__(self, option):
+        self._option = option
+
+    def send_to(self, controller):
+        controller.unknown_command(self._option)
+
+
+class CommandFactory:
+
+    LEGAL_COMMANDS = {
+        "-sb": Sandbox,
+        "--sandbox": Sandbox,
+        "-sa": SensitivityAnalysis,
+        "--sensitivity": SensitivityAnalysis
+    }
+
+    @staticmethod
+    def parse_all(command_line):
+        commands = [ CommandFactory.parse(each_option) for each_option in command_line ]
+        return Macro(*commands)
+
+    @staticmethod
+    def parse(option):
+        if option in CommandFactory.LEGAL_COMMANDS:
+            return CommandFactory.LEGAL_COMMANDS[option]()
+        else:
+            return UnknownCommand(option)

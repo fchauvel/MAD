@@ -23,39 +23,28 @@ from mock import MagicMock
 
 from io import StringIO
 
-from mad.mad import Mad, Controller, UI
+from mad.mad import Controller, UI, CommandFactory
 
 
-class TestMAD(TestCase):
-
-    def test_sensitivity_analysis(self):
-        mad = MagicMock(Mad)
-        controller = Controller(mad)
-        controller.run(["-sa"])
-
-        self.assertEqual(1, mad.sensitivity_analysis.call_count)
+class TestCommands(TestCase):
 
     def test_sandbox(self):
-        mad = MagicMock(Mad)
-        controller = Controller(mad)
-        controller.run(["-sb"])
+        controller = MagicMock(Controller)
+        command = CommandFactory.parse_all(["-sb"])
+        command.send_to(controller)
+        self.assertTrue(controller.sandbox.called_once())
 
-        self.assertEqual(1, mad.sandbox.call_count)
-
-    def test_default_command(self):
-        mad = MagicMock(Mad)
-        controller = Controller(mad)
-        controller.run([])
-
-        self.assertEqual(1, mad.sensitivity_analysis.call_count)
+    def test_sensitivity_analysis(self):
+        controller = MagicMock(Controller)
+        command = CommandFactory.parse_all(["-sa"])
+        command.send_to(controller)
+        self.assertTrue(controller.sensitivity_analysis.called_once())
 
     def test_unknown_command(self):
-        mad = MagicMock(Mad)
-        ui = MagicMock(UI)
-        controller = Controller(mad, ui)
-        controller.run(["--this-command-does-not-exist"])
-
-        self.assertEqual(1, ui.unknown_command.call_count)
+        controller = MagicMock(Controller)
+        command = CommandFactory.parse_all(["-unknown"])
+        command.send_to(controller)
+        self.assertTrue(controller.unknown_command.called_once())
 
 
 class TestUI(TestCase):

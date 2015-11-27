@@ -18,9 +18,9 @@
 #
 
 from sys import argv
-from mad.mad import Controller
+from mad.mad import Controller, UI, CommandFactory
 
 
-controller = Controller()
-controller.run(argv[1:])
-
+controller = Controller(UI())
+command = CommandFactory.parse_all(argv[1:])
+command.send_to(controller)
