@@ -22,6 +22,7 @@ from collections import namedtuple
 
 from mad.math import Constant
 from mad.des import Agent, CompositeAgent, Action
+from mad.queueing import FIFO
 from mad.throttling import StaticThrottling
 from mad.autoscaling import Controller, UtilisationThreshold
 from mad.backoff import ExponentialBackOff
@@ -85,10 +86,10 @@ class Server(CompositeAgent):
     The server receives request and returns a response
     """
 
-    def __init__(self, identifier, service_time=Constant(5), throttling=StaticThrottling(0), scalability=Controller(10), back_off=ExponentialBackOff.factory):
+    def __init__(self, identifier, service_time=Constant(5), queue=FIFO(), throttling=StaticThrottling(0), scalability=Controller(10), back_off=ExponentialBackOff.factory):
         super().__init__(identifier)
         self._service_time = service_time
-        self._queue = Queue()
+        self._queue = queue
         self._meter = Meter()
         self._cluster = Cluster(self)
         self._throttling = throttling
@@ -100,7 +101,7 @@ class Server(CompositeAgent):
 
     @CompositeAgent.agents.getter
     def agents(self):
-        return [self._queue, self._cluster, self._scalability]
+        return [self._cluster, self._scalability]
 
     def state_entries(self):
         entries = [("queue length", "%d", self._queue.length),
@@ -175,35 +176,6 @@ class Server(CompositeAgent):
 
     def destroy_unit(self, unit):
         self._cluster.discard(unit)
-
-
-class Queue(Agent):
-    """
-    Represent a queue of requests to be processed
-    """
-
-    IDENTIFIER = "queue"
-
-    def __init__(self):
-        super().__init__(Queue.IDENTIFIER)
-        self._queue = []
-
-    def take(self):
-        if self.is_empty:
-            raise ValueError("Cannot take from an empty queue!")
-        return self._queue.pop(0)
-
-    def put(self, request):
-        self.log("request enqueued (length = %d)" % self.length)
-        self._queue.append(request)
-
-    @property
-    def is_empty(self):
-        return len(self._queue) == 0
-
-    @property
-    def length(self):
-        return len(self._queue)
 
 
 class Cluster(CompositeAgent):

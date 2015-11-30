@@ -21,7 +21,7 @@ from unittest import TestCase, main
 from mock import MagicMock, PropertyMock
 
 from mad.client import Request
-from mad.server import Queue
+from mad.queueing import Queue
 from mad.throttling import StaticThrottling, TailDrop, RED
 
 
