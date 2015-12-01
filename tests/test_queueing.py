@@ -20,13 +20,13 @@
 
 from unittest import TestCase
 
-from mad.queueing import FIFO, LIFO
+from mad.queueing import Queue
 
 
 class TestFIFO(TestCase):
 
     def make_queue(self, content):
-        return FIFO(content)
+        return Queue.fifo(content)
 
     def test_queue_is_empty_by_default(self):
         queue = self.make_queue([])
@@ -56,7 +56,7 @@ class TestFIFO(TestCase):
 class TestLIFO(TestFIFO):
 
     def make_queue(self, content):
-        return LIFO(content)
+        return Queue.lifo(content)
 
     def test_take(self):
         queue = self.make_queue([1,2,3,4,5,6])

@@ -26,6 +26,14 @@ class Queue:
     Queue class, by default a FIFO queue
     """
 
+    @classmethod
+    def fifo(cls, content):
+        return Queue(content, next=0)
+
+    @classmethod
+    def lifo(cls, content):
+        return Queue(content, next=-1)
+
     def __init__(self, content=[], next=0):
         self._queue = content
         self._next = next
@@ -45,16 +53,3 @@ class Queue:
     @property
     def length(self):
         return len(self._queue)
-
-
-class FIFO(Queue):
-
-    def __init__(self, content=[]):
-        super().__init__(content=content, next=0)
-
-
-class LIFO(Queue):
-
-    def __init__(self, content=[]):
-        super().__init__(content=content, next=-1)
-

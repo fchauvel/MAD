@@ -25,7 +25,6 @@ from mad.queueing import Queue
 from mad.throttling import StaticThrottling, TailDrop, RED
 
 
-
 class TestRED(TestCase):
 
     def _fake_queue(self, sizes):
