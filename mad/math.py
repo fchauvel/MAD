@@ -17,7 +17,7 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from random import gauss
+from random import gauss, random
 from collections import namedtuple
 
 
@@ -156,3 +156,40 @@ class UpperBound(Bound):
 
     def exceeds_bound(self, value):
         return value > self.bound
+
+
+class CachedRandom:
+
+    def __init__(self):
+        self._cache = {}
+
+    def value_at(self, x):
+        if x not in self._cache:
+            self._cache[x] = random()
+        return self._cache[x]
+
+
+class PerlinNoise:
+
+    def __init__(self, octave_count, persistence, resolution):
+        self._octave = octave_count
+        self._persistence = persistence
+        self._resolution = resolution
+        self._noise = CachedRandom()
+
+    def value_at(self, time):
+        noise = 0
+        for i in range(self._octave):
+            frequency = 2 ** i * self._resolution
+            amplitude = self._persistence ** i
+            noise += self.interpolate(time, frequency) * amplitude
+        return noise
+
+    def interpolate(self, time, frequency):
+        before = time // frequency
+        after = before + frequency
+        alpha = (time - before) / frequency
+        return self._noise_at(before) * (1-alpha) + self._noise_at(after) * alpha
+
+    def _noise_at(self, time):
+        return 2 * self._noise.value_at(time) - 1

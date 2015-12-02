@@ -20,7 +20,7 @@
 from unittest import TestCase, main
 from mock import patch
 
-from mad.math import Point, Constant, GaussianNoise, LowerBound, UpperBound, Interpolation, Cycle
+from mad.math import Point, Constant, GaussianNoise, LowerBound, UpperBound, Interpolation, Cycle, CachedRandom, PerlinNoise
 
 
 class TestFunction(TestCase):
@@ -104,6 +104,23 @@ class TestUpperBound(TestCase):
 
         self.assertEqual(10, function.value_at(1))
 
+
+class TestCachedRandom(TestCase):
+
+    def test_caching(self):
+        random = CachedRandom()
+        value = random.value_at(10)
+
+        for i in range(10):
+            self.assertEqual(value, random.value_at(10))
+
+
+class TestPerlinNoise(TestCase):
+
+    def test_perlin_noise(self):
+        noisifier = PerlinNoise(5, 3, 5)
+        values = [str(int(noisifier.value_at(x))) for x in range(200)]
+        print("series <- c(%s);" % (",".join(values)))
 
 if __name__ == '__main__':
     main()
