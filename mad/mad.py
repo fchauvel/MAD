@@ -22,7 +22,7 @@ from sys import stdout
 
 from mad import __version__
 from mad.experiments.sensitivity import SensitivityAnalysisController
-from mad.experiments.sandbox import Sandbox
+from mad.experiments.sandbox import Sandbox as SandboxExp
 
 
 
@@ -64,7 +64,7 @@ class Controller:
     def sandbox(self):
         self._ui.print("------------")
         self._ui.print("Sandbox")
-        sandbox = Sandbox()
+        sandbox = SandboxExp()
         sandbox.run()
 
     def sensitivity_analysis(self):

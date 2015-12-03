@@ -23,7 +23,7 @@ from mad.server import Server, ServiceStub
 from mad.throttling import TailDrop, RED, StaticThrottling
 from mad.autoscaling import Controller, UtilisationThreshold, FixedCluster, Limited
 from mad.backoff import ConstantDelay, FibonacciDelay, ExponentialBackOff
-from mad.math import Constant, Interpolation, Point, GaussianNoise, Cycle
+from mad.math import Constant, PerlinNoise
 
 
 class Sandbox:
@@ -36,6 +36,7 @@ class Sandbox:
                           throttling=TailDrop(15),
                           scalability=Controller(period=30, strategy=Limited(UtilisationThreshold(min=40, max=60, step=1), 10)),
                           back_off = ConstantDelay.factory)
+        server_C._is_recording_active = True
         server_C.back_ends = [back_end]
 
         server_B = Server("server_B",
@@ -43,6 +44,7 @@ class Sandbox:
                           throttling=TailDrop(15),
                           scalability=Controller(period=40, strategy=Limited(UtilisationThreshold(min=40, max=60, step=1), 30)),
                           back_off = ExponentialBackOff.factory)
+        server_B._is_recording_active = True
         server_B.back_ends = [ server_C ]
 
         server_A = Server("server_A",
@@ -51,9 +53,10 @@ class Sandbox:
                           scalability=Controller(period=30, strategy=Limited(UtilisationThreshold(min=40, max=60, step=1), 30)),
                           back_off = ExponentialBackOff.factory)
         server_A.back_ends = [ server_B ]
+        server_A._is_recording_active = True
 
         #oscillation = Cycle(GaussianNoise(Interpolation(10, [Point(0, 25), Point(200, 2), Point(400, 25)]), 5), 400)
-        work_load = GaussianNoise(Constant(15), 5)
+        work_load = PerlinNoise(octave_count=5, persistence=1.75, base_resolution=3)
         clients = []
         for each_client in range(1, 20):
             client = ClientStub(name="Client %d" % each_client, inter_request_period=work_load)
