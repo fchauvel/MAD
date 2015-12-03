@@ -160,8 +160,8 @@ class UpperBound(Bound):
 
 class CachedRandom:
 
-    def __init__(self):
-        self._cache = {}
+    def __init__(self, cache = {}):
+        self._cache = cache
 
     def value_at(self, x):
         if x not in self._cache:
@@ -169,27 +169,34 @@ class CachedRandom:
         return self._cache[x]
 
 
+class Octave:
+
+    def __init__(self, rank, persistence, resolution, noise = CachedRandom()):
+        self._noise = noise
+        self._amplitude = persistence ** rank
+        self._resolution = 2 ** rank * resolution
+
+    def value_at(self, x):
+        before = x // self._resolution
+        after = before + 1
+        ratio = (x % self._resolution) / self._resolution
+        noise = self.interpolate(self.noise_at(before), self.noise_at(after), ratio)
+        return noise * self._amplitude
+
+    def noise_at(self, time):
+        return self._noise.value_at(time)
+
+    @staticmethod
+    def interpolate(lower, upper, fraction):
+        from math import cos, pi
+        f = (1 - cos(fraction * pi)) * 0.5
+        return lower * (1-f) + upper * f
+
+
 class PerlinNoise:
 
-    def __init__(self, octave_count, persistence, resolution):
-        self._octave = octave_count
-        self._persistence = persistence
-        self._resolution = resolution
-        self._noise = CachedRandom()
+    def __init__(self, octave_count, persistence, base_resolution):
+        self.octaves = [Octave(i, persistence, base_resolution) for i in range(octave_count)]
 
     def value_at(self, time):
-        noise = 0
-        for i in range(self._octave):
-            frequency = 2 ** i * self._resolution
-            amplitude = self._persistence ** i
-            noise += self.interpolate(time, frequency) * amplitude
-        return noise
-
-    def interpolate(self, time, frequency):
-        before = time // frequency
-        after = before + frequency
-        alpha = (time - before) / frequency
-        return self._noise_at(before) * (1-alpha) + self._noise_at(after) * alpha
-
-    def _noise_at(self, time):
-        return 2 * self._noise.value_at(time) - 1
+        return sum((each_octave.value_at(time) for each_octave in self.octaves))

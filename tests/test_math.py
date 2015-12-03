@@ -20,7 +20,7 @@
 from unittest import TestCase, main
 from mock import patch
 
-from mad.math import Point, Constant, GaussianNoise, LowerBound, UpperBound, Interpolation, Cycle, CachedRandom, PerlinNoise
+from mad.math import *
 
 
 class TestFunction(TestCase):
@@ -115,12 +115,26 @@ class TestCachedRandom(TestCase):
             self.assertEqual(value, random.value_at(10))
 
 
+class TestOctave(TestCase):
+
+    def test_octave(self):
+        octave = Octave(rank=0, persistence=5, resolution=50, noise=CachedRandom({0:100, 1:50, 2: 50}))
+        self.assertEqual(100, octave.value_at(0))
+        self.assertEqual(75, octave.value_at(25))
+        self.assertEqual(50, octave.value_at(50))
+
+
 class TestPerlinNoise(TestCase):
 
     def test_perlin_noise(self):
-        noisifier = PerlinNoise(5, 3, 5)
-        values = [str(int(noisifier.value_at(x))) for x in range(200)]
-        print("series <- c(%s);" % (",".join(values)))
+        length = 500
+        noisifier = PerlinNoise(octave_count=5, persistence=1.75, base_resolution=3)
+        with open("test.csv", "w") as trace:
+            headers = ["time", "noise"] + ["octave %d" % i for i in range(len(noisifier.octaves))]
+            print(",".join(headers), file=trace)
+            for time in range(length):
+                values = [time, noisifier.value_at(time)] + [octave.value_at(time) for octave in noisifier.octaves]
+                print(",".join([str(v) for v in values]), file=trace)
 
 if __name__ == '__main__':
     main()
