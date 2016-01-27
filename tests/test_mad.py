@@ -19,32 +19,32 @@
 
 
 from unittest import TestCase
-from mock import MagicMock
+from mock import MagicMock, mock_open, patch
 
 from io import StringIO
 
-from mad.mad import Controller, UI, CommandFactory
+from mad.mad import UI, Controller, Repository, Builder
+from mad.des import CompositeAgent
+from mad.parsing import Parser
 
 
-class TestCommands(TestCase):
+class TestController(TestCase):
+    """
+    Specification of the entry point of the program
+    """
+    def test_trigger_parsing_and_simulation(self):
+        fake_simulation = MagicMock(CompositeAgent)
+        fake_ui = MagicMock(UI)
+        fake_repository = MagicMock(Repository)
+        fake_builder = MagicMock(Builder)
+        fake_builder.assemble.return_value = fake_simulation
 
-    def test_sandbox(self):
-        controller = MagicMock(Controller)
-        command = CommandFactory.parse_all(["-sb"])
-        command.send_to(controller)
-        self.assertTrue(controller.sandbox.called_once())
+        controller = Controller(fake_ui, fake_repository, fake_builder)
+        controller.simulate(["system.mad", "environment.mad"])
 
-    def test_sensitivity_analysis(self):
-        controller = MagicMock(Controller)
-        command = CommandFactory.parse_all(["-sa"])
-        command.send_to(controller)
-        self.assertTrue(controller.sensitivity_analysis.called_once())
-
-    def test_unknown_command(self):
-        controller = MagicMock(Controller)
-        command = CommandFactory.parse_all(["-unknown"])
-        command.send_to(controller)
-        self.assertTrue(controller.unknown_command.called_once())
+        self.assertEqual(2, fake_repository.load.call_count)
+        self.assertEqual(1, fake_builder.assemble.call_count)
+        self.assertEqual(1, fake_simulation.run_until.call_count)
 
 
 class TestUI(TestCase):
@@ -62,3 +62,21 @@ class TestUI(TestCase):
         ui.show("This is a message")
 
         self.assertEqual("This is a message\r", output.getvalue())
+
+
+class TestRepository(TestCase):
+
+    def test_parsing_file(self):
+        source_file = "my_test_file.mad"
+        mock = mock_open(read_data="architecture SensApp:")
+
+        fake_parser = MagicMock(Parser)
+
+        with patch('mad.mad.open', mock, create=True):
+            repository = Repository(fake_parser)
+            architecture = repository.load("my_test_file.mad")
+
+        mock.assert_called_once_with('my_test_file.mad')
+        self.assertEqual(1, fake_parser.parse.call_count)
+
+

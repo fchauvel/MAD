@@ -18,9 +18,8 @@
 #
 
 from sys import argv
-from mad.mad import Controller, UI, CommandFactory
+from mad.mad import Controller, UI, CommandFactory, Controller2, UI, Builder, Repository
 
 
-controller = Controller(UI())
-command = CommandFactory.parse_all(argv[1:])
-command.send_to(controller)
+controller = Controller2(UI(), Repository(), Builder())
+controller.simulate(argv[1:])

@@ -21,9 +21,6 @@
 from sys import stdout
 
 from mad import __version__
-from mad.experiments.sensitivity import SensitivityAnalysisController
-from mad.experiments.sandbox import Sandbox as SandboxExp
-
 
 
 class UI:
@@ -45,95 +42,59 @@ class UI:
         print(message, file=self._output, end="\r")
 
 
-class Controller:
+class Builder:
 
-    def __init__(self, ui):
-        self._ui = ui
-
-    def print_version(self):
-        self._ui.print("MAD v%s" % __version__)
-
-    def print_copyright(self):
-        self._ui.print("Copyright (C) 2015 Franck Chauvel")
-
-    def print_disclaimer(self):
-        self._ui.print("This program comes with ABSOLUTELY NO WARRANTY\n"
-                       "This is free software, and you are welcome to redistribute it\n"
-                        "under certain conditions.")
-
-    def sandbox(self):
-        self._ui.print("------------")
-        self._ui.print("Sandbox")
-        sandbox = SandboxExp()
-        sandbox.run()
-
-    def sensitivity_analysis(self):
-        self._ui.print("------------")
-        self._ui.print("Sensitivity Analysis")
-        analysis = SensitivityAnalysisController(self._ui)
-        analysis.execute()
-
-    def unknown_command(self, command):
-        if command is None:
-            self._ui.print("Error: no option given")
-        else:
-            self._ui.print("Unknown option '%s'" % command)
-
-
-class Command:
-
-    def send_to(self, controller):
+    def assemble(self, system, environment):
         pass
 
 
-class Macro(Command):
+class Repository:
 
-    def __init__(self, *steps):
-        self._steps = steps
+    def __init__(self, parser):
+        self._parser = parser
 
-    def send_to(self, controller):
-        for each_step in self._steps:
-            each_step.send_to(controller)
-
-
-class SensitivityAnalysis(Command):
-
-    def send_to(self, controller):
-        controller.sensitivity_analysis()
+    def load(self, path_to_file):
+        with open(path_to_file) as source_file:
+            text = source_file.readlines()
+            return self._parser.parse(text)
 
 
-class Sandbox(Command):
+class Controller:
 
-    def send_to(self, controller):
-        controller.sandbox()
+    ARCHITECTURE = 0
+    ENVIRONMENT = 1
 
+    def __init__(self, ui, repository, builder):
+        self._ui = ui
+        self._repository = repository
+        self._builder = builder
 
-class UnknownCommand(Command):
+    def simulate(self, arguments):
+        self._print_header()
 
-    def __init__(self, option):
-        self._option = option
+        self._ui.show("Loading architecture from '%s' ... " % arguments[self.ARCHITECTURE])
+        system = self._repository.load(arguments[self.ARCHITECTURE])
 
-    def send_to(self, controller):
-        controller.unknown_command(self._option)
+        self._ui.print("Loading environment from '%s' ... " % arguments[self.ENVIRONMENT])
+        environment = self._repository.load(arguments[self.ENVIRONMENT])
 
+        self._ui.print("Starting simulation")
+        simulation = self._builder.assemble(system, environment)
+        simulation.run_until(1000, 30)
 
-class CommandFactory:
+    def _print_header(self):
+        self._print_version()
+        self._print_copyright()
+        self._print_disclaimer()
+        self._ui.print("")
 
-    LEGAL_COMMANDS = {
-        "-sb": Sandbox,
-        "--sandbox": Sandbox,
-        "-sa": SensitivityAnalysis,
-        "--sensitivity": SensitivityAnalysis
-    }
+    def _print_version(self):
+        self._ui.print("MAD v%s" % __version__)
 
-    @staticmethod
-    def parse_all(command_line):
-        commands = [ CommandFactory.parse(each_option) for each_option in command_line ]
-        return Macro(*commands)
+    def _print_copyright(self):
+        self._ui.print("Copyright (C) 2015 Franck Chauvel")
 
-    @staticmethod
-    def parse(option):
-        if option in CommandFactory.LEGAL_COMMANDS:
-            return CommandFactory.LEGAL_COMMANDS[option]()
-        else:
-            return UnknownCommand(option)
+    def _print_disclaimer(self):
+        self._ui.print("This program comes with ABSOLUTELY NO WARRANTY\n"
+                       "This is free software, and you are welcome to redistribute it\n"
+                       "under certain conditions.")
