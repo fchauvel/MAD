@@ -1,0 +1,53 @@
+#
+# This captures the architecture of SensApp, as it is currently.
+#
+
+architecture SensApp:
+
+    service Converter:
+
+        configuration:
+            queue: none                 # TO IMPLEMENT
+            throttling: none            # TO IMPLEMENT
+            resources: shared
+            autoscaling: per-request
+
+        operation convert:
+            do "conversion" { duration: 100 }
+            trigger Dispatcher/dispatch { timeout: 10 }
+
+
+    service Dispatcher:
+
+        configuration:
+            queue: None
+
+        operation Dispatch:
+            request Registry/check_meta_data { on-error: retry(limit: 5, delay:10) }
+            trigger Notifier/notify { on-error: continue }
+            trigger Storage/store_data { on-error: retry(limit: none, delay: Exponential) }
+
+
+    service Registry:
+
+        configuration:
+            queue: none                 # TO IMPLEMENT
+            throttling: none            # TO IMPLEMENT
+            resources: shared
+            autoscaling: per-request
+
+        operation check_meta_data:
+            do "check" { duration: 15 }
+
+
+    service Storage:
+
+        operation store_data:
+            request Database/insert
+
+
+    service Notifier:
+
+        operation notify:
+            do "pattern matching" { duration: 100 }
+            notify Followers/match
