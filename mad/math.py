@@ -68,7 +68,7 @@ class Interpolation(Function):
 
     @staticmethod
     def _interpolate_between(time, lower, upper):
-        return lower.value + (upper.value - lower.value) * ((time - lower.time) / (upper.time - lower.time) )
+        return lower.value + (upper.value - lower.value) * ((time - lower.time) / (upper.time - lower.time))
 
 
 class FunctionDecorator(Function):

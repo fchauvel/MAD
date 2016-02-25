@@ -171,7 +171,7 @@ class Agent:
             events = self.next_events
             shuffle(events)
             for each_event in events:
-                self.clock.advance_to(each_event._time)
+                self.clock.advance_to(each_event.time)
                 each_event.trigger()
 
     def _schedule_next_record(self):
