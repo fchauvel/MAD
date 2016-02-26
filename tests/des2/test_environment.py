@@ -24,6 +24,24 @@ from mad.des2.environment import Environment
 
 class EnvironmentTest(TestCase):
 
+    def verify_binding(self, env, symbol, value):
+        self.assertEqual(env.look_up(symbol), value)
+
+    def verify_all_bindings(self, env, bindings):
+        for (symbol, value) in bindings.items():
+            self.verify_binding(env, symbol, value)
+
+    def test_define_all_symbols(self):
+        env = Environment()
+        env.define_each(["a", "b", "c"], [1, 2, 3])
+
+        self.verify_all_bindings(env, {"a": 1, "b": 2, "c": 3})
+
+    def test_define_all_reject_missing_values(self):
+        env = Environment()
+        with self.assertRaises(ValueError):
+            env.define_each(["a", "b", "c"], [1, 2])
+
     def test_look_up_bindings_in_parent(self):
         env1 = Environment()
         env1.define("my_var", 4)

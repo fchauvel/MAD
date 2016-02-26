@@ -19,67 +19,69 @@
 
 from mad.des2.environment import Environment
 
-class Simulator:
 
-    def __init__(self):
-        pass
-
-    def __call__(self, *args, **kwargs):
-        return Simulation()
-
-
-class Simulation:
+class Interpreter:
 
     def __init__(self, environment=Environment()):
         self.environment = environment
 
-    def until(self, limit):
-        return self
-
-    @property
-    def services(self):
-        class FakeService:
-
-            @property
-            def called_once(self):
-                return True
-
-        return {"my_service": FakeService()}
+    def evaluation_of(self, expression, continuation):
+        return Evaluation(self.environment, expression, continuation)
 
     def evaluate(self, expression):
-        return expression.accept(self)
+        return Evaluation(self.environment, expression, self.done).result
 
-    def evaluate_service_definition(self, definition):
+    def done(self, result):
+        return result
+
+
+class Evaluation:
+
+    def __init__(self, environment, expression, continuation):
+        self.environment = environment
+        self.expression = expression
+        self.continuation = continuation
+
+    def __call__(self, *args, **kwargs):
+        return self.expression.accept(self)
+
+    @property
+    def result(self):
+        return self(None)
+
+    def of_service_definition(self, definition):
         service_environment = self.environment.create_local_environment()
-        Simulation(service_environment).evaluate(definition.body)
+        Interpreter(service_environment).evaluate(definition.body)
         service = Service(service_environment)
         self.environment.define(definition.name, service)
+        self.continuation(service)
 
-    def evaluate_operation_definition(self, definition):
+    def of_operation_definition(self, definition):
         operation = Operation(
             definition.parameters,
             definition.body,
             self.environment
         )
         self.environment.define(definition.name, operation)
-        return operation
+        self.continuation(operation)
 
-    def evaluate_sequence(self, sequence):
-        result = None
-        for each_expression in sequence.body:
-            result = self.evaluate(each_expression)
-        return result
+    def of_sequence(self, sequence):
+        interpreter = Interpreter(self.environment)
+        return interpreter.evaluation_of(
+                sequence.first_expression,
+                interpreter.evaluation_of(sequence.rest, self.continuation)
+        ).result
 
-    def evaluate_trigger(self, trigger):
+    def of_trigger(self, trigger):
         service = self.environment.look_up(trigger.service)
         service.process(Request(trigger.operation))
-        return None
+        self.continuation(None)
 
+    def of_query(self, query):
+        service = self.environment.look_up(query.service)
+        service.process(Request(query.operation))
+        self.continuation(None)
 
-# To evaluate 'invoke operation X'
-# 1. Evaluate the arguments of the invocation
-# 2. Spawn the current operation environment as new-env
-# 3. Evaluate the body of the function in the new-env
 
 class Operation:
 
@@ -90,9 +92,8 @@ class Operation:
 
     def invoke(self, arguments):
         environment = self.environment.create_local_environment()
-        for (symbol, value) in zip(self.parameters, arguments):
-            environment.define(symbol, value)
-        return Simulation(environment).evaluate(self.body)
+        environment.define_each(self.parameters, arguments)
+        return Interpreter(environment).evaluate(self.body)
 
 
 class Service:

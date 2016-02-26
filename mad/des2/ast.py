@@ -24,23 +24,8 @@ class DefineService:
         self.name = name
         self.body = body
 
-    def accept(self, simulator):
-        simulator.evaluate_service_definition(self)
-
-
-class Generator:
-
-    def __init__(self, behaviour):
-        self.behaviour = behaviour
-
-    def accept(self, simulator):
-        simulator.evaluate_generator_definition(self)
-
-class At:
-
-    def __init__(self, time, behaviour):
-        self.time = time
-        self.behaviour = behaviour
+    def accept(self, evaluation):
+        return evaluation.of_service_definition(self)
 
 
 class DefineOperation:
@@ -50,8 +35,8 @@ class DefineOperation:
         self.parameters = []
         self.body = body
 
-    def accept(self, simulator):
-        return simulator.evaluate_operation_definition(self)
+    def accept(self, evaluation):
+        return evaluation.of_operation_definition(self)
 
 
 class Trigger:
@@ -60,8 +45,18 @@ class Trigger:
         self.service = service
         self.operation = operation
 
-    def accept(self, simulator):
-        simulator.evaluate_trigger(self)
+    def accept(self, evaluation):
+        return evaluation.of_trigger(self)
+
+
+class Query:
+
+    def __init__(self, service, operation):
+        self.service = service
+        self.operation = operation
+
+    def accept(self, evaluation):
+        return evaluation.of_query(self)
 
 
 class Sequence:
@@ -69,5 +64,16 @@ class Sequence:
     def __init__(self, *args, **kwargs):
         self.body = args
 
-    def accept(self, simulator):
-        return simulator.evaluate_sequence(self)
+    @property
+    def first_expression(self):
+        return self.body[0]
+
+    @property
+    def rest(self):
+        if len(self.body) > 2:
+            return Sequence(self.body[1:])
+        else:
+            return self.first_expression
+
+    def accept(self, evaluation):
+        return evaluation.of_sequence(self)

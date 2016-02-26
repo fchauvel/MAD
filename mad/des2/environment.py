@@ -30,6 +30,12 @@ class Environment:
     def define(self, symbol, value):
         self.bindings[symbol] = value
 
+    def define_each(self, symbols, values):
+        if len(symbols) != len(values):
+            raise ValueError("Inconsistent symbols and values (found symbols %s, values %s)" % (symbols, values))
+        for (symbol, value) in zip(symbols, values):
+            self.define(symbol, value)
+
     def look_up(self, symbol):
         if symbol in self.bindings:
             return self.bindings[symbol]

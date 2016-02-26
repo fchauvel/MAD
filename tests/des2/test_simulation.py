@@ -22,7 +22,7 @@ from unittest import TestCase
 from mock import MagicMock
 
 from mad.des2.environment import Environment
-from mad.des2.simulation import Simulator, Simulation, Service, Operation, Request
+from mad.des2.simulation import Interpreter, Service, Operation, Request
 from mad.des2.ast import *
 
 
@@ -30,7 +30,7 @@ class TestSimulation(TestCase):
 
     def setUp(self):
         self.environment = Environment()
-        self.simulation = Simulation(self.environment)
+        self.interpreter = Interpreter(self.environment)
 
     def define(self, symbol, value):
         self.environment.define(symbol, value)
@@ -40,23 +40,30 @@ class TestSimulation(TestCase):
         return self.environment.look_up(symbol)
 
     def evaluate(self, expression):
-        return self.simulation.evaluate(expression)
+        return self.interpreter.evaluate(expression)
 
     def verify_definition(self, symbol, kind):
         value = self.environment.look_up(symbol)
         self.assertTrue(isinstance(value, kind))
 
-    def test_service_invocation_evaluation(self):
+    def test_evaluate_non_blocking_service_invocation(self):
         fake_service = self.define("serviceX", self.fake_service())
 
-        self.simulation.evaluate(Trigger("serviceX", "op"))
+        self.evaluate(Trigger("serviceX", "op"))
+
+        self.assertEqual(fake_service.process.call_count, 1)
+
+    def test_evaluate_blocking_service_invocation(self):
+        fake_service = self.define("foo", self.fake_service())
+
+        self.evaluate(Query("foo", "op"))
 
         self.assertEqual(fake_service.process.call_count, 1)
 
     def test_sequence_evaluation(self):
         fake_service = self.define("serviceX", self.fake_service())
 
-        self.simulation.evaluate(Sequence(Trigger("serviceX", "op"), Trigger("serviceX", "op")))
+        self.evaluate(Sequence(Trigger("serviceX", "op"), Trigger("serviceX", "op")))
 
         self.assertEqual(fake_service.process.call_count, 2)
 
