@@ -22,8 +22,8 @@ from mad.des2.environment import Environment
 
 class Interpreter:
 
-    def __init__(self, environment=Environment()):
-        self.environment = environment
+    def __init__(self, environment=None):
+        self.environment = environment or Environment()
 
     def evaluation_of(self, expression, continuation):
         return Evaluation(self.environment, expression, continuation)
@@ -65,6 +65,12 @@ class Evaluation:
         self.environment.define(definition.name, operation)
         self.continuation(operation)
 
+    def of_client_stub_definition(self, definition):
+        client_environment = self.environment.create_local_environment()
+        client = ClientStub(client_environment, definition.period, definition.body)
+        client.initialize()
+        return client
+
     def of_sequence(self, sequence):
         interpreter = Interpreter(self.environment)
         return interpreter.evaluation_of(
@@ -89,7 +95,7 @@ class Evaluation:
     def of_think(self, think):
         def resume():
             self.continuation(None)
-        self.environment.schedule.after(think.duration, resume)
+        self.environment.schedule().after(think.duration, resume)
         return None
 
 
@@ -118,6 +124,20 @@ class Service:
     def process(self, request):
         operation = self.environment.look_up(request.operation)
         operation.invoke([])
+
+
+class ClientStub:
+
+    def __init__(self, environment, period, body):
+        self.environment = environment
+        self.period = period
+        self.body = body
+
+    def initialize(self):
+        self.environment.schedule().every(self.period, self.activate)
+
+    def activate(self):
+        Interpreter(self.environment).evaluate(self.body)
 
 
 class Request:

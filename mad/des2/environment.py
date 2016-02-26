@@ -19,18 +19,17 @@
 
 from mad.des2.scheduling import Scheduler
 
+
 class Environment:
     """
     Hold bindings that associate a symbol to an object during the simulation
     """
 
-    def __init__(self, scheduler=Scheduler()):
+    def __init__(self):
         self.bindings = {}
-        self.scheduler = scheduler
 
-    @property
     def schedule(self):
-        return self.scheduler
+        raise NotImplementedError("Method 'Environment::schedule' is abstract!")
 
     def define(self, symbol, value):
         self.bindings[symbol] = value
@@ -49,6 +48,16 @@ class Environment:
         return LocalEnvironment(self)
 
 
+class GlobalEnvironment(Environment):
+
+    def __init__(self, scheduler = None):
+        super().__init__()
+        self._scheduler = scheduler or Scheduler()
+
+    def schedule(self):
+        return self._scheduler
+
+
 class LocalEnvironment(Environment):
 
     def __init__(self, parent):
@@ -62,6 +71,5 @@ class LocalEnvironment(Environment):
             result = self.parent.look_up(symbol)
         return result
 
-    @property
     def schedule(self):
-        return super().schedule
+        return self.parent.schedule()

@@ -45,6 +45,19 @@ class DefineOperation:
         return "Operation(%s, %s)" % (self.name, str(self.body))
 
 
+class DefineClientStub:
+
+    def __init__(self, period, body):
+        self.period = period
+        self.body = body
+
+    def __repr__(self):
+        return "DefineClientStub(%d, %s)" % (self.period, self.body)
+
+    def accept(self, evaluation):
+        return evaluation.of_client_stub_definition(self)
+
+
 class Trigger:
 
     def __init__(self, service, operation):

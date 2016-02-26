@@ -21,7 +21,7 @@
 from unittest import TestCase
 from mock import MagicMock
 
-from mad.des2.environment import Environment
+from mad.des2.environment import GlobalEnvironment
 from mad.des2.simulation import Interpreter, Service, Operation, Request
 from mad.des2.ast import *
 
@@ -29,7 +29,7 @@ from mad.des2.ast import *
 class TestSimulation(TestCase):
 
     def setUp(self):
-        self.environment = Environment()
+        self.environment = GlobalEnvironment()
         self.interpreter = Interpreter(self.environment)
 
     def define(self, symbol, value):
@@ -47,7 +47,7 @@ class TestSimulation(TestCase):
         self.assertTrue(isinstance(value, kind))
 
     def simulate_until(self, end):
-        self.environment.schedule.simulate_until(end)
+        self.environment.schedule().simulate_until(end)
 
     def test_evaluate_non_blocking_service_invocation(self):
         fake_service = self.define("serviceX", self.fake_service())
@@ -101,7 +101,6 @@ class TestSimulation(TestCase):
 
         self.assertEqual(fake_service.process.call_count, 1)
 
-
     def test_operation_definition(self):
         self.evaluate(DefineOperation("op", Trigger("serviceX", "op")))
 
@@ -135,6 +134,14 @@ class TestSimulation(TestCase):
 
         self.assertEqual(fake_service.process.call_count, 1)
 
+    def test_client_stub_definition(self):
+        fake_service = self.define("service Y", self.fake_service())
+        self.evaluate(DefineClientStub(5, Trigger("service Y", "op")))
+
+        self.simulate_until(20)
+
+        client = self.look_up("service Y")
+        self.assertEqual(fake_service.process.call_count, 4)
 
     def fake_service(self):
         fake_service = MagicMock()

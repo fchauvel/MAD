@@ -32,6 +32,9 @@ class Event:
             raise ValueError("Only 'callable' objects can be scheduled (found '%s')." % (type(action)))
         self.action = action
 
+    def __repr__(self):
+        return "Event(%d, %s)" % (self.time, str(self.action))
+
     def trigger(self):
         self.action()
 
