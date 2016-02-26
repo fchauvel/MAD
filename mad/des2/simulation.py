@@ -79,8 +79,18 @@ class Evaluation:
 
     def of_query(self, query):
         service = self.environment.look_up(query.service)
-        service.process(Request(query.operation))
+        request = Request(
+                query.operation,
+        #        on_response = self.continuation
+        )
+        service.process(request)
         self.continuation(None)
+
+    def of_think(self, think):
+        def resume():
+            self.continuation(None)
+        self.environment.schedule.after(think.duration, resume)
+        return None
 
 
 class Operation:
@@ -89,6 +99,9 @@ class Operation:
         self.parameters = parameters
         self.body = body
         self.environment = environment
+
+    def __repr__(self):
+        return "operation:%s" % (str(self.body))
 
     def invoke(self, arguments):
         environment = self.environment.create_local_environment()
@@ -111,4 +124,3 @@ class Request:
 
     def __init__(self, operation):
         self.operation = operation
-

@@ -46,6 +46,9 @@ class TestSimulation(TestCase):
         value = self.environment.look_up(symbol)
         self.assertTrue(isinstance(value, kind))
 
+    def simulate_until(self, end):
+        self.environment.schedule.simulate_until(end)
+
     def test_evaluate_non_blocking_service_invocation(self):
         fake_service = self.define("serviceX", self.fake_service())
 
@@ -76,6 +79,28 @@ class TestSimulation(TestCase):
         operation.invoke([])
 
         self.assertEqual(fake_service.process.call_count, 1)
+
+    def test_thinking(self):
+        fake_service = self.define("serviceX", self.fake_service())
+
+        operation = self.define(
+                "op-foo",
+                Operation(
+                        [],
+                        Sequence(
+                            Think(5),
+                            Trigger("serviceX", "op")
+                        ),
+                        self.environment))
+
+        operation.invoke([])
+
+        self.assertEqual(fake_service.process.call_count, 0)
+
+        self.simulate_until(10)
+
+        self.assertEqual(fake_service.process.call_count, 1)
+
 
     def test_operation_definition(self):
         self.evaluate(DefineOperation("op", Trigger("serviceX", "op")))
@@ -109,6 +134,7 @@ class TestSimulation(TestCase):
         service.process(Request("op"))
 
         self.assertEqual(fake_service.process.call_count, 1)
+
 
     def fake_service(self):
         fake_service = MagicMock()

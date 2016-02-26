@@ -67,4 +67,9 @@ class EnvironmentTest(TestCase):
         self.assertEqual(env2.look_up("my_var"), 7)
         self.assertEqual(env3.look_up("my_var"), 6)
 
+    def test_accessing_the_scheduler(self):
+        env = Environment()
+        local_env = env.create_local_environment()
+        self.assertIsNotNone(local_env.schedule)
+
     # Test creating an environment that is not a child of another environment

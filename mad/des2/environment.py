@@ -17,15 +17,20 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from mad.des2.scheduling import Scheduler
 
 class Environment:
     """
     Hold bindings that associate a symbol to an object during the simulation
     """
 
-    def __init__(self, parent=None):
-        self.parent = parent
+    def __init__(self, scheduler=Scheduler()):
         self.bindings = {}
+        self.scheduler = scheduler
+
+    @property
+    def schedule(self):
+        return self.scheduler
 
     def define(self, symbol, value):
         self.bindings[symbol] = value
@@ -33,24 +38,30 @@ class Environment:
     def define_each(self, symbols, values):
         if len(symbols) != len(values):
             raise ValueError("Inconsistent symbols and values (found symbols %s, values %s)" % (symbols, values))
+
         for (symbol, value) in zip(symbols, values):
             self.define(symbol, value)
 
     def look_up(self, symbol):
-        if symbol in self.bindings:
-            return self.bindings[symbol]
-        elif self.is_local:
-            return self.parent.look_up(symbol)
-        else:
-            return None
-
-    @property
-    def is_global(self):
-        return self.parent is None
-
-    @property
-    def is_local(self):
-        return not self.is_global
+        return self.bindings.get(symbol, None)
 
     def create_local_environment(self):
-        return Environment(self)
+        return LocalEnvironment(self)
+
+
+class LocalEnvironment(Environment):
+
+    def __init__(self, parent):
+        super().__init__()
+        assert isinstance(parent, Environment), "Environment must be enclosed within other environments (found %s)" % type(parent)
+        self.parent = parent
+
+    def look_up(self, symbol):
+        result = super().look_up(symbol)
+        if result is None:
+            result = self.parent.look_up(symbol)
+        return result
+
+    @property
+    def schedule(self):
+        return super().schedule

@@ -27,6 +27,9 @@ class DefineService:
     def accept(self, evaluation):
         return evaluation.of_service_definition(self)
 
+    def __repr__(self):
+        return "Service(%s, %s)" % (self.name, self.body)
+
 
 class DefineOperation:
 
@@ -38,6 +41,9 @@ class DefineOperation:
     def accept(self, evaluation):
         return evaluation.of_operation_definition(self)
 
+    def __repr__(self):
+        return "Operation(%s, %s)" % (self.name, str(self.body))
+
 
 class Trigger:
 
@@ -48,6 +54,9 @@ class Trigger:
     def accept(self, evaluation):
         return evaluation.of_trigger(self)
 
+    def __repr__(self):
+        return "Trigger(%s, %s)" % (self.service, self.operation)
+
 
 class Query:
 
@@ -57,6 +66,21 @@ class Query:
 
     def accept(self, evaluation):
         return evaluation.of_query(self)
+
+    def __repr__(self):
+        return "Query(%s, %s)" % (self.service, self.operation)
+
+
+class Think:
+
+    def __init__(self, duration):
+        self.duration = duration
+
+    def accept(self, evaluation):
+        return evaluation.of_think(self)
+
+    def __repr__(self):
+        return "Think(%d)" % self.duration
 
 
 class Sequence:
@@ -73,7 +97,11 @@ class Sequence:
         if len(self.body) > 2:
             return Sequence(self.body[1:])
         else:
-            return self.first_expression
+            return self.body[1]
 
     def accept(self, evaluation):
         return evaluation.of_sequence(self)
+
+    def __repr__(self):
+        body = [str(each_expression) for each_expression in self.body]
+        return "Sequence(%s)" % ", ".join(body)
