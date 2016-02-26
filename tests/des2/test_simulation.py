@@ -22,7 +22,7 @@ from unittest import TestCase
 from mock import MagicMock
 
 from mad.des2.environment import GlobalEnvironment
-from mad.des2.simulation import Interpreter, Service, Operation, Request
+from mad.des2.simulation import Interpreter, Service, Operation, Request, Symbols
 from mad.des2.ast import *
 
 
@@ -52,6 +52,7 @@ class TestSimulation(TestCase):
     def test_evaluate_non_blocking_service_invocation(self):
         fake_service = self.define("serviceX", self.fake_service())
 
+        self.define(Symbols.SELF, self.fake_client())
         self.evaluate(Trigger("serviceX", "op"))
 
         self.assertEqual(fake_service.process.call_count, 1)
@@ -59,6 +60,7 @@ class TestSimulation(TestCase):
     def test_evaluate_blocking_service_invocation(self):
         fake_service = self.define("foo", self.fake_service())
 
+        self.define(Symbols.SELF, self.fake_client())
         self.evaluate(Query("foo", "op"))
 
         self.assertEqual(fake_service.process.call_count, 1)
@@ -66,23 +68,26 @@ class TestSimulation(TestCase):
     def test_sequence_evaluation(self):
         fake_service = self.define("serviceX", self.fake_service())
 
+        self.define(Symbols.SELF, self.fake_client())
         self.evaluate(Sequence(Trigger("serviceX", "op"), Trigger("serviceX", "op")))
 
         self.assertEqual(fake_service.process.call_count, 2)
 
     def test_operation_invocation(self):
         fake_service = self.define("serviceX", self.fake_service())
+        self.define(Symbols.SELF, self.fake_client())
         operation = self.define("op-foo", Operation([],
                                                     Trigger("serviceX", "op"),
                                                     self.environment))
 
-        operation.invoke([])
+        operation.invoke(self.fake_request("op-foo"), [])
 
         self.assertEqual(fake_service.process.call_count, 1)
 
     def test_thinking(self):
         fake_service = self.define("serviceX", self.fake_service())
 
+        self.define(Symbols.SELF, self.fake_client())
         operation = self.define(
                 "op-foo",
                 Operation(
@@ -93,7 +98,7 @@ class TestSimulation(TestCase):
                         ),
                         self.environment))
 
-        operation.invoke([])
+        operation.invoke(self.fake_request("op-foo"), [])
 
         self.assertEqual(fake_service.process.call_count, 0)
 
@@ -112,9 +117,10 @@ class TestSimulation(TestCase):
         service = self.define("my-service", Service(env))
         env.define("op", Operation([],
                                    Trigger("serviceX", "op"),
-                                   self.environment))
+                                   env))
 
-        service.process(Request("op"))
+        request = self.fake_request("op")
+        request.send_to(service)
 
         self.assertEqual(fake_service.process.call_count, 1)
 
@@ -130,7 +136,8 @@ class TestSimulation(TestCase):
         self.verify_definition("Service X", Service)
         service = self.look_up("Service X")
 
-        service.process(Request("op"))
+        request = self.fake_request("op")
+        request.send_to(service)
 
         self.assertEqual(fake_service.process.call_count, 1)
 
@@ -143,7 +150,14 @@ class TestSimulation(TestCase):
         client = self.look_up("service Y")
         self.assertEqual(fake_service.process.call_count, 4)
 
+    def fake_request(self, operation):
+        return Request(self.fake_client(), operation, MagicMock(), MagicMock())
+
     def fake_service(self):
         fake_service = MagicMock()
         fake_service.process = MagicMock()
         return fake_service
+
+    def fake_client(self):
+        fake_client = MagicMock()
+        return fake_client
