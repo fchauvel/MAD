@@ -142,13 +142,18 @@ class TestSimulation(TestCase):
         self.assertEqual(fake_service.process.call_count, 1)
 
     def test_client_stub_definition(self):
-        fake_service = self.define("service Y", self.fake_service())
-        self.evaluate(DefineClientStub(5, Trigger("service Y", "op")))
+        client = self.evaluate(DefineClientStub(5, Query("Service X", "op")))
+        client.on_success = MagicMock()
+        self.evaluate(
+                DefineService(
+                    "Service X",
+                    DefineOperation("op", Think(2))
+                )
+        )
 
-        self.simulate_until(20)
+        self.simulate_until(20 + 2)
 
-        client = self.look_up("service Y")
-        self.assertEqual(fake_service.process.call_count, 4)
+        self.assertEqual(client.on_success.call_count, 4)
 
     def fake_request(self, operation):
         return Request(self.fake_client(), operation, MagicMock(), MagicMock())

@@ -80,10 +80,14 @@ class Evaluation:
 
     def of_sequence(self, sequence):
         interpreter = Interpreter(self.environment)
-        return interpreter.evaluation_of(
-                sequence.first_expression,
-                interpreter.evaluation_of(sequence.rest, self.continuation)
-        ).result
+
+        def switch(result):
+            if result == Request.OK:
+                return interpreter.evaluation_of(sequence.rest, self.continuation).result
+            else:
+                return Request.ERROR
+
+        return interpreter.evaluation_of(sequence.first_expression, switch).result
 
     def of_trigger(self, trigger):
         sender = self.environment.look_up(Symbols.SELF)
@@ -95,11 +99,12 @@ class Evaluation:
     def of_query(self, query):
         sender = self.environment.look_up(Symbols.SELF)
         recipient = self.environment.look_up(query.service)
+
         request = Request(
                 sender,
                 query.operation,
-                on_success=self.continuation(Request.OK),
-                on_error=self.continuation(Request.ERROR)
+                on_success= lambda result: sender.on_success(),
+                on_error= lambda result: self.continuation(Request.ERROR)
         )
         request.send_to(recipient)
         return None
@@ -182,10 +187,12 @@ class Request:
         self.sender = sender
         self.operation = operation
 
-        def default_on_success(): sender.on_success(self)
+        def default_on_success():
+            sender.on_success(self)
         self.on_success = on_success or default_on_success
 
-        def default_on_error(): sender.on_error(self)
+        def default_on_error():
+            sender.on_error(self)
         self.on_error = on_error or default_on_error
 
     def send_to(self, service):
