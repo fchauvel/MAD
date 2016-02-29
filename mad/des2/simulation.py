@@ -23,6 +23,7 @@ from mad.des2.environment import Environment
 class Symbols:
     SELF = "!self"
     REQUEST = "!request"
+    SERVICE = "!service"
 
 
 class Interpreter:
@@ -144,17 +145,72 @@ class Service:
     def __init__(self, environment):
         self.environment = environment
         self.environment.define(Symbols.SELF, self)
-        pass
+        self.pending_requests = RequestPool()
+        self._make_workers()
+
+    def _make_workers(self):
+        self.idle_workers = WorkerPool()
+        environment = self.environment.create_local_environment()
+        environment.define(Symbols.SERVICE, self)
+        new_worker = Worker(environment)
+        self.idle_workers.put(new_worker)
 
     def process(self, request):
-        operation = self.environment.look_up(request.operation)
-        operation.invoke(request, [])
+        if self.idle_workers.is_empty:
+            self.pending_requests.put(request)
+        else:
+            worker = self.idle_workers.take()
+            worker.assign(request)
+
+    def worker_idle(self, worker):
+        if self.pending_requests.is_empty:
+            self.idle_workers.put(worker)
+        else:
+            request = self.pending_requests.take()
+            worker.assign(request)
 
     def on_success(self, request):
         pass
 
     def on_error(self, request):
         pass
+
+
+class Worker:
+    """
+    Represent a worker (i.e., a thread, or a service replica) that handles requests
+    """
+
+    def __init__(self, environment):
+        self.environment = environment
+
+    def assign(self, request):
+        operation = self.environment.look_up(request.operation)
+        operation.invoke(request, [])
+        service = self.environment.look_up(Symbols.SERVICE)
+        service.worker_idle(self)
+
+
+class WorkerPool:
+
+    def __init__(self):
+        self.workers = []
+
+    @property
+    def size(self):
+        return len(self.workers)
+
+    @property
+    def is_empty(self):
+        return self.size == 0
+
+    def put(self, worker):
+        self.workers.append(worker)
+
+    def take(self):
+        if self.is_empty:
+            raise ValueError("Cannot take from an empty worker pool!")
+        return self.workers.pop(0)
 
 
 class ClientStub:
@@ -176,6 +232,28 @@ class ClientStub:
 
     def on_error(self, request):
         pass
+
+
+class RequestPool:
+
+    def __init__(self):
+        self.requests = []
+
+    def put(self, request):
+        self.requests.append(request)
+
+    def take(self):
+        if self.is_empty:
+            raise ValueError("Cannot take a request from an empty pool!")
+        return self.requests.pop(0)
+
+    @property
+    def is_empty(self):
+        return self.size == 0
+
+    @property
+    def size(self):
+        return len(self.requests)
 
 
 class Request:

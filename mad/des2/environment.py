@@ -20,7 +20,6 @@
 from mad.des2.scheduling import Scheduler
 
 
-
 class Environment:
     """
     Hold bindings that associate a symbol to an object during the simulation

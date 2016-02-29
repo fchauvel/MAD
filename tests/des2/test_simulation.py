@@ -22,7 +22,7 @@ from unittest import TestCase
 from mock import MagicMock
 
 from mad.des2.environment import GlobalEnvironment
-from mad.des2.simulation import Interpreter, Service, Operation, Request, Symbols
+from mad.des2.simulation import Interpreter, Service, Operation, Request, Symbols, WorkerPool, RequestPool
 from mad.des2.ast import *
 
 
@@ -166,3 +166,61 @@ class TestSimulation(TestCase):
     def fake_client(self):
         fake_client = MagicMock()
         return fake_client
+
+
+class RequestPoolTests(TestCase):
+
+    def test_put_increases_size(self):
+        pool = RequestPool()
+        pool.put("request 1")
+
+        self.assertEqual(pool.size, 1)
+
+    def test_take_decreases_size(self):
+        pool = RequestPool()
+        pool.put("request 1")
+        pool.put("request 2")
+
+        pool.take()
+
+        self.assertEqual(pool.size, 1)
+
+    def test_taking_from_empty_pool_fails(self):
+        pool = RequestPool()
+        with self.assertRaises(ValueError):
+            pool.take()
+
+
+class WorkerPoolTests(TestCase):
+
+    def test_put_increases_size(self):
+        pool = WorkerPool()
+        pool.put("new-worker")
+        self.assertEqual(pool.size, 1)
+
+    def test_take_decreases_size(self):
+        pool = WorkerPool()
+        pool.put("worker_1")
+        pool.put("worker_2")
+
+        pool.take()
+
+        self.assertEqual(pool.size, 1)
+
+    def test_is_empty(self):
+        pool = WorkerPool()
+        self.assertTrue(pool.is_empty)
+
+        pool.put("worker_1")
+        self.assertFalse(pool.is_empty)
+
+    def test_take_is_not_permitted_on_empty_pools(self):
+        pool = WorkerPool()
+        with self.assertRaises(ValueError):
+            pool.take()
+
+
+
+if __name__ == "__main__":
+    import unittest.main
+    unittest.main()

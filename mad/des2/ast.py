@@ -18,11 +18,26 @@
 #
 
 
-class DefineService:
+class Definition:
+    """
+    Abstract definition that bins an name to an expression to be evaluated
+    """
 
     def __init__(self, name, body):
         self.name = name
         self.body = body
+
+    def accept(self, evaluation):
+        raise NotImplementedError("Definition::accept is abstract!")
+
+
+class DefineService(Definition):
+    """
+    Definition of a service and the operations it exposes
+    """
+
+    def __init__(self, name, body):
+        super().__init__(name, body)
 
     def accept(self, evaluation):
         return evaluation.of_service_definition(self)
@@ -31,12 +46,14 @@ class DefineService:
         return "Service(%s, %s)" % (self.name, self.body)
 
 
-class DefineOperation:
+class DefineOperation(Definition):
+    """
+    Define an operation exposed by a service.
+    """
 
     def __init__(self, name, body):
-        self.name = name
+        super().__init__(name, body)
         self.parameters = []
-        self.body = body
 
     def accept(self, evaluation):
         return evaluation.of_operation_definition(self)
@@ -45,11 +62,14 @@ class DefineOperation:
         return "Operation(%s, %s)" % (self.name, str(self.body))
 
 
-class DefineClientStub:
+class DefineClientStub(Definition):
+    """
+    Define a client stub, that is an entity that emits requests at a given frequency
+    """
 
     def __init__(self, period, body):
+        super().__init__("client_stub", body)
         self.period = period
-        self.body = body
 
     def __repr__(self):
         return "DefineClientStub(%d, %s)" % (self.period, self.body)
@@ -58,11 +78,26 @@ class DefineClientStub:
         return evaluation.of_client_stub_definition(self)
 
 
-class Trigger:
+class Invocation:
+    """
+    Abstract invocation of a remote operation
+    """
 
     def __init__(self, service, operation):
         self.service = service
         self.operation = operation
+
+    def accept(self, evaluation):
+        raise NotImplementedError("Invocation::accept(evaluation) is abstract!")
+
+
+class Trigger(Invocation):
+    """
+    An non-blocking invocation of a remote operation
+    """
+
+    def __init__(self, service, operation):
+        super().__init__(service, operation)
 
     def accept(self, evaluation):
         return evaluation.of_trigger(self)
@@ -71,11 +106,13 @@ class Trigger:
         return "Trigger(%s, %s)" % (self.service, self.operation)
 
 
-class Query:
+class Query(Invocation):
+    """
+    A blocking invocation of a remote operation
+    """
 
     def __init__(self, service, operation):
-        self.service = service
-        self.operation = operation
+        super().__init__(service, operation)
 
     def accept(self, evaluation):
         return evaluation.of_query(self)
@@ -85,6 +122,9 @@ class Query:
 
 
 class Think:
+    """
+    Simulate a local time-consuming computation
+    """
 
     def __init__(self, duration):
         self.duration = duration
@@ -97,6 +137,9 @@ class Think:
 
 
 class Sequence:
+    """
+    A sequence of actions (i.e., invocation or think)
+    """
 
     def __init__(self, *args, **kwargs):
         self.body = args
