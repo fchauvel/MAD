@@ -161,6 +161,21 @@ class Retry:
         return "Retry(%s, %d)" % (str(self.expression), self.limit)
 
 
+class IgnoreError:
+    """
+    Ignore error occuring during the evaluation of the given expression
+    """
+
+    def __init__(self, expression):
+        self.expression = expression
+
+    def accept(self, evaluation):
+        return evaluation.of_ignore_error(self)
+
+    def __repr__(self):
+        return "IgnoreError(%s)" % str(self.expression)
+
+
 class Sequence:
     """
     A sequence of actions (i.e., invocation or think)

@@ -64,10 +64,12 @@ class Evaluation:
 
     def of_sequence(self, sequence):
         def switch(result):
-            if result == Request.OK:
-                Evaluation(self.environment, sequence.rest, self.continuation).result
+            if result == Status.SUCCESS:
+                return Evaluation(self.environment, sequence.rest, self.continuation).result
+            elif result == Status.WAITING:
+                return result
             else:
-                self.continuation(Request.ERROR)
+                return self.continuation(result)
         return Evaluation(self.environment, sequence.first_expression, switch).result
 
     def of_trigger(self, trigger):
@@ -75,7 +77,7 @@ class Evaluation:
         recipient = self.environment.look_up(trigger.service)
         request = Request(sender, trigger.service, sender.on_success, sender.on_error)
         request.send_to(recipient)
-        return self.continuation(Request.OK)
+        return self.continuation(Status.SUCCESS)
 
     def of_query(self, query):
         sender = self.environment.look_up(Symbols.SELF)
@@ -83,30 +85,35 @@ class Evaluation:
         request = Request(
                 sender,
                 query.operation,
-                on_success= lambda result: sender.on_success(),
-                on_error= lambda result: self.continuation(Request.ERROR)
+                on_success= lambda result: sender.on_success() & self.continuation(Status.SUCCESS),
+                on_error= lambda result: self.continuation(Status.ERROR)
         )
         request.send_to(recipient)
-        return Request.WAITING
+        return Status.WAITING
 
     def of_think(self, think):
         def resume():
-            self.continuation(Request.OK)
+            self.continuation(Status.SUCCESS)
         self.environment.schedule().after(think.duration, resume)
-        return Request.WAITING
+        return Status.WAITING
 
     def of_retry(self, retry):
         def do_retry(count):
             if count == 0:
-                return Request.ERROR
+                return Status.ERROR
             else:
                 result = Evaluation(self.environment, retry.expression).result
-                if result == Request.OK:
-                    return self.continuation(Request.OK)
+                if result == Status.SUCCESS:
+                    return self.continuation(Status.SUCCESS)
                 else:
                     return do_retry(count-1)
 
         return do_retry(retry.limit)
+
+    def of_ignore_error(self, ignore_error):
+        def ignore_status(status):
+            return self.continuation(Status.SUCCESS)
+        return Evaluation(self.environment, ignore_error.expression, ignore_status).result
 
 
 class Operation:
@@ -126,7 +133,7 @@ class Operation:
 
         def send_response(status):
             request.reply(status)
-            continuation(0)
+            continuation(status)
 
         Evaluation(environment, self.body, send_response).result
 
@@ -218,7 +225,7 @@ class ClientStub:
         self.environment.schedule().every(self.period, self.activate)
 
     def activate(self):
-        Evaluation(self.environment, self.body, lambda x: x).result
+        Evaluation(self.environment, self.body).result
 
     def on_success(self, request):
         pass
@@ -249,31 +256,28 @@ class RequestPool:
         return len(self.requests)
 
 
-class Request:
-    OK = 1
+class Status:
+    SUCCESS = 1
     ERROR = 2
     WAITING = 3
+
+
+class Request:
 
     def __init__(self, sender, operation, on_success, on_error):
         assert sender, "Invalid sender (found %s)" % str(sender)
         self.sender = sender
         self.operation = operation
-
-        def default_on_success():
-            sender.on_success(self)
-        self.on_success = on_success or default_on_success
-
-        def default_on_error():
-            sender.on_error(self)
-        self.on_error = on_error or default_on_error
+        self.handlers = {
+            Status.SUCCESS: on_success or (lambda s: sender.on_success(self)),
+            Status.ERROR: on_error or (lambda s: sender.on_error(self))
+        }
 
     def send_to(self, service):
         service.process(self)
 
     def reply(self, status):
-        if status == Request.OK:
-            self.on_success(self)
-        else:
-            self.on_error(self)
+        handler = self.handlers.get(status)
+        handler(self)
 
 

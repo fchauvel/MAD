@@ -22,7 +22,7 @@ from unittest import TestCase
 from mock import MagicMock
 
 from mad.des2.environment import GlobalEnvironment
-from mad.des2.simulation import Evaluation, Service, Operation, Request, Symbols
+from mad.des2.simulation import Evaluation, Service, Operation, Request, Symbols, Status
 from mad.des2.ast import *
 
 
@@ -112,7 +112,23 @@ class TestInterpreter(TestCase):
         result = self.evaluate(Retry(Query("serviceX", "op"), 4))
 
         self.assertEqual(service.process.call_count, 4)
-        self.assertEqual(result, Request.ERROR)
+        self.assertEqual(result, Status.ERROR)
+
+    def test_retry_on_error(self):
+        service_1 = self.define("service_1", self.service_that_always_fails())
+        service_2 = self.define("service_2", self.fake_service())
+        self.define(Symbols.SELF, self.fake_client())
+
+        result = self.evaluate(
+                Sequence(
+                    IgnoreError(Query("service_1", "op")),
+                    Trigger("service_2", "op"),
+                )
+        )
+
+        self.assertEqual(result, Status.WAITING)
+        self.assertEqual(service_1.process.call_count, 1)
+        self.assertEqual(service_2.process.call_count, 1)
 
     def test_operation_definition(self):
         self.evaluate(DefineOperation("op", Trigger("serviceX", "op")))
@@ -177,10 +193,10 @@ class TestInterpreter(TestCase):
 
     def service_that_always_fails(self):
         def always_fail(request):
-            request.reply(Request.ERROR)
+            request.reply(Status.ERROR)
 
         service = self.fake_service()
-        service.side_effect = always_fail
+        service.process.side_effect = always_fail
         return service
 
 
