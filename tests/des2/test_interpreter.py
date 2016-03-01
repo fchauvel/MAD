@@ -105,6 +105,15 @@ class TestInterpreter(TestCase):
 
         self.assertEqual(fake_service.process.call_count, 1)
 
+    def test_retry_on_error(self):
+        service = self.define("serviceX", self.service_that_always_fails())
+        self.define(Symbols.SELF, self.fake_client())
+
+        result = self.evaluate(Retry(Query("serviceX", "op"), 4))
+
+        self.assertEqual(service.process.call_count, 4)
+        self.assertEqual(result, Request.ERROR)
+
     def test_operation_definition(self):
         self.evaluate(DefineOperation("op", Trigger("serviceX", "op")))
 
@@ -165,5 +174,13 @@ class TestInterpreter(TestCase):
     def fake_client(self):
         fake_client = MagicMock()
         return fake_client
+
+    def service_that_always_fails(self):
+        def always_fail(request):
+            request.reply(Request.ERROR)
+
+        service = self.fake_service()
+        service.side_effect = always_fail
+        return service
 
 

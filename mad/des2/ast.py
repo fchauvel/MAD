@@ -78,6 +78,15 @@ class DefineClientStub(Definition):
         return evaluation.of_client_stub_definition(self)
 
 
+class Action:
+    """
+    Abstract all action that can be performed within an operation
+    """
+
+    def accept(self, evaluation):
+        raise NotImplementedError("Action::accept(evaluation) is abstract!")
+
+
 class Invocation:
     """
     Abstract invocation of a remote operation
@@ -134,6 +143,22 @@ class Think:
 
     def __repr__(self):
         return "Think(%d)" % self.duration
+
+
+class Retry:
+    """
+    Retry an action a given number of time
+    """
+
+    def __init__(self, expression, limit):
+        self.expression = expression
+        self.limit = limit
+
+    def accept(self, evaluation):
+        return evaluation.of_retry(self)
+
+    def __repr__(self):
+        return "Retry(%s, %d)" % (str(self.expression), self.limit)
 
 
 class Sequence:

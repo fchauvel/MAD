@@ -95,6 +95,19 @@ class Evaluation:
         self.environment.schedule().after(think.duration, resume)
         return Request.WAITING
 
+    def of_retry(self, retry):
+        def do_retry(count):
+            if count == 0:
+                return Request.ERROR
+            else:
+                result = Evaluation(self.environment, retry.expression).result
+                if result == Request.OK:
+                    return self.continuation(Request.OK)
+                else:
+                    return do_retry(count-1)
+
+        return do_retry(retry.limit)
+
 
 class Operation:
 

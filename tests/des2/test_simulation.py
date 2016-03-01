@@ -75,7 +75,6 @@ class WorkerPoolTests(TestCase):
             pool.take()
 
 
-
 if __name__ == "__main__":
     import unittest.main
     unittest.main()
