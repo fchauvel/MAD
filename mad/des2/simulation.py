@@ -17,37 +17,20 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.des2.environment import Environment
-
-
-class Symbols:
-    SELF = "!self"
-    REQUEST = "!request"
-    SERVICE = "!service"
-
-
-class Interpreter:
-
-    def __init__(self, environment=None):
-        self.environment = environment or Environment()
-
-    def evaluation_of(self, expression, continuation):
-        return Evaluation(self.environment, expression, continuation)
-
-    def evaluate(self, expression):
-        return Evaluation(self.environment, expression, self.done).result
-
-    def done(self, result):
-        return result
+from mad.des2.environment import Symbols, Environment
 
 
 class Evaluation:
+    """
+    Represent the future evaluation of an expression, within a given environment. The expression is bound to
+    a continuation, that is the next evaluation to carry out.
+    """
 
-    def __init__(self, environment, expression, continuation):
+    def __init__(self, environment, expression, continuation=lambda x: x):
         self.environment = environment
         self.expression = expression
+        assert callable(continuation), "Continuations must be callable!"
         self.continuation = continuation
-        self.results = []
 
     def __call__(self, *args, **kwargs):
         self.results = args
@@ -59,10 +42,10 @@ class Evaluation:
 
     def of_service_definition(self, definition):
         service_environment = self.environment.create_local_environment()
-        Interpreter(service_environment).evaluate(definition.body)
+        Evaluation(service_environment, definition.body).result
         service = Service(service_environment)
         self.environment.define(definition.name, service)
-        self.continuation(service)
+        return self.continuation(service)
 
     def of_operation_definition(self, definition):
         operation = Operation(
@@ -71,36 +54,32 @@ class Evaluation:
             self.environment
         )
         self.environment.define(definition.name, operation)
-        self.continuation(operation)
+        return self.continuation(operation)
 
     def of_client_stub_definition(self, definition):
         client_environment = self.environment.create_local_environment()
         client = ClientStub(client_environment, definition.period, definition.body)
         client.initialize()
-        return client
+        return self.continuation(client)
 
     def of_sequence(self, sequence):
-        interpreter = Interpreter(self.environment)
-
         def switch(result):
             if result == Request.OK:
-                return interpreter.evaluation_of(sequence.rest, self.continuation).result
+                Evaluation(self.environment, sequence.rest, self.continuation).result
             else:
-                return Request.ERROR
-
-        return interpreter.evaluation_of(sequence.first_expression, switch).result
+                self.continuation(Request.ERROR)
+        return Evaluation(self.environment, sequence.first_expression, switch).result
 
     def of_trigger(self, trigger):
         sender = self.environment.look_up(Symbols.SELF)
         recipient = self.environment.look_up(trigger.service)
         request = Request(sender, trigger.service, sender.on_success, sender.on_error)
         request.send_to(recipient)
-        self.continuation(Request.OK)
+        return self.continuation(Request.OK)
 
     def of_query(self, query):
         sender = self.environment.look_up(Symbols.SELF)
         recipient = self.environment.look_up(query.service)
-
         request = Request(
                 sender,
                 query.operation,
@@ -108,13 +87,13 @@ class Evaluation:
                 on_error= lambda result: self.continuation(Request.ERROR)
         )
         request.send_to(recipient)
-        return None
+        return Request.WAITING
 
     def of_think(self, think):
         def resume():
             self.continuation(Request.OK)
         self.environment.schedule().after(think.duration, resume)
-        return None
+        return Request.WAITING
 
 
 class Operation:
@@ -127,17 +106,16 @@ class Operation:
     def __repr__(self):
         return "operation:%s" % (str(self.body))
 
-    def invoke(self, request, arguments):
+    def invoke(self, request, arguments, continuation=lambda r: r):
         environment = self.environment.create_local_environment()
         environment.define(Symbols.REQUEST, request)
         environment.define_each(self.parameters, arguments)
 
         def send_response(status):
             request.reply(status)
-            return status
+            continuation(0)
 
-        result = Interpreter(environment).evaluation_of(self.body, send_response).result
-        return result
+        Evaluation(environment, self.body, send_response).result
 
 
 class Service:
@@ -185,10 +163,12 @@ class Worker:
         self.environment = environment
 
     def assign(self, request):
+        def release_worker(result):
+            service = self.environment.look_up(Symbols.SERVICE)
+            service.worker_idle(self)
+
         operation = self.environment.look_up(request.operation)
-        operation.invoke(request, [])
-        service = self.environment.look_up(Symbols.SERVICE)
-        service.worker_idle(self)
+        operation.invoke(request, [], release_worker)
 
 
 class WorkerPool:
@@ -225,7 +205,7 @@ class ClientStub:
         self.environment.schedule().every(self.period, self.activate)
 
     def activate(self):
-        Interpreter(self.environment).evaluate(self.body)
+        Evaluation(self.environment, self.body, lambda x: x).result
 
     def on_success(self, request):
         pass
@@ -258,7 +238,8 @@ class RequestPool:
 
 class Request:
     OK = 1
-    ERROR = 1
+    ERROR = 2
+    WAITING = 3
 
     def __init__(self, sender, operation, on_success, on_error):
         assert sender, "Invalid sender (found %s)" % str(sender)
