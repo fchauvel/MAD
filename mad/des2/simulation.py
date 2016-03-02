@@ -49,6 +49,7 @@ class Evaluation:
 
     def of_operation_definition(self, definition):
         operation = Operation(
+            definition.name,
             definition.parameters,
             definition.body,
             self.environment
@@ -73,7 +74,7 @@ class Evaluation:
     def of_trigger(self, trigger):
         sender = self.environment.look_up(Symbols.SELF)
         recipient = self.environment.look_up(trigger.service)
-        request = Request(sender, trigger.service, sender.on_success, sender.on_error)
+        request = Request(sender, trigger.service)
         request.send_to(recipient)
         return self.continuation(Success(None))
 
@@ -146,12 +147,34 @@ class Error(Result):
         super().__init__(Result.ERROR, None)
 
 
-class Operation:
+class SimulatedEntity:
+    """
+    Factor out commonalities between all simulated entities
+    """
 
-    def __init__(self, parameters, body, environment):
+    def __init__(self, name, environment):
+        self.environment = environment
+        self.name = name
+
+    @property
+    def schedule(self):
+        return self.environment.schedule()
+
+    def log(self, message, values):
+        now = self.environment.schedule().time_now
+        caller = self.environment.look_up(Symbols.SELF)
+        self.environment.log().record(now, caller.name, message % values)
+
+    def look_up(self, symbol):
+        return self.environment.look_up(symbol)
+
+
+class Operation(SimulatedEntity):
+
+    def __init__(self, name, parameters, body, environment):
+        super().__init__(name, environment)
         self.parameters = parameters
         self.body = body
-        self.environment = environment
 
     def __repr__(self):
         return "operation:%s" % (str(self.body))
@@ -160,22 +183,19 @@ class Operation:
         environment = self.environment.create_local_environment()
         environment.define(Symbols.REQUEST, request)
         environment.define_each(self.parameters, arguments)
-        caller = self.environment.look_up(Symbols.SELF)
 
         def send_response(status):
-
-            self.environment.log().record(self.environment.schedule().time_now, caller.name, "Reply to Req. %d (%s)" % (request.identifier, str(status)))
+            self.log("Reply to Req. %d (%s)", (request.identifier, str(status)))
             request.reply(status)
             continuation(status)
 
         Evaluation(environment, self.body, send_response).result
 
 
-class Service:
+class Service(SimulatedEntity):
 
     def __init__(self, name, environment):
-        self.name = name
-        self.environment = environment
+        super().__init__(name, environment)
         self.environment.define(Symbols.SELF, self)
         self.pending_requests = RequestPool()
         self._make_workers()
@@ -188,7 +208,7 @@ class Service:
         self.idle_workers.put(new_worker)
 
     def process(self, request):
-        self.environment.log().record(self.environment.schedule().time_now, self.name, "Req. %d accepted" % request.identifier)
+        self.log("Req. %d accepted", request.identifier)
         if self.idle_workers.is_empty:
             self.pending_requests.put(request)
         else:
@@ -201,29 +221,6 @@ class Service:
         else:
             request = self.pending_requests.take()
             worker.assign(request)
-
-    def on_success(self, request):
-        pass
-
-    def on_error(self, request):
-        pass
-
-
-class Worker:
-    """
-    Represent a worker (i.e., a thread, or a service replica) that handles requests
-    """
-
-    def __init__(self, environment):
-        self.environment = environment
-
-    def assign(self, request):
-        def release_worker(result):
-            service = self.environment.look_up(Symbols.SERVICE)
-            service.worker_idle(self)
-
-        operation = self.environment.look_up(request.operation)
-        operation.invoke(request, [], release_worker)
 
 
 class WorkerPool:
@@ -248,26 +245,42 @@ class WorkerPool:
         return self.workers.pop(0)
 
 
-class ClientStub:
+class Worker:
+    """
+    Represent a worker (i.e., a thread, or a service replica) that handles requests
+    """
+
+    def __init__(self, environment):
+        self.environment = environment
+
+    def assign(self, request):
+        def release_worker(result):
+            service = self.environment.look_up(Symbols.SERVICE)
+            service.worker_idle(self)
+
+        operation = self.environment.look_up(request.operation)
+        operation.invoke(request, [], release_worker)
+
+
+class ClientStub(SimulatedEntity):
 
     def __init__(self, name, environment, period, body):
-        self.name = name
-        self.environment = environment
+        super().__init__(name, environment)
         self.environment.define(Symbols.SELF, self)
         self.period = period
         self.body = body
 
     def initialize(self):
-        self.environment.schedule().every(self.period, self.activate)
+        self.schedule.every(self.period, self.activate)
 
     def activate(self):
         Evaluation(self.environment, self.body).result
 
     def on_success(self, request):
-        self.environment.log().record(self.environment.schedule().time_now, self.name, "Req. %d complete" % request.identifier)
+        self.log("Req. %d complete", request.identifier)
 
     def on_error(self, request):
-        pass
+        self.log("Req. %d failed", request.identifier)
 
 
 class RequestPool:
@@ -300,18 +313,17 @@ class Status:
 
 class Request:
 
-
-    def __init__(self, sender, operation, on_success, on_error):
+    def __init__(self, sender, operation, on_success=None, on_error=None):
         assert sender, "Invalid sender (found %s)" % str(sender)
         self.identifier = sender.environment.next_request_id()
         self.sender = sender
         self.operation = operation
         self.handlers = {
-            Status.SUCCESS: [
-                lambda: self.sender.on_success(self), on_success],
-            Status.ERROR: [
-                lambda: self.sender.on_error(self), on_error]
+            Status.SUCCESS: [lambda: self.sender.on_success(self)],
+            Status.ERROR: [lambda: self.sender.on_error(self)]
         }
+        if on_success: self.handlers.get(Status.SUCCESS).append(on_success)
+        if on_error: self.handlers.get(Status.ERROR).append(on_error)
 
     def send_to(self, service):
         service.process(self)

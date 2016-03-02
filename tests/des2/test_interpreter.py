@@ -75,7 +75,8 @@ class TestInterpreter(TestCase):
     def test_operation_invocation(self):
         fake_service = self.define("serviceX", self.fake_service())
         self.define(Symbols.SELF, self.fake_client())
-        operation = self.define("op-foo", Operation([],
+        operation = self.define("op-foo", Operation("op-foo",
+                                                    [],
                                                     Trigger("serviceX", "op"),
                                                     self.environment))
 
@@ -90,6 +91,7 @@ class TestInterpreter(TestCase):
         operation = self.define(
                 "op-foo",
                 Operation(
+                        "op-foo",
                         [],
                         Sequence(
                             Think(5),
@@ -135,12 +137,14 @@ class TestInterpreter(TestCase):
         self.verify_definition("op", Operation)
 
     def test_service_request(self):
-        env = self.environment.create_local_environment()
         fake_service = self.define("serviceX", self.fake_service())
-        service = self.define("my-service", Service("my-service", env))
-        env.define("op", Operation([],
-                                   Trigger("serviceX", "op"),
-                                   env))
+        service = self.evaluate(
+            DefineService(
+                "my-service",
+                DefineOperation(
+                    "op",
+                    Trigger("serviceX", "op")
+                ))).value
 
         request = self.fake_request("op")
         request.send_to(service)
