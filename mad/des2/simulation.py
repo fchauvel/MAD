@@ -43,9 +43,9 @@ class Evaluation:
     def of_service_definition(self, definition):
         service_environment = self.environment.create_local_environment()
         Evaluation(service_environment, definition.body).result
-        service = Service(service_environment)
+        service = Service(definition.name, service_environment)
         self.environment.define(definition.name, service)
-        return self.continuation(service)
+        return self.continuation(Success(service))
 
     def of_operation_definition(self, definition):
         operation = Operation(
@@ -54,22 +54,20 @@ class Evaluation:
             self.environment
         )
         self.environment.define(definition.name, operation)
-        return self.continuation(operation)
+        return self.continuation(Success(operation))
 
     def of_client_stub_definition(self, definition):
         client_environment = self.environment.create_local_environment()
-        client = ClientStub(client_environment, definition.period, definition.body)
+        client = ClientStub(definition.name, client_environment, definition.period, definition.body)
         client.initialize()
-        return self.continuation(client)
+        return self.continuation(Success(client))
 
     def of_sequence(self, sequence):
-        def switch(result):
-            if result == Status.SUCCESS:
+        def switch(status):
+            if status.is_successful:
                 return Evaluation(self.environment, sequence.rest, self.continuation).result
-            elif result == Status.WAITING:
-                return result
             else:
-                return self.continuation(result)
+                return self.continuation(status)
         return Evaluation(self.environment, sequence.first_expression, switch).result
 
     def of_trigger(self, trigger):
@@ -77,7 +75,7 @@ class Evaluation:
         recipient = self.environment.look_up(trigger.service)
         request = Request(sender, trigger.service, sender.on_success, sender.on_error)
         request.send_to(recipient)
-        return self.continuation(Status.SUCCESS)
+        return self.continuation(Success(None))
 
     def of_query(self, query):
         sender = self.environment.look_up(Symbols.SELF)
@@ -85,26 +83,27 @@ class Evaluation:
         request = Request(
                 sender,
                 query.operation,
-                on_success= lambda result: sender.on_success() & self.continuation(Status.SUCCESS),
-                on_error= lambda result: self.continuation(Status.ERROR)
+                on_success= lambda: self.continuation(Success()),
+                on_error= lambda: self.continuation(Error())
         )
+        self.environment.log().record(self.environment.schedule().time_now, sender.name, "Sending Req. %d to %s::%s" % (request.identifier, query.service, query.operation))
         request.send_to(recipient)
-        return Status.WAITING
+        return Success(None)
 
     def of_think(self, think):
         def resume():
-            self.continuation(Status.SUCCESS)
+            self.continuation(Success())
         self.environment.schedule().after(think.duration, resume)
-        return Status.WAITING
+        return Success()
 
     def of_retry(self, retry):
         def do_retry(count):
             if count == 0:
-                return Status.ERROR
+                return Error()
             else:
-                result = Evaluation(self.environment, retry.expression).result
-                if result == Status.SUCCESS:
-                    return self.continuation(Status.SUCCESS)
+                status = Evaluation(self.environment, retry.expression).result
+                if status.is_successful:
+                    return self.continuation(status)
                 else:
                     return do_retry(count-1)
 
@@ -112,8 +111,39 @@ class Evaluation:
 
     def of_ignore_error(self, ignore_error):
         def ignore_status(status):
-            return self.continuation(Status.SUCCESS)
+            return self.continuation(Success(status.value))
         return Evaluation(self.environment, ignore_error.expression, ignore_status).result
+
+
+class Result:
+    """
+    Represent the result of an evaluation, including the status (pass, failed) and the value if associated value if any
+    """
+    SUCCESS = 1
+    ERROR = 2
+
+    def __init__(self, status, value):
+        self.status = status
+        self.value = value
+
+    @property
+    def is_successful(self):
+        return self.status == Result.SUCCESS
+
+    def __repr__(self):
+        return "SUCCESS" if (self.is_successful) else "ERROR"
+
+
+class Success(Result):
+
+    def __init__(self, value=None):
+        super().__init__(Result.SUCCESS, value)
+
+
+class Error(Result):
+
+    def __init__(self):
+        super().__init__(Result.ERROR, None)
 
 
 class Operation:
@@ -130,8 +160,11 @@ class Operation:
         environment = self.environment.create_local_environment()
         environment.define(Symbols.REQUEST, request)
         environment.define_each(self.parameters, arguments)
+        caller = self.environment.look_up(Symbols.SELF)
 
         def send_response(status):
+
+            self.environment.log().record(self.environment.schedule().time_now, caller.name, "Reply to Req. %d (%s)" % (request.identifier, str(status)))
             request.reply(status)
             continuation(status)
 
@@ -140,7 +173,8 @@ class Operation:
 
 class Service:
 
-    def __init__(self, environment):
+    def __init__(self, name, environment):
+        self.name = name
         self.environment = environment
         self.environment.define(Symbols.SELF, self)
         self.pending_requests = RequestPool()
@@ -154,6 +188,7 @@ class Service:
         self.idle_workers.put(new_worker)
 
     def process(self, request):
+        self.environment.log().record(self.environment.schedule().time_now, self.name, "Req. %d accepted" % request.identifier)
         if self.idle_workers.is_empty:
             self.pending_requests.put(request)
         else:
@@ -215,7 +250,8 @@ class WorkerPool:
 
 class ClientStub:
 
-    def __init__(self, environment, period, body):
+    def __init__(self, name, environment, period, body):
+        self.name = name
         self.environment = environment
         self.environment.define(Symbols.SELF, self)
         self.period = period
@@ -228,7 +264,7 @@ class ClientStub:
         Evaluation(self.environment, self.body).result
 
     def on_success(self, request):
-        pass
+        self.environment.log().record(self.environment.schedule().time_now, self.name, "Req. %d complete" % request.identifier)
 
     def on_error(self, request):
         pass
@@ -264,20 +300,24 @@ class Status:
 
 class Request:
 
+
     def __init__(self, sender, operation, on_success, on_error):
         assert sender, "Invalid sender (found %s)" % str(sender)
+        self.identifier = sender.environment.next_request_id()
         self.sender = sender
         self.operation = operation
         self.handlers = {
-            Status.SUCCESS: on_success or (lambda s: sender.on_success(self)),
-            Status.ERROR: on_error or (lambda s: sender.on_error(self))
+            Status.SUCCESS: [
+                lambda: self.sender.on_success(self), on_success],
+            Status.ERROR: [
+                lambda: self.sender.on_error(self), on_error]
         }
 
     def send_to(self, service):
         service.process(self)
 
     def reply(self, status):
-        handler = self.handlers.get(status)
-        handler(self)
+        for each_handler in self.handlers.get(status.status):
+            each_handler()
 
 

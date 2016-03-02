@@ -67,8 +67,8 @@ class DefineClientStub(Definition):
     Define a client stub, that is an entity that emits requests at a given frequency
     """
 
-    def __init__(self, period, body):
-        super().__init__("client_stub", body)
+    def __init__(self, name, period, body):
+        super().__init__(name, body)
         self.period = period
 
     def __repr__(self):

@@ -72,4 +72,9 @@ class EnvironmentTest(TestCase):
         local_env = env.create_local_environment()
         self.assertIs(local_env.schedule(), env.schedule())
 
+    def test_accessing_the_logs(self):
+        env = GlobalEnvironment()
+        local = env.create_local_environment()
+        self.assertIs(env.log(), local.log())
+
     # Test creating an environment that is not a child of another environment

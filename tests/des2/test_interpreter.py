@@ -22,7 +22,7 @@ from unittest import TestCase
 from mock import MagicMock
 
 from mad.des2.environment import GlobalEnvironment
-from mad.des2.simulation import Evaluation, Service, Operation, Request, Symbols, Status
+from mad.des2.simulation import Evaluation, Service, Operation, Request, Symbols, Error
 from mad.des2.ast import *
 
 
@@ -112,7 +112,7 @@ class TestInterpreter(TestCase):
         result = self.evaluate(Retry(Query("serviceX", "op"), 4))
 
         self.assertEqual(service.process.call_count, 4)
-        self.assertEqual(result, Status.ERROR)
+        self.assertFalse(result.is_successful)
 
     def test_retry_on_error(self):
         service_1 = self.define("service_1", self.service_that_always_fails())
@@ -126,7 +126,6 @@ class TestInterpreter(TestCase):
                 )
         )
 
-        self.assertEqual(result, Status.WAITING)
         self.assertEqual(service_1.process.call_count, 1)
         self.assertEqual(service_2.process.call_count, 1)
 
@@ -138,7 +137,7 @@ class TestInterpreter(TestCase):
     def test_service_request(self):
         env = self.environment.create_local_environment()
         fake_service = self.define("serviceX", self.fake_service())
-        service = self.define("my-service", Service(env))
+        service = self.define("my-service", Service("my-service", env))
         env.define("op", Operation([],
                                    Trigger("serviceX", "op"),
                                    env))
@@ -166,7 +165,7 @@ class TestInterpreter(TestCase):
         self.assertEqual(fake_service.process.call_count, 1)
 
     def test_client_stub_definition(self):
-        client = self.evaluate(DefineClientStub(5, Query("Service X", "op")))
+        client = self.evaluate(DefineClientStub("Client", 5, Query("Service X", "op"))).value
         client.on_success = MagicMock()
         self.evaluate(
                 DefineService(
@@ -193,7 +192,7 @@ class TestInterpreter(TestCase):
 
     def service_that_always_fails(self):
         def always_fail(request):
-            request.reply(Status.ERROR)
+            request.reply(Error())
 
         service = self.fake_service()
         service.process.side_effect = always_fail

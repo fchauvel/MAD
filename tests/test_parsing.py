@@ -118,7 +118,6 @@ class ParsingTests(TestCase):
         self.assertEqual("BigHairyOperation", operation.name)
         self.assertEqual(2, len(operation.behaviour))
 
-
     def test_parsing_request_action(self):
         text = "request ServiceX/operationY"
 
@@ -133,7 +132,6 @@ class ParsingTests(TestCase):
         action = self.parser.parse(text, entry_rule="action")
 
         self.assertEqual(20, action.timeout)
-
 
     def test_parsing_timeout(self):
         text = "timeout: 123"

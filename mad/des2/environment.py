@@ -18,6 +18,7 @@
 #
 
 from mad.des2.scheduling import Scheduler
+from mad.des2.log import Log
 
 
 class Symbols:
@@ -37,6 +38,9 @@ class Environment:
     def schedule(self):
         raise NotImplementedError("Method 'Environment::schedule' is abstract!")
 
+    def log(self):
+        raise NotImplementedError("Method 'Environment::log' is abstract")
+
     def define(self, symbol, value):
         self.bindings[symbol] = value
 
@@ -53,15 +57,28 @@ class Environment:
     def create_local_environment(self):
         return LocalEnvironment(self)
 
+    def next_request_id(self):
+        raise NotImplementedError("Environment::next_request_id is abstract!")
+
 
 class GlobalEnvironment(Environment):
 
     def __init__(self, scheduler = None):
         super().__init__()
         self._scheduler = scheduler or Scheduler()
+        self._log = Log()
+        self._next_request_id = 1
 
     def schedule(self):
         return self._scheduler
+
+    def log(self):
+        return self._log
+
+    def next_request_id(self):
+        id = self._next_request_id
+        self._next_request_id += 1
+        return id
 
 
 class LocalEnvironment(Environment):
@@ -79,3 +96,9 @@ class LocalEnvironment(Environment):
 
     def schedule(self):
         return self.parent.schedule()
+
+    def log(self):
+        return self.parent.log()
+
+    def next_request_id(self):
+        return self.parent.next_request_id()
