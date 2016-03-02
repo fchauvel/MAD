@@ -48,31 +48,27 @@ class RequestPoolTests(TestCase):
 
 class WorkerPoolTests(TestCase):
 
-    def test_put_increases_size(self):
-        pool = WorkerPool()
-        pool.put("new-worker")
-        self.assertEqual(pool.size, 1)
+    def test_all_busy(self):
+        pool = WorkerPool(["a", "b", "c"])
+        self.assertTrue(pool.are_available)
+        for i in range(3):
+            pool.acquire_one()
+        self.assertFalse(pool.are_available)
 
-    def test_take_decreases_size(self):
-        pool = WorkerPool()
-        pool.put("worker_1")
-        pool.put("worker_2")
+    def test_acquiring_idle_worker(self):
+        pool = WorkerPool(["a", "b", "c"])
+        pool.acquire_one()
+        self.assertEqual(pool.idle_worker_count, 2)
 
-        pool.take()
+    def test_release_worker(self):
+        pool = WorkerPool(["a", "b", "c"])
+        pool.release("d")
+        self.assertEqual(pool.idle_worker_count, 4)
 
-        self.assertEqual(pool.size, 1)
-
-    def test_is_empty(self):
-        pool = WorkerPool()
-        self.assertTrue(pool.is_empty)
-
-        pool.put("worker_1")
-        self.assertFalse(pool.is_empty)
-
-    def test_take_is_not_permitted_on_empty_pools(self):
-        pool = WorkerPool()
+    def test_acquire_is_not_permitted_on_empty_pools(self):
+        pool = WorkerPool([])
         with self.assertRaises(ValueError):
-            pool.take()
+            pool.acquire_one()
 
 
 if __name__ == "__main__":

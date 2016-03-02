@@ -198,26 +198,24 @@ class Service(SimulatedEntity):
         super().__init__(name, environment)
         self.environment.define(Symbols.SELF, self)
         self.pending_requests = RequestPool()
-        self._make_workers()
+        self.workers = WorkerPool([ self._new_worker() ])
 
-    def _make_workers(self):
-        self.idle_workers = WorkerPool()
+    def _new_worker(self):
         environment = self.environment.create_local_environment()
         environment.define(Symbols.SERVICE, self)
-        new_worker = Worker(environment)
-        self.idle_workers.put(new_worker)
+        return Worker(environment)
 
     def process(self, request):
         self.log("Req. %d accepted", request.identifier)
-        if self.idle_workers.is_empty:
-            self.pending_requests.put(request)
-        else:
-            worker = self.idle_workers.take()
+        if self.workers.are_available:
+            worker = self.workers.acquire_one()
             worker.assign(request)
+        else:
+            self.pending_requests.put(request)
 
     def worker_idle(self, worker):
         if self.pending_requests.is_empty:
-            self.idle_workers.put(worker)
+            self.workers.release(worker)
         else:
             request = self.pending_requests.take()
             worker.assign(request)
@@ -225,24 +223,24 @@ class Service(SimulatedEntity):
 
 class WorkerPool:
 
-    def __init__(self):
-        self.workers = []
+    def __init__(self, workers):
+        self.idle_workers = workers
 
     @property
-    def size(self):
-        return len(self.workers)
+    def idle_worker_count(self):
+        return len(self.idle_workers)
 
     @property
-    def is_empty(self):
-        return self.size == 0
+    def are_available(self):
+        return len(self.idle_workers) > 0
 
-    def put(self, worker):
-        self.workers.append(worker)
+    def acquire_one(self):
+        if not self.are_available:
+            raise ValueError("Cannot acquire from an empty worker pool!")
+        return self.idle_workers.pop(0)
 
-    def take(self):
-        if self.is_empty:
-            raise ValueError("Cannot take from an empty worker pool!")
-        return self.workers.pop(0)
+    def release(self, worker):
+        self.idle_workers.append(worker)
 
 
 class Worker:
