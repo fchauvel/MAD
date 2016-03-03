@@ -81,12 +81,18 @@ class Evaluation:
     def of_query(self, query):
         sender = self.environment.look_up(Symbols.SELF)
         recipient = self.environment.look_up(query.service)
-        request = Request(
-                sender,
-                query.operation,
-                on_success= lambda: self.continuation(Success()),
-                on_error= lambda: self.continuation(Error())
-        )
+
+        def on_success():
+            now = self.environment.schedule().time_now
+            self.environment.log().record(now, sender.name, "Req. %d complete" % request.identifier)
+            self.continuation(Success())
+
+        def on_error():
+            now = self.environment.schedule().time_now
+            self.environment.log().record(now, sender.name, "Req. %d failed" % request.identifier)
+            self.continuation(Error())
+
+        request = Request(sender, query.operation, on_success, on_error)
         self.environment.log().record(self.environment.schedule().time_now, sender.name, "Sending Req. %d to %s::%s" % (request.identifier, query.service, query.operation))
         request.send_to(recipient)
         return Success(None)
@@ -161,8 +167,8 @@ class SimulatedEntity:
         return self.environment.schedule()
 
     def log(self, message, values):
-        now = self.environment.schedule().time_now
-        caller = self.environment.look_up(Symbols.SELF)
+        now = self.schedule.time_now
+        caller = self.look_up(Symbols.SELF)
         self.environment.log().record(now, caller.name, message % values)
 
     def look_up(self, symbol):
@@ -186,7 +192,10 @@ class Operation(SimulatedEntity):
 
         def send_response(status):
             self.log("Reply to Req. %d (%s)", (request.identifier, str(status)))
-            request.reply(status)
+            if status.is_successful:
+                request.reply_success()
+            else:
+                request.reply_error(status)
             continuation(status)
 
         Evaluation(environment, self.body, send_response).result
@@ -198,12 +207,12 @@ class Service(SimulatedEntity):
         super().__init__(name, environment)
         self.environment.define(Symbols.SELF, self)
         self.pending_requests = RequestPool()
-        self.workers = WorkerPool([ self._new_worker() ])
+        self.workers = WorkerPool([ self._new_worker(id) for id in range(1, 2) ])
 
-    def _new_worker(self):
+    def _new_worker(self, identifier):
         environment = self.environment.create_local_environment()
         environment.define(Symbols.SERVICE, self)
-        return Worker(environment)
+        return Worker(identifier, environment)
 
     def process(self, request):
         self.log("Req. %d accepted", request.identifier)
@@ -243,20 +252,21 @@ class WorkerPool:
         self.idle_workers.append(worker)
 
 
-class Worker:
+class Worker(SimulatedEntity):
     """
     Represent a worker (i.e., a thread, or a service replica) that handles requests
     """
 
-    def __init__(self, environment):
-        self.environment = environment
+    def __init__(self, identifier, environment):
+        super().__init__("Worker %d" % identifier, environment)
+        self.identifier = identifier
 
     def assign(self, request):
         def release_worker(result):
-            service = self.environment.look_up(Symbols.SERVICE)
+            service = self.look_up(Symbols.SERVICE)
             service.worker_idle(self)
 
-        operation = self.environment.look_up(request.operation)
+        operation = self.look_up(request.operation)
         operation.invoke(request, [], release_worker)
 
 
@@ -272,13 +282,18 @@ class ClientStub(SimulatedEntity):
         self.schedule.every(self.period, self.activate)
 
     def activate(self):
-        Evaluation(self.environment, self.body).result
+        def post_processing(status):
+            if status.is_successful:
+                self.on_success()
+            else:
+                self.on_error()
+        Evaluation(self.environment, self.body, post_processing).result
 
-    def on_success(self, request):
-        self.log("Req. %d complete", request.identifier)
+    def on_success(self):
+        pass
 
-    def on_error(self, request):
-        self.log("Req. %d failed", request.identifier)
+    def on_error(self):
+        pass
 
 
 class RequestPool:
@@ -311,23 +326,20 @@ class Status:
 
 class Request:
 
-    def __init__(self, sender, operation, on_success=None, on_error=None):
+    def __init__(self, sender, operation, on_success=lambda: None, on_error=lambda: None):
         assert sender, "Invalid sender (found %s)" % str(sender)
         self.identifier = sender.environment.next_request_id()
         self.sender = sender
         self.operation = operation
-        self.handlers = {
-            Status.SUCCESS: [lambda: self.sender.on_success(self)],
-            Status.ERROR: [lambda: self.sender.on_error(self)]
-        }
-        if on_success: self.handlers.get(Status.SUCCESS).append(on_success)
-        if on_error: self.handlers.get(Status.ERROR).append(on_error)
+        self.on_success = on_success
+        self.on_error = on_error
 
     def send_to(self, service):
         service.process(self)
 
-    def reply(self, status):
-        for each_handler in self.handlers.get(status.status):
-            each_handler()
+    def reply_success(self):
+        self.on_success()
 
+    def reply_error(self):
+        self.on_error()
 

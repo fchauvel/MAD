@@ -43,7 +43,7 @@ class DefineService(Definition):
         return evaluation.of_service_definition(self)
 
     def __repr__(self):
-        return "Service(%s, %s)" % (self.name, self.body)
+        return "DefineService(%s, %s)" % (self.name, self.body)
 
 
 class DefineOperation(Definition):
@@ -182,7 +182,7 @@ class Sequence:
     """
 
     def __init__(self, *args, **kwargs):
-        self.body = args
+        self.body = list(args)
 
     @property
     def first_expression(self):
@@ -191,7 +191,7 @@ class Sequence:
     @property
     def rest(self):
         if len(self.body) > 2:
-            return Sequence(self.body[1:])
+            return Sequence(*self.body[1:])
         else:
             return self.body[1]
 

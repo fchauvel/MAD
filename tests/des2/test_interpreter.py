@@ -196,7 +196,7 @@ class TestInterpreter(TestCase):
 
     def service_that_always_fails(self):
         def always_fail(request):
-            request.reply(Error())
+            request.reply_error()
 
         service = self.fake_service()
         service.process.side_effect = always_fail

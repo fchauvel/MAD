@@ -17,7 +17,7 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from unittest import TestCase
+from unittest import TestCase, skip
 
 
 from mad.des2.ast import *
@@ -25,10 +25,47 @@ from mad.des2.environment import GlobalEnvironment
 from mad.des2.simulation import Evaluation
 from mad.des2.log import Event
 
+
 class TestMain(TestCase):
 
     def setUp(self):
         self.parser = None
+
+    @skip
+    def test_worker_do_not_wait_for_response(self):
+
+        expression = Sequence(
+            DefineService(
+                "Database",
+                DefineOperation("op", Think(8))),
+            DefineService(
+                "Server",
+                DefineOperation("op", Query("Database", "op"))),
+            DefineClientStub(
+                "Client",
+                5,
+                Query("Server", "op"))
+        )
+
+        simulation = self.evaluate(expression)
+        self.run_until(simulation, 13)
+
+        self.verify_trace(
+                simulation,
+                [Event(5,   "Client",       "Sending Req. 1 to Server::op"),
+                 Event(5,   "Server",       "Req. 1 accepted"),
+                 Event(5,   "Server",       "Sending Req. 2 to Database::op"),
+                 Event(5,   "Database",     "Req. 2 accepted"),
+                 Event(10,  "Client",       "Sending Req. 3 to Server::op"),
+                 Event(10,  "Server",       "Req. 3 accepted"),
+                 Event(10,  "Server",       "Sending Req. 4 to Database::op"),
+                 Event(10,  "Database",     "Req. 4 enqueued"),
+                 Event(13,  "Database",     "Reply to Req. 2 (SUCCESS)"),
+                 Event(13,  "Server",       "Req. 2 complete"),
+                 Event(13,  "Server",       "Reply to Req. 1 (SUCCESS)"),
+                 Event(13,  "Client",       "Req. 1 complete"),]
+        )
+
 
     def test_simple_example(self):
         model = "service S1:" \
