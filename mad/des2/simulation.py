@@ -17,7 +17,9 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.des2.environment import Symbols, Environment
+from mad.des2.environment import Environment, Symbols
+from mad.des2.scheduling import Scheduler
+from mad.des2.log import Log
 
 
 class Evaluation:
@@ -31,9 +33,9 @@ class Evaluation:
         self.expression = expression
         assert callable(continuation), "Continuations must be callable!"
         self.continuation = continuation
+        self.simulation = self.environment.look_up(Symbols.SIMULATION)
 
     def __call__(self, *args, **kwargs):
-        self.results = args # TODO: remove this line
         return self.expression.accept(self)
 
     @property
@@ -114,7 +116,7 @@ class Evaluation:
     def of_think(self, think):
         def resume():
             self.continuation(Success())
-        self.environment.schedule().after(think.duration, resume)
+        self.simulation.schedule.after(think.duration, resume)
         return Success()
 
     def of_retry(self, retry):
@@ -154,7 +156,7 @@ class Result:
         return self.status == Result.SUCCESS
 
     def __repr__(self):
-        return "SUCCESS" if (self.is_successful) else "ERROR"
+        return "SUCCESS" if self.is_successful else "ERROR"
 
 
 class Success(Result):
@@ -169,6 +171,34 @@ class Error(Result):
         super().__init__(Result.ERROR, None)
 
 
+class Simulation:
+    """
+    Represent the general simulation, including the current schedule and the associated trace
+    """
+
+    def __init__(self):
+        self._scheduler = Scheduler()
+        self.log = Log()
+        self.environment = Environment()
+        self.environment.define(Symbols.SIMULATION, self)
+        self._next_request_id = 1
+
+    def run_until(self, end):
+        self._scheduler.simulate_until(end)
+
+    @property
+    def schedule(self):
+        return self._scheduler
+
+    def evaluate(self, expression):
+        return Evaluation(self.environment, expression).result
+
+    def next_request_id(self):
+        id = self._next_request_id
+        self._next_request_id += 1
+        return id
+
+
 class SimulatedEntity:
     """
     Factor out commonalities between all simulated entities
@@ -177,21 +207,25 @@ class SimulatedEntity:
     def __init__(self, name, environment):
         self.environment = environment
         self.name = name
+        self.simulation = self.environment.look_up(Symbols.SIMULATION)
 
     @property
     def schedule(self):
-        return self.environment.schedule()
+        return self.simulation.schedule
 
     def log(self, message, values):
         now = self.schedule.time_now
         caller = self.look_up(Symbols.SELF)
-        self.environment.log().record(now, caller.name, message % values)
+        self.simulation.log.record(now, caller.name, message % values)
 
     def look_up(self, symbol):
         return self.environment.look_up(symbol)
 
 
 class Operation(SimulatedEntity):
+    """
+    Represent an operation exposed by a service
+    """
 
     def __init__(self, name, parameters, body, environment):
         super().__init__(name, environment)
@@ -223,7 +257,7 @@ class Service(SimulatedEntity):
         super().__init__(name, environment)
         self.environment.define(Symbols.SELF, self)
         self.pending_requests = RequestPool()
-        self.workers = WorkerPool([ self._new_worker(id) for id in range(1, 2) ])
+        self.workers = WorkerPool([self._new_worker(id) for id in range(1, 2)])
 
     def _new_worker(self, identifier):
         environment = self.environment.create_local_environment()
@@ -381,7 +415,7 @@ class Request:
 
     def __init__(self, sender, operation, on_success=lambda: None, on_error=lambda: None):
         assert sender, "Invalid sender (found %s)" % str(sender)
-        self.identifier = sender.environment.next_request_id()
+        self.identifier = sender.simulation.next_request_id()
         self.sender = sender
         self.operation = operation
         self.on_success = on_success

@@ -21,8 +21,7 @@ from unittest import TestCase, skip
 
 
 from mad.des2.ast import *
-from mad.des2.environment import GlobalEnvironment
-from mad.des2.simulation import Evaluation
+from mad.des2.simulation import Simulation
 from mad.des2.log import Event
 
 
@@ -107,15 +106,15 @@ class TestMain(TestCase):
         )
 
     def evaluate(self, expression):
-        simulation = GlobalEnvironment()
-        Evaluation(simulation, expression).result
+        simulation = Simulation()
+        simulation.evaluate(expression)
         return simulation
 
     def run_until(self, simulation, limit):
-        simulation.schedule().simulate_until(limit)
+        simulation.run_until(limit)
 
     def verify_trace(self, simulation, expected_trace):
-        actual_trace = simulation.log()
+        actual_trace = simulation.log
         self.assertEqual(
                 len(actual_trace),
                 len(expected_trace),

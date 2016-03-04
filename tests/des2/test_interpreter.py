@@ -21,28 +21,27 @@
 from unittest import TestCase
 from mock import MagicMock
 
-from mad.des2.environment import GlobalEnvironment
-from mad.des2.simulation import Evaluation, Service, Operation, Request, Symbols, Worker
+from mad.des2.simulation import Evaluation, Simulation, Service, Operation, Request, Symbols, Worker
 from mad.des2.ast import *
 
 
 class TestInterpreter(TestCase):
 
     def setUp(self):
-        self.environment = GlobalEnvironment()
+        self.simulation = Simulation()
 
     def define(self, symbol, value):
-        self.environment.define(symbol, value)
+        self.simulation.environment.define(symbol, value)
         return value
 
     def look_up(self, symbol):
-        return self.environment.look_up(symbol)
+        return self.simulation.environment.look_up(symbol)
 
     def evaluate(self, expression):
-        return Evaluation(self.environment, expression).result
+        return self.simulation.evaluate(expression)
 
     def verify_definition(self, symbol, kind):
-        value = self.environment.look_up(symbol)
+        value = self.look_up(symbol)
         self.assertTrue(isinstance(value, kind))
 
     def send_request(self, service_name, operation_name):
@@ -51,7 +50,7 @@ class TestInterpreter(TestCase):
         request.send_to(service)
 
     def simulate_until(self, end):
-        self.environment.schedule().simulate_until(end)
+        self.simulation.run_until(end)
 
     def test_evaluate_non_blocking_service_invocation(self):
         fake_service = self.define("serviceX", self.fake_service())
