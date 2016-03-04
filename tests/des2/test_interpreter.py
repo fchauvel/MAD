@@ -68,7 +68,7 @@ class TestInterpreter(TestCase):
                      Query("DB", "op")
                 )
             )
-        ).value
+        )
 
         self.send_request("Front-end", "checkout")
 
@@ -85,7 +85,7 @@ class TestInterpreter(TestCase):
                     )
                 )
             )
-        ).value
+        )
 
         self.send_request("Front-end", "checkout")
         self.simulate_until(20)
@@ -101,7 +101,7 @@ class TestInterpreter(TestCase):
                     Trigger("DB", "op")
                 )
             )
-        ).value
+        )
 
         self.send_request("Front-end", "checkout")
         self.simulate_until(20)
@@ -119,7 +119,7 @@ class TestInterpreter(TestCase):
                     )
                 )
             )
-        ).value
+        )
 
         self.send_request("Front-end", "checkout")
 
@@ -135,7 +135,7 @@ class TestInterpreter(TestCase):
                     Retry(Query("DB", "insert"), 4)
                 )
             )
-        ).value
+        )
 
         self.send_request("Front-end", "checkout")
         self.simulate_until(20)
@@ -154,7 +154,7 @@ class TestInterpreter(TestCase):
                     )
                 )
             )
-        ).value
+        )
 
         self.send_request("Front-end", "checkout")
         self.simulate_until(20)
@@ -170,12 +170,13 @@ class TestInterpreter(TestCase):
     def test_service_request(self):
         fake_service = self.define("serviceX", self.fake_service())
         service = self.evaluate(
-            DefineService(
-                "my-service",
+            DefineService("my-service",
                 DefineOperation(
                     "op",
                     Trigger("serviceX", "op")
-                ))).value
+                )
+            )
+        ).value
 
         request = self.fake_request("op")
         request.send_to(service)
@@ -200,15 +201,17 @@ class TestInterpreter(TestCase):
         self.assertEqual(fake_service.process.call_count, 1)
 
     def test_client_stub_definition(self):
-        self.evaluate(
+        client = self.evaluate(
+            Sequence(
                 DefineService(
                     "Service X",
                     DefineOperation("op", Think(2))
-                )
-        )
-        client = self.evaluate(
-                DefineClientStub("Client", 5,
-                                 Query("Service X", "op"))).value
+                ),
+                DefineClientStub(
+                    "Client", 5,
+                    Query("Service X", "op"))
+            )
+        ).value
         client.on_success = MagicMock()
 
         self.simulate_until(20 + 2)
@@ -235,8 +238,6 @@ class TestInterpreter(TestCase):
         service.process.side_effect = always_fail
         return service
 
-    def fake_worker(self):
-        return Worker(1, self.environment.create_local_environment())
 
 
 

@@ -305,7 +305,13 @@ class Operation(SimulatedEntity):
 class WorkerPool:
 
     def __init__(self, workers):
+        assert len(workers) > 0, "Cannot build a worker pool without any worker!"
+        self.capacity = len(workers)
         self.idle_workers = workers
+
+    @property
+    def utilisation(self):
+        return 100 * (1 - len(self.idle_workers) / self.capacity)
 
     @property
     def idle_worker_count(self):

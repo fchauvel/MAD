@@ -22,7 +22,7 @@ from unittest import TestCase
 from mad.des2.simulation import WorkerPool, TaskPool
 
 
-class RequestPoolTests(TestCase):
+class TaskPoolTests(TestCase):
 
     def test_put_increases_size(self):
         pool = TaskPool()
@@ -78,9 +78,18 @@ class WorkerPoolTests(TestCase):
         self.assertEqual(pool.idle_worker_count, 4)
 
     def test_acquire_is_not_permitted_on_empty_pools(self):
-        pool = WorkerPool([])
+        pool = WorkerPool(["w1"])
+        pool.acquire_one()
         with self.assertRaises(ValueError):
             pool.acquire_one()
+
+    def test_utilisation(self):
+        pool = WorkerPool(["w1", "w2"])
+        self.assertAlmostEqual(pool.utilisation, float(0))
+        pool.acquire_one()
+        self.assertAlmostEqual(pool.utilisation, float(50))
+        pool.acquire_one()
+        self.assertAlmostEqual(pool.utilisation, float(100))
 
 
 if __name__ == "__main__":
