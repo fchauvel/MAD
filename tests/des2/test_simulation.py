@@ -19,20 +19,19 @@
 
 
 from unittest import TestCase
-
-from mad.des2.simulation import WorkerPool, RequestPool
+from mad.des2.simulation import WorkerPool, TaskPool
 
 
 class RequestPoolTests(TestCase):
 
     def test_put_increases_size(self):
-        pool = RequestPool()
+        pool = TaskPool()
         pool.put("request 1")
 
         self.assertEqual(pool.size, 1)
 
     def test_take_decreases_size(self):
-        pool = RequestPool()
+        pool = TaskPool()
         pool.put("request 1")
         pool.put("request 2")
 
@@ -41,21 +40,22 @@ class RequestPoolTests(TestCase):
         self.assertEqual(pool.size, 1)
 
     def test_taking_from_empty_pool_fails(self):
-        pool = RequestPool()
+        pool = TaskPool()
         with self.assertRaises(ValueError):
             pool.take()
 
     def test_activate_increases_size(self):
-        pool = RequestPool()
+        pool = TaskPool()
         pool.activate("request")
         self.assertEqual(pool.size, 1)
 
     def test_activated_requests_come_out_first(self):
-        pool = RequestPool()
-        pool.put("request 1")
-        pool.activate("request 2")
+        pool = TaskPool()
+        pool.put("task 1")
+        pool.activate("task 2")
+        pool.put("task 3")
 
-        self.assertEqual(pool.take(), "request 2")
+        self.assertEqual(pool.take(), "task 2")
 
 
 class WorkerPoolTests(TestCase):

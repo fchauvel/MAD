@@ -17,9 +17,17 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.des2.environment import Environment, Symbols
+from mad.des2.environment import Environment
 from mad.des2.scheduling import Scheduler
 from mad.des2.log import Log
+
+
+class Symbols:
+    SIMULATION = "!simulation"
+    SELF = "!self"
+    TASK = "!request"
+    SERVICE = "!service"
+    WORKER = "!worker"
 
 
 class Evaluation:
@@ -35,22 +43,28 @@ class Evaluation:
         self.continuation = continuation
         self.simulation = self.environment.look_up(Symbols.SIMULATION)
 
-    def __call__(self, *args, **kwargs):
-        return self.expression.accept(self)
+    def _look_up(self, symbol):
+        return self.environment.look_up(symbol)
+
+    def _define(self, symbol, value):
+        self.environment.define(symbol, value)
+
+    def _evaluation_of(self, expression, continuation):
+        return Evaluation(self.environment, expression, continuation).result
 
     @property
     def result(self):
-        return self(None)
+        return self.expression.accept(self)
 
     def of_service_definition(self, definition):
         service_environment = self.environment.create_local_environment()
         Evaluation(service_environment, definition.body).result
         service = Service(definition.name, service_environment)
-        self.environment.define(definition.name, service)
+        self._define(definition.name, service)
         return self.continuation(Success(service))
 
     def of_operation_definition(self, definition):
-        operation = Operation(
+        operation = Operation( #TODO: Refactor the signature of an operation to accept a definition directly
             definition.name,
             definition.parameters,
             definition.body,
@@ -66,24 +80,23 @@ class Evaluation:
         return self.continuation(Success(client))
 
     def of_sequence(self, sequence):
-        def switch(status):
-            if status.is_successful:
-                return Evaluation(self.environment, sequence.rest, self.continuation).result
+        def abort_on_error(previous):
+            if previous.is_successful:
+                return self._evaluation_of(sequence.rest, self.continuation)
             else:
-                return self.continuation(status)
-        return Evaluation(self.environment, sequence.first_expression, switch).result
+                return self.continuation(previous)
+        return self._evaluation_of(sequence.first_expression, abort_on_error)
 
     def of_trigger(self, trigger):
-        sender = self.environment.look_up(Symbols.SELF)
-        recipient = self.environment.look_up(trigger.service)
-        request = Request(sender, trigger.service)
-        request.send_to(recipient)
+        sender = self._look_up(Symbols.SELF)
+        recipient = self._look_up(trigger.service)
+        Request(sender, trigger.operation).send_to(recipient)
         return self.continuation(Success(None))
 
     def of_query(self, query):
-        task = self.environment.look_up(Symbols.TASK)
-        sender = self.environment.look_up(Symbols.SELF)
-        recipient = self.environment.look_up(query.service)
+        task = self._look_up(Symbols.TASK)
+        sender = self._look_up(Symbols.SELF)
+        recipient = self._look_up(query.service)
 
         def on_success():
             sender.log("Req. %d complete", request.identifier)
@@ -129,15 +142,15 @@ class Evaluation:
                     if status.is_successful:
                         return self.continuation(status)
                     else:
-                        return Evaluation(self.environment, retry.expression, do_retry(remaining_tries-1)).result
+                        return self._evaluation_of(retry.expression, do_retry(remaining_tries-1))
             return continuation
 
-        return Evaluation(self.environment, retry.expression, do_retry(retry.limit-1)).result
+        return self._evaluation_of(retry.expression, do_retry(retry.limit-1))
 
     def of_ignore_error(self, ignore_error):
         def ignore_status(status):
             return self.continuation(Success(status.value))
-        return Evaluation(self.environment, ignore_error.expression, ignore_status).result
+        return self._evaluation_of(ignore_error.expression, ignore_status)
 
 
 class Result:
@@ -222,6 +235,44 @@ class SimulatedEntity:
         return self.environment.look_up(symbol)
 
 
+class Service(SimulatedEntity):
+
+    def __init__(self, name, environment):
+        super().__init__(name, environment)
+        self.environment.define(Symbols.SELF, self)
+        self.tasks = TaskPool()
+        self.workers = WorkerPool([self._new_worker(id) for id in range(1, 2)])
+
+    def _new_worker(self, identifier):
+        environment = self.environment.create_local_environment()
+        environment.define(Symbols.SERVICE, self)
+        return Worker(identifier, environment)
+
+    def process(self, request):
+        task = Task(request)
+        if self.workers.are_available:
+            self.log("Req. %d accepted", request.identifier)
+            worker = self.workers.acquire_one()
+            worker.assign(task)
+        else:
+            self.log("Req. %d enqueued", request.identifier)
+            self.tasks.put(task)
+
+    def release(self, worker):
+        if self.tasks.are_pending:
+            task = self.tasks.take()
+            worker.assign(task)
+        else:
+            self.workers.release(worker)
+
+    def activate(self, task):
+        if self.workers.are_available:
+            worker = self.workers.acquire_one()
+            worker.assign(task)
+        else:
+            self.tasks.activate(task)
+
+
 class Operation(SimulatedEntity):
     """
     Represent an operation exposed by a service
@@ -249,44 +300,6 @@ class Operation(SimulatedEntity):
             continuation(status)
 
         Evaluation(environment, self.body, send_response).result
-
-
-class Service(SimulatedEntity):
-
-    def __init__(self, name, environment):
-        super().__init__(name, environment)
-        self.environment.define(Symbols.SELF, self)
-        self.pending_requests = RequestPool()
-        self.workers = WorkerPool([self._new_worker(id) for id in range(1, 2)])
-
-    def _new_worker(self, identifier):
-        environment = self.environment.create_local_environment()
-        environment.define(Symbols.SERVICE, self)
-        return Worker(identifier, environment)
-
-    def process(self, request):
-        task = Task(request)
-        if self.workers.are_available:
-            self.log("Req. %d accepted", request.identifier)
-            worker = self.workers.acquire_one()
-            worker.assign(task)
-        else:
-            self.log("Req. %d enqueued", request.identifier)
-            self.pending_requests.put(task)
-
-    def release(self, worker):
-        if self.pending_requests.is_empty:
-            self.workers.release(worker)
-        else:
-            task = self.pending_requests.take()
-            worker.assign(task)
-
-    def activate(self, task):
-        if self.workers.are_available:
-            worker = self.workers.acquire_one()
-            worker.assign(task)
-        else:
-            self.pending_requests.activate(task)
 
 
 class WorkerPool:
@@ -334,6 +347,35 @@ class Worker(SimulatedEntity):
             operation.invoke(task, [], release_worker, self)
 
 
+class TaskPool:
+
+    def __init__(self):
+        self.requests = []
+
+    def put(self, request):
+        self.requests.append(request)
+
+    def take(self):
+        if self.is_empty:
+            raise ValueError("Cannot take a request from an empty pool!")
+        return self.requests.pop(0)
+
+    @property
+    def is_empty(self):
+        return self.size == 0
+
+    @property
+    def are_pending(self):
+        return not self.is_empty
+
+    @property
+    def size(self):
+        return len(self.requests)
+
+    def activate(self, request):
+        self.requests.insert(0, request)
+
+
 class Task:
 
     def __init__(self, request=None):
@@ -378,31 +420,6 @@ class ClientStub(SimulatedEntity):
 
     def on_error(self):
         pass
-
-
-class RequestPool:
-
-    def __init__(self):
-        self.requests = []
-
-    def put(self, request):
-        self.requests.append(request)
-
-    def take(self):
-        if self.is_empty:
-            raise ValueError("Cannot take a request from an empty pool!")
-        return self.requests.pop(0)
-
-    @property
-    def is_empty(self):
-        return self.size == 0
-
-    @property
-    def size(self):
-        return len(self.requests)
-
-    def activate(self, request):
-        self.requests.insert(0, request)
 
 
 class Status:

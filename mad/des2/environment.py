@@ -17,17 +17,6 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.des2.scheduling import Scheduler
-from mad.des2.log import Log
-
-
-class Symbols:
-    SIMULATION = "!simulation"
-    SELF = "!self"
-    TASK = "!request"
-    SERVICE = "!service"
-    WORKER = "!worker"
-
 
 class Environment:
     """
