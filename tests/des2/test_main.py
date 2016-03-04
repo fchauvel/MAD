@@ -31,7 +31,7 @@ class TestMain(TestCase):
     def setUp(self):
         self.parser = None
 
-    @skip
+    #@skip
     def test_worker_do_not_wait_for_response(self):
 
         expression = Sequence(

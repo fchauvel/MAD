@@ -23,8 +23,9 @@ from mad.des2.log import Log
 
 class Symbols:
     SELF = "!self"
-    REQUEST = "!request"
+    TASK = "!request"
     SERVICE = "!service"
+    WORKER = "!worker"
 
 
 class Environment:
@@ -54,8 +55,11 @@ class Environment:
     def look_up(self, symbol):
         return self.bindings.get(symbol, None)
 
-    def create_local_environment(self):
-        return LocalEnvironment(self)
+    def dynamic_look_up(self):
+        return self.look_up()
+
+    def create_local_environment(self, dynamic_scope=None):
+        return LocalEnvironment(self, dynamic_scope)
 
     def next_request_id(self):
         raise NotImplementedError("Environment::next_request_id is abstract!")
@@ -83,15 +87,27 @@ class GlobalEnvironment(Environment):
 
 class LocalEnvironment(Environment):
 
-    def __init__(self, parent):
+    def __init__(self, lexical_scope, dynamic_scope):
         super().__init__()
-        assert isinstance(parent, Environment), "Environment must be enclosed within other environments (found %s)" % type(parent)
-        self.parent = parent
+        assert \
+            isinstance(lexical_scope, Environment), \
+            "Environment must be enclosed within other environments (found %s)" % type(lexical_scope)
+        self.parent = lexical_scope
+        assert \
+            not dynamic_scope or isinstance(dynamic_scope, Environment), \
+            "Environment must be enclosed within other environments (found %s)" % type(dynamic_scope)
+        self.dynamic_scope = dynamic_scope
 
     def look_up(self, symbol):
         result = super().look_up(symbol)
         if result is None:
             result = self.parent.look_up(symbol)
+        return result
+
+    def dynamic_look_up(self, symbol):
+        result = super().look_up(symbol)
+        if result is None and self.dynamic_scope:
+            result = self.dynamic_scope.dynamic_look_up(symbol)
         return result
 
     def schedule(self):

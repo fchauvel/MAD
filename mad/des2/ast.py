@@ -152,6 +152,7 @@ class Retry:
 
     def __init__(self, expression, limit):
         self.expression = expression
+        assert limit > 0, "Retry limit must be strictly positive (found %d)" % limit
         self.limit = limit
 
     def accept(self, evaluation):

@@ -67,6 +67,14 @@ class EnvironmentTest(TestCase):
         self.assertEqual(env2.look_up("my_var"), 7)
         self.assertEqual(env3.look_up("my_var"), 6)
 
+    def test_dynamic_scope(self):
+        env = GlobalEnvironment()
+        local_env1 = env.create_local_environment()
+        local_env1.define("var_1", 123)
+        local_env2 = env.create_local_environment(local_env1)
+        self.assertIsNone(local_env2.look_up("var_1"))
+        self.assertEqual(local_env2.dynamic_look_up("var_1"), 123)
+
     def test_accessing_the_scheduler(self):
         env = GlobalEnvironment()
         local_env = env.create_local_environment()
@@ -76,5 +84,7 @@ class EnvironmentTest(TestCase):
         env = GlobalEnvironment()
         local = env.create_local_environment()
         self.assertIs(env.log(), local.log())
+
+
 
     # Test creating an environment that is not a child of another environment

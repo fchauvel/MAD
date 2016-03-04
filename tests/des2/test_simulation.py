@@ -45,6 +45,18 @@ class RequestPoolTests(TestCase):
         with self.assertRaises(ValueError):
             pool.take()
 
+    def test_activate_increases_size(self):
+        pool = RequestPool()
+        pool.activate("request")
+        self.assertEqual(pool.size, 1)
+
+    def test_activated_requests_come_out_first(self):
+        pool = RequestPool()
+        pool.put("request 1")
+        pool.activate("request 2")
+
+        self.assertEqual(pool.take(), "request 2")
+
 
 class WorkerPoolTests(TestCase):
 

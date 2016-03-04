@@ -22,7 +22,7 @@ from unittest import TestCase
 from mock import MagicMock
 
 from mad.des2.environment import GlobalEnvironment
-from mad.des2.simulation import Evaluation, Service, Operation, Request, Symbols, Error
+from mad.des2.simulation import Evaluation, Service, Operation, Request, Symbols, Worker
 from mad.des2.ast import *
 
 
@@ -45,6 +45,11 @@ class TestInterpreter(TestCase):
         value = self.environment.look_up(symbol)
         self.assertTrue(isinstance(value, kind))
 
+    def send_request(self, service_name, operation_name):
+        service = self.look_up(service_name)
+        request = self.fake_request(operation_name)
+        request.send_to(service)
+
     def simulate_until(self, end):
         self.environment.schedule().simulate_until(end)
 
@@ -57,79 +62,106 @@ class TestInterpreter(TestCase):
         self.assertEqual(fake_service.process.call_count, 1)
 
     def test_evaluate_blocking_service_invocation(self):
-        fake_service = self.define("foo", self.fake_service())
+        db = self.define("DB", self.fake_service())
+        self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("checkout",
+                     Query("DB", "op")
+                )
+            )
+        ).value
 
-        self.define(Symbols.SELF, self.fake_client())
-        self.evaluate(Query("foo", "op"))
+        self.send_request("Front-end", "checkout")
 
-        self.assertEqual(fake_service.process.call_count, 1)
+        self.assertEqual(db.process.call_count, 1)
 
     def test_sequence_evaluation(self):
-        fake_service = self.define("serviceX", self.fake_service())
+        db = self.define("DB", self.service_that_always_fails())
+        self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("checkout",
+                    Sequence(
+                        Trigger("DB", "op"),
+                        Trigger("DB", "op")
+                    )
+                )
+            )
+        ).value
 
-        self.define(Symbols.SELF, self.fake_client())
-        self.evaluate(Sequence(Trigger("serviceX", "op"), Trigger("serviceX", "op")))
+        self.send_request("Front-end", "checkout")
+        self.simulate_until(20)
 
-        self.assertEqual(fake_service.process.call_count, 2)
+        self.assertEqual(db.process.call_count, 2)
 
     def test_operation_invocation(self):
-        fake_service = self.define("serviceX", self.fake_service())
-        self.define(Symbols.SELF, self.fake_client())
-        operation = self.define("op-foo", Operation("op-foo",
-                                                    [],
-                                                    Trigger("serviceX", "op"),
-                                                    self.environment))
+        # TODO: Check whether this test is still useful
+        db = self.define("DB", self.service_that_always_fails())
+        self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("checkout",
+                    Trigger("DB", "op")
+                )
+            )
+        ).value
 
-        operation.invoke(self.fake_request("op-foo"), [])
+        self.send_request("Front-end", "checkout")
+        self.simulate_until(20)
 
-        self.assertEqual(fake_service.process.call_count, 1)
+        self.assertEqual(db.process.call_count, 1)
 
     def test_thinking(self):
-        fake_service = self.define("serviceX", self.fake_service())
-
-        self.define(Symbols.SELF, self.fake_client())
-        operation = self.define(
-                "op-foo",
-                Operation(
-                        "op-foo",
-                        [],
-                        Sequence(
-                            Think(5),
-                            Trigger("serviceX", "op")
-                        ),
-                        self.environment))
-
-        operation.invoke(self.fake_request("op-foo"), [])
-
-        self.assertEqual(fake_service.process.call_count, 0)
-
-        self.simulate_until(10)
-
-        self.assertEqual(fake_service.process.call_count, 1)
-
-    def test_retry_on_error(self):
-        service = self.define("serviceX", self.service_that_always_fails())
-        self.define(Symbols.SELF, self.fake_client())
-
-        result = self.evaluate(Retry(Query("serviceX", "op"), 4))
-
-        self.assertEqual(service.process.call_count, 4)
-        self.assertFalse(result.is_successful)
-
-    def test_retry_on_error(self):
-        service_1 = self.define("service_1", self.service_that_always_fails())
-        service_2 = self.define("service_2", self.fake_service())
-        self.define(Symbols.SELF, self.fake_client())
-
-        result = self.evaluate(
-                Sequence(
-                    IgnoreError(Query("service_1", "op")),
-                    Trigger("service_2", "op"),
+        db = self.define("DB", self.service_that_always_fails())
+        self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("checkout",
+                    Sequence(
+                        Think(5),
+                        Trigger("DB", "op")
+                    )
                 )
-        )
+            )
+        ).value
 
-        self.assertEqual(service_1.process.call_count, 1)
-        self.assertEqual(service_2.process.call_count, 1)
+        self.send_request("Front-end", "checkout")
+
+        self.assertEqual(db.process.call_count, 0)
+        self.simulate_until(10)
+        self.assertEqual(db.process.call_count, 1)
+
+    def test_retry_on_error(self):
+        db = self.define("DB", self.service_that_always_fails())
+        self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("checkout",
+                    Retry(Query("DB", "insert"), 4)
+                )
+            )
+        ).value
+
+        self.send_request("Front-end", "checkout")
+        self.simulate_until(20)
+
+        self.assertEqual(db.process.call_count, 4)
+
+    def test_ignore_error(self):
+        db1 = self.define("DB1", self.service_that_always_fails())
+        db2 = self.define("DB2", self.fake_service())
+        self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("checkout",
+                    Sequence(
+                        IgnoreError(Query("DB1", "op")),
+                        Trigger("DB2", "op")
+                    )
+                )
+            )
+        ).value
+
+        self.send_request("Front-end", "checkout")
+        self.simulate_until(20)
+
+        self.assertEqual(db1.process.call_count, 1)
+        self.assertEqual(db2.process.call_count, 1)
 
     def test_operation_definition(self):
         self.evaluate(DefineOperation("op", Trigger("serviceX", "op")))
@@ -169,21 +201,23 @@ class TestInterpreter(TestCase):
         self.assertEqual(fake_service.process.call_count, 1)
 
     def test_client_stub_definition(self):
-        client = self.evaluate(DefineClientStub("Client", 5, Query("Service X", "op"))).value
-        client.on_success = MagicMock()
         self.evaluate(
                 DefineService(
                     "Service X",
                     DefineOperation("op", Think(2))
                 )
         )
+        client = self.evaluate(
+                DefineClientStub("Client", 5,
+                                 Query("Service X", "op"))).value
+        client.on_success = MagicMock()
 
         self.simulate_until(20 + 2)
 
         self.assertEqual(client.on_success.call_count, 4)
 
     def fake_request(self, operation):
-        return Request(self.fake_client(), operation, MagicMock(), MagicMock())
+        return Request(self.fake_client(), operation)
 
     def fake_service(self):
         fake_service = MagicMock()
@@ -201,5 +235,9 @@ class TestInterpreter(TestCase):
         service = self.fake_service()
         service.process.side_effect = always_fail
         return service
+
+    def fake_worker(self):
+        return Worker(1, self.environment.create_local_environment())
+
 
 

@@ -33,7 +33,7 @@ class Evaluation:
         self.continuation = continuation
 
     def __call__(self, *args, **kwargs):
-        self.results = args
+        self.results = args # TODO: remove this line
         return self.expression.accept(self)
 
     @property
@@ -79,22 +79,36 @@ class Evaluation:
         return self.continuation(Success(None))
 
     def of_query(self, query):
+        task = self.environment.look_up(Symbols.TASK)
         sender = self.environment.look_up(Symbols.SELF)
         recipient = self.environment.look_up(query.service)
 
         def on_success():
-            now = self.environment.schedule().time_now
-            self.environment.log().record(now, sender.name, "Req. %d complete" % request.identifier)
-            self.continuation(Success())
+            sender.log("Req. %d complete", request.identifier)
+
+            def resume(worker):
+                self.environment.dynamic_scope = worker.environment
+                self.continuation(Success())
+
+            task.resume = resume
+            sender.activate(task)
 
         def on_error():
-            now = self.environment.schedule().time_now
-            self.environment.log().record(now, sender.name, "Req. %d failed" % request.identifier)
-            self.continuation(Error())
+            sender.log("Req. %d failed", request.identifier)
+
+            def resume(worker):
+                self.environment.dynamic_scope = worker.environment
+                self.continuation(Error())
+
+            task.resume = resume
+            sender.activate(task)
 
         request = Request(sender, query.operation, on_success, on_error)
-        self.environment.log().record(self.environment.schedule().time_now, sender.name, "Sending Req. %d to %s::%s" % (request.identifier, query.service, query.operation))
+        sender.log("Sending Req. %d to %s::%s", (request.identifier, query.service, query.operation))
         request.send_to(recipient)
+
+        worker = self.environment.dynamic_look_up(Symbols.WORKER)
+        sender.release(worker)
         return Success(None)
 
     def of_think(self, think):
@@ -104,17 +118,19 @@ class Evaluation:
         return Success()
 
     def of_retry(self, retry):
-        def do_retry(count):
-            if count == 0:
-                return Error()
-            else:
-                status = Evaluation(self.environment, retry.expression).result
-                if status.is_successful:
-                    return self.continuation(status)
-                else:
-                    return do_retry(count-1)
 
-        return do_retry(retry.limit)
+        def do_retry(remaining_tries):
+            if remaining_tries == 0:
+                return lambda status: Error()
+            else:
+                def continuation(status):
+                    if status.is_successful:
+                        return self.continuation(status)
+                    else:
+                        return Evaluation(self.environment, retry.expression, do_retry(remaining_tries-1)).result
+            return continuation
+
+        return Evaluation(self.environment, retry.expression, do_retry(retry.limit-1)).result
 
     def of_ignore_error(self, ignore_error):
         def ignore_status(status):
@@ -185,17 +201,17 @@ class Operation(SimulatedEntity):
     def __repr__(self):
         return "operation:%s" % (str(self.body))
 
-    def invoke(self, request, arguments, continuation=lambda r: r):
-        environment = self.environment.create_local_environment()
-        environment.define(Symbols.REQUEST, request)
+    def invoke(self, task, arguments, continuation=lambda r: r, worker=None):
+        environment = self.environment.create_local_environment(worker.environment)
+        environment.define(Symbols.TASK, task)
         environment.define_each(self.parameters, arguments)
 
         def send_response(status):
-            self.log("Reply to Req. %d (%s)", (request.identifier, str(status)))
+            self.log("Reply to Req. %d (%s)", (task.request.identifier, str(status)))
             if status.is_successful:
-                request.reply_success()
+                task.request.reply_success()
             else:
-                request.reply_error(status)
+                task.request.reply_error(status)
             continuation(status)
 
         Evaluation(environment, self.body, send_response).result
@@ -215,19 +231,28 @@ class Service(SimulatedEntity):
         return Worker(identifier, environment)
 
     def process(self, request):
-        self.log("Req. %d accepted", request.identifier)
+        task = Task(request)
         if self.workers.are_available:
+            self.log("Req. %d accepted", request.identifier)
             worker = self.workers.acquire_one()
-            worker.assign(request)
+            worker.assign(task)
         else:
-            self.pending_requests.put(request)
+            self.log("Req. %d enqueued", request.identifier)
+            self.pending_requests.put(task)
 
-    def worker_idle(self, worker):
+    def release(self, worker):
         if self.pending_requests.is_empty:
             self.workers.release(worker)
         else:
-            request = self.pending_requests.take()
-            worker.assign(request)
+            task = self.pending_requests.take()
+            worker.assign(task)
+
+    def activate(self, task):
+        if self.workers.are_available:
+            worker = self.workers.acquire_one()
+            worker.assign(task)
+        else:
+            self.pending_requests.activate(task)
 
 
 class WorkerPool:
@@ -259,15 +284,31 @@ class Worker(SimulatedEntity):
 
     def __init__(self, identifier, environment):
         super().__init__("Worker %d" % identifier, environment)
+        self.environment.define(Symbols.WORKER, self)
         self.identifier = identifier
 
-    def assign(self, request):
+    def assign(self, task):
         def release_worker(result):
             service = self.look_up(Symbols.SERVICE)
-            service.worker_idle(self)
+            service.release(self)
 
-        operation = self.look_up(request.operation)
-        operation.invoke(request, [], release_worker)
+        if task.is_started:
+            task.resume(self)
+        else:
+            task.mark_as_started()
+            operation = self.look_up(task.request.operation)
+            operation.invoke(task, [], release_worker, self)
+
+
+class Task:
+
+    def __init__(self, request=None):
+        self.request = request
+        self.is_started = False
+        self.resume = lambda: None
+
+    def mark_as_started(self):
+        self.is_started = True
 
 
 class ClientStub(SimulatedEntity):
@@ -279,15 +320,24 @@ class ClientStub(SimulatedEntity):
         self.body = body
 
     def initialize(self):
-        self.schedule.every(self.period, self.activate)
+        self.schedule.every(self.period, self.invoke)
 
-    def activate(self):
+    def invoke(self):
         def post_processing(status):
             if status.is_successful:
                 self.on_success()
             else:
                 self.on_error()
-        Evaluation(self.environment, self.body, post_processing).result
+        self.environment.define(Symbols.TASK, Task())
+        env = self.environment.create_local_environment(self.environment)
+        env.define(Symbols.WORKER, self)
+        Evaluation(env, self.body, post_processing).result
+
+    def activate(self, task):
+        task.resume(self)
+
+    def release(self, worker):
+        pass
 
     def on_success(self):
         pass
@@ -316,6 +366,9 @@ class RequestPool:
     @property
     def size(self):
         return len(self.requests)
+
+    def activate(self, request):
+        self.requests.insert(0, request)
 
 
 class Status:
