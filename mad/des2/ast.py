@@ -18,12 +18,29 @@
 #
 
 
-class Definition:
+class Expression:
+    """
+    Abstract Expression class
+    """
+
+    def __eq__(self, other):
+        return (isinstance(other, self.__class__)
+            and self.__dict__ == other.__dict__)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def accept(self, evaluation):
+        raise NotImplementedError("Expression::accept is abstract!")
+
+
+class Definition(Expression):
     """
     Abstract definition that bins an name to an expression to be evaluated
     """
 
     def __init__(self, name, body):
+        super().__init__()
         self.name = name
         self.body = body
 
@@ -78,21 +95,25 @@ class DefineClientStub(Definition):
         return evaluation.of_client_stub_definition(self)
 
 
-class Action:
+class Action(Expression):
     """
     Abstract all action that can be performed within an operation
     """
+
+    def __init__(self):
+        super().__init__()
 
     def accept(self, evaluation):
         raise NotImplementedError("Action::accept(evaluation) is abstract!")
 
 
-class Invocation:
+class Invocation(Action):
     """
     Abstract invocation of a remote operation
     """
 
     def __init__(self, service, operation):
+        super().__init__()
         self.service = service
         self.operation = operation
 
@@ -130,12 +151,13 @@ class Query(Invocation):
         return "Query(%s, %s)" % (self.service, self.operation)
 
 
-class Think:
+class Think(Action):
     """
     Simulate a local time-consuming computation
     """
 
     def __init__(self, duration):
+        super().__init__()
         self.duration = duration
 
     def accept(self, evaluation):
@@ -177,7 +199,7 @@ class IgnoreError:
         return "IgnoreError(%s)" % str(self.expression)
 
 
-class Sequence:
+class Sequence(Expression):
     """
     A sequence of actions (i.e., invocation or think)
     """

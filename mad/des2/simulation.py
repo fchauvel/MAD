@@ -76,6 +76,7 @@ class Evaluation:
     def of_client_stub_definition(self, definition):
         client_environment = self.environment.create_local_environment()
         client = ClientStub(definition.name, client_environment, definition.period, definition.body)
+        self._define(definition.name, client)
         client.initialize()
         return self.continuation(Success(client))
 
@@ -210,6 +211,20 @@ class Simulation:
         id = self._next_request_id
         self._next_request_id += 1
         return id
+
+    @property
+    def services(self):
+        return self._find_by_type(Service)
+
+    @property
+    def clients(self):
+        return self._find_by_type(ClientStub)
+
+    def _find_by_type(self, type):
+        return [each_value
+                for each_value in self.environment.bindings.values()
+                if isinstance(each_value, type)]
+
 
 
 class SimulatedEntity:

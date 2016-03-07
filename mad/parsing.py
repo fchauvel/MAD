@@ -308,7 +308,7 @@ class Parser:
     """
 
     def parse(self, text, entry_rule="architecture"):
-        parser = yacc.yacc(start=entry_rule)
+        parser = yacc.yacc(lexer=lexer, start=entry_rule)
         return parser.parse(text)
 
 
