@@ -17,31 +17,16 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.des2.simulation import Simulation
+from sys import argv, stdout
+
+from mad.des2.ui import CommandLineInterface, Display
+from mad.des2.repository import Repository, Interpreter, FileSource
+from mad.des2.parsing import Parser
 
 
-class Interpreter:
+display = Display(stdout)
+repository = Repository(Parser(FileSource()), Interpreter())
 
-    def evaluate(self, expression):
-        simulation = Simulation()
-        simulation.evaluate(expression)
-        return simulation
+cli = CommandLineInterface(display, repository)
 
-
-class FileSource:
-
-    def read(self, model):
-        with open(model) as file:
-            return file.read()
-
-
-class Repository:
-
-    def __init__(self, parser, interpreter):
-        self.parser = parser
-        self.interpreter = interpreter
-
-    def load(self, model):
-        expression = self.parser.parse(model)
-        print(str(expression))
-        return self.interpreter.evaluate(expression)
+cli.simulate_arguments(argv[1:])

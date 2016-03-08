@@ -19,12 +19,67 @@
 
 from unittest import TestCase
 from mock import MagicMock, call
+from io import StringIO
+from re import search, IGNORECASE
 
+from mad import __version__ as MAD_VERSION
 from mad.des2.ui import CommandLineInterface, Display
 from mad.des2.repository import Repository
 
 
+class TestDisplay(TestCase):
+
+    def setUp(self):
+        self.output = StringIO()
+        self.display = Display(self.output)
+
+    def test_boot_up(self):
+        self.display.boot_up()
+        self._verify_output(MAD_VERSION)
+
+    def test_simulation_started(self):
+        self.display.simulation_started()
+        self._verify_output("started")
+
+    def test_simulation_update(self):
+        self.display.update(35)
+        self._verify_output("35")
+
+    def test_simulation_complete(self):
+        self.display.simulation_complete()
+        self._verify_output("complete")
+
+    def _verify_output(self, expected_pattern):
+        output = self.output.getvalue()
+        self.assertTrue(search(expected_pattern, output, IGNORECASE), "Found %s" % output)
+
+
 class TestUI(TestCase):
+
+    def test_parsing_parameter(self):
+        cli = CommandLineInterface(None, None)
+        cli.simulate = MagicMock()
+
+        cli.simulate_arguments(["test.mad", "25"])
+
+        cli.simulate.assert_called_once_with("test.mad", 25)
+
+    def test_detecting_missing_arguments(self):
+        cli = CommandLineInterface(None, None)
+        cli.simulate = MagicMock()
+
+        with self.assertRaises(ValueError):
+            cli.simulate_arguments([25])
+
+    def test_detecting_wrong_arguments(self):
+        cli = CommandLineInterface(None, None)
+        cli.simulate = MagicMock()
+
+        with self.assertRaises(ValueError):
+            cli.simulate_arguments([25, "test.mad"])
+
+        with self.assertRaises(ValueError):
+            cli.simulate_arguments(["test.mad", "25x"])
 
     def test_ui_behaviour(self):
         display = MagicMock(Display)

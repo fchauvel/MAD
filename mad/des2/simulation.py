@@ -197,7 +197,7 @@ class Simulation:
         self.environment.define(Symbols.SIMULATION, self)
         self._next_request_id = 1
 
-    def run_until(self, end):
+    def run_until(self, end, display=None):
         self._scheduler.simulate_until(end)
 
     @property
@@ -224,7 +224,6 @@ class Simulation:
         return [each_value
                 for each_value in self.environment.bindings.values()
                 if isinstance(each_value, type)]
-
 
 
 class SimulatedEntity:

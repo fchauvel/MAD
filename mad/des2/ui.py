@@ -17,17 +17,31 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from mad import __version__ as MAD_VERSION
+
 
 class Display:
 
+    def __init__(self, output):
+        self.output = output
+
+    def boot_up(self):
+        self.output.write("MAD %s \n" % MAD_VERSION)
+        self.output.write("Copyright (c) 2015 - 2016 Franck CHAUVEL\n")
+        self.output.write("\n")
+        self.output.write("This program comes with ABSOLUTELY NO WARRANTY.\n"
+                          "This is free software, and you are welcome to redistribute it\n"
+                          "under certain conditions.\n")
+        self.output.write("\n")
+
     def simulation_started(self):
-        pass
+        self.output.write("Simulation started!\n")
 
     def update(self, time):
-        pass
+        self.output.write("Simulation %d\t" % time)
 
     def simulation_complete(self):
-        pass
+        self.output.write("Simulation complete.\n")
 
 
 class CommandLineInterface:
@@ -37,5 +51,25 @@ class CommandLineInterface:
         self.repository = repository
 
     def simulate(self, model, limit):
+        self.display.boot_up()
         simulation = self.repository.load(model)
         simulation.run_until(limit, self.display)
+
+    def simulate_arguments(self, arguments):
+        if len(arguments) != 2:
+            raise ValueError("Missing arguments (expected [my-file.mad] [simulation-length], but found '%s')" % arguments)
+        file_name = self._extract_file_name(arguments)
+        length = self._extract_length(arguments)
+        self.simulate(file_name, length)
+
+    def _extract_file_name(self, arguments):
+        result = arguments[0]
+        if not isinstance(result, str):
+            raise ValueError("Expecting 'MAD file' as Argument 1, but found '%s'" % arguments[0])
+        return result
+
+    def _extract_length(self, arguments):
+        try:
+            return int(arguments[1])
+        except ValueError:
+            raise ValueError("Expecting simulation length as Argument 2, but found '%s'" % arguments[1])

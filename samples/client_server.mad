@@ -1,0 +1,11 @@
+#
+# Sample client server architecture
+#
+
+service DB:
+    operation Select:
+        think 3
+
+client Browser:
+    every 5:
+        query DB/Select

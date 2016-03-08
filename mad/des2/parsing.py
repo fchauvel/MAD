@@ -219,7 +219,7 @@ class Parser:
     def __init__(self, source):
         self.source = source
 
-    def parse(self, location, entry_rule="query"):
+    def parse(self, location, entry_rule="unit"):
         text = self.source.read(location)
         parser = yacc.yacc(start=entry_rule)
         return parser.parse(lexer=lexer, input=text)
