@@ -38,12 +38,13 @@ class TestDisplay(TestCase):
         self._verify_output(MAD_VERSION)
 
     def test_simulation_started(self):
-        self.display.simulation_started()
-        self._verify_output("started")
+        path = "test.mad"
+        self.display.simulation_started(path)
+        self._verify_output(path)
 
     def test_simulation_update(self):
-        self.display.update(35)
-        self._verify_output("35")
+        self.display.update(20, 100)
+        self._verify_output("20 %")
 
     def test_simulation_complete(self):
         self.display.simulation_complete()
@@ -90,8 +91,8 @@ class TestUI(TestCase):
 
         repository.load.assert_called_once_with("test.mad")
 
-        display.simulation_started.assert_called_once_with()
-        display.update.assert_has_calls([call(5), call(10), call(15), call(20), call(25)])
+        display.simulation_started.assert_called_once_with("test.mad")
+        display.update.assert_has_calls([call(5, 25), call(10, 25), call(15, 25), call(20, 25), call(25, 25)])
         display.simulation_complete.assert_called_once_with()
 
     def _make_fake_repository(self):
@@ -104,10 +105,8 @@ class TestUI(TestCase):
         simulation.run_until = MagicMock()
 
         def run_simulation(limit, display):
-            display.simulation_started()
             for i in range(1,6):
-                display.update(i*5)
-            display.simulation_complete()
+                display.update(i*5, limit)
 
         simulation.run_until.side_effect = run_simulation
         return simulation

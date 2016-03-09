@@ -18,11 +18,38 @@
 #
 
 from unittest import TestCase, skip
-
+from mock import MagicMock
 
 from mad.des2.ast import *
 from mad.des2.simulation import Simulation
 from mad.des2.log import Event
+
+from mad.des2.parsing import Parser
+from mad.des2.repository import Repository, FileSource, Interpreter
+from mad.des2.ui import Display, CommandLineInterface
+
+
+class TestXXX(TestCase):
+
+    def test_client_server(self):
+        display = MagicMock(Display)
+        repository = self._make_repository("test.mad", "service DB:"
+                                                       "    operation Select:"
+                                                       "        think 5"
+                                                       "client Browser:"
+                                                       "    every 10:"
+                                                       "        query DB/Select")
+        cli = CommandLineInterface(display, repository)
+
+        cli.simulate("test.mad", 25)
+
+        self.assertEqual(display.update.call_count, 4)
+
+    def _make_repository(self, file_name, content):
+        source = MagicMock(FileSource)
+        source.read.return_value = content
+        parser = Parser(source)
+        return Repository(parser, Interpreter())
 
 
 class TestMain(TestCase):

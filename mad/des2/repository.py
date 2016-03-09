@@ -43,5 +43,4 @@ class Repository:
 
     def load(self, model):
         expression = self.parser.parse(model)
-        print(str(expression))
         return self.interpreter.evaluate(expression)

@@ -34,14 +34,15 @@ class Display:
                           "under certain conditions.\n")
         self.output.write("\n")
 
-    def simulation_started(self):
-        self.output.write("Simulation started!\n")
+    def simulation_started(self, file):
+        self.output.write("Loading '%s'\n" % file)
 
-    def update(self, time):
-        self.output.write("Simulation %d\t" % time)
+    def update(self, current_time, end):
+        progress = current_time / end * 100
+        self.output.write("\rSimulation %d %%" % progress)
 
     def simulation_complete(self):
-        self.output.write("Simulation complete.\n")
+        self.output.write("\nSimulation complete.\n")
 
 
 class CommandLineInterface:
@@ -52,8 +53,10 @@ class CommandLineInterface:
 
     def simulate(self, model, limit):
         self.display.boot_up()
+        self.display.simulation_started(model)
         simulation = self.repository.load(model)
         simulation.run_until(limit, self.display)
+        self.display.simulation_complete()
 
     def simulate_arguments(self, arguments):
         if len(arguments) != 2:

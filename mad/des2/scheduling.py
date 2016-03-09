@@ -119,12 +119,13 @@ class Scheduler:
             self.after(period, recurrent_action)
         self.after(period, recurrent_action)
 
-    def simulate_until(self, end):
+    def simulate_until(self, end, display=None):
         while not self.schedule.is_empty:
             event = self.schedule.next_event()
             if event.is_scheduled_after(end):
                 break
             self.clock.advance_to(event)
+            if display: display.update(self.time_now, end)
             event.trigger()
             self.schedule.discard(event)
 

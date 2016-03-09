@@ -198,7 +198,7 @@ class Simulation:
         self._next_request_id = 1
 
     def run_until(self, end, display=None):
-        self._scheduler.simulate_until(end)
+        self._scheduler.simulate_until(end, display)
 
     @property
     def schedule(self):
