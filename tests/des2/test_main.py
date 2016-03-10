@@ -22,10 +22,10 @@ from mock import MagicMock
 
 from mad.des2.ast import *
 from mad.des2.simulation import Simulation
-from mad.des2.log import Event
+from mad.des2.log import Event, InMemoryLog
 
 from mad.des2.parsing import Parser
-from mad.des2.repository import Repository, FileSource, Interpreter
+from mad.des2.repository import FileSource, Mad, Project
 from mad.des2.ui import Display, CommandLineInterface
 
 
@@ -33,23 +33,23 @@ class TestXXX(TestCase):
 
     def test_client_server(self):
         display = MagicMock(Display)
-        repository = self._make_repository("test.mad", "service DB:"
-                                                       "    operation Select:"
-                                                       "        think 5"
-                                                       "client Browser:"
-                                                       "    every 10:"
-                                                       "        query DB/Select")
-        cli = CommandLineInterface(display, repository)
+        mad = self._make_mad("test.mad", "service DB:"
+                                         "    operation Select:"
+                                         "        think 5"
+                                         "client Browser:"
+                                         "    every 10:"
+                                         "        query DB/Select")
+        cli = CommandLineInterface(display, mad)
 
-        cli.simulate("test.mad", 25)
+        cli.simulate(Project("test.mad", 25))
 
         self.assertEqual(display.update.call_count, 4)
 
-    def _make_repository(self, file_name, content):
+    def _make_mad(self, file_name, content):
         source = MagicMock(FileSource)
         source.read.return_value = content
         parser = Parser(source)
-        return Repository(parser, Interpreter())
+        return Mad(parser, source)
 
 
 class TestMain(TestCase):
@@ -133,7 +133,7 @@ class TestMain(TestCase):
         )
 
     def evaluate(self, expression):
-        simulation = Simulation()
+        simulation = Simulation(log=InMemoryLog())
         simulation.evaluate(expression)
         return simulation
 

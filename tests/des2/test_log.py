@@ -19,14 +19,15 @@
 
 
 from unittest import TestCase
+from io import StringIO
 
-from mad.des2.log import Log
+from mad.des2.log import InMemoryLog, FileLog
 
 
 class LogTests(TestCase):
 
     def setUp(self):
-        self.log = Log()
+        self.log = InMemoryLog()
 
     def test_record(self):
         self.assertTrue(self.log.is_empty)
@@ -38,3 +39,16 @@ class LogTests(TestCase):
         self.log.record(5, "X", "something")
         self.log.record(10, "X", "something else")
         self.assertEqual(self.log.size, 2)
+
+
+class FileLogTests(TestCase):
+
+    def test_record(self):
+        output = StringIO()
+        format = "%5d %20s %s"
+        log = FileLog(output, format)
+        event = (5, "DB", "running query")
+
+        log.record(*event)
+
+        self.assertEqual(output.getvalue(), format % event)

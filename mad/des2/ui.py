@@ -19,6 +19,7 @@
 
 from mad import __version__ as MAD_VERSION
 
+from mad.des2.repository import Mad, Project
 
 class Display:
 
@@ -34,45 +35,28 @@ class Display:
                           "under certain conditions.\n")
         self.output.write("\n")
 
-    def simulation_started(self, file):
-        self.output.write("Loading '%s'\n" % file)
+    def simulation_started(self, project):
+        self.output.write("Loading '%s'\n" % project.file_name)
 
     def update(self, current_time, end):
         progress = current_time / end * 100
         self.output.write("\rSimulation %d %%" % progress)
 
-    def simulation_complete(self):
-        self.output.write("\nSimulation complete.\n")
+    def simulation_complete(self, project):
+        self.output.write("\nSee results in '%s'\n" % project.output_directory)
 
 
 class CommandLineInterface:
 
-    def __init__(self, display, repository):
+    def __init__(self, display, mad):
         self.display = display
-        self.repository = repository
+        self.mad = mad
 
-    def simulate(self, model, limit):
+    def simulate(self, project):
         self.display.boot_up()
-        self.display.simulation_started(model)
-        simulation = self.repository.load(model)
-        simulation.run_until(limit, self.display)
-        self.display.simulation_complete()
+        self.display.simulation_started(project)
+        simulation = self.mad.load(project)
+        simulation.run_until(project.limit, self.display)
+        self.display.simulation_complete(project)
 
-    def simulate_arguments(self, arguments):
-        if len(arguments) != 2:
-            raise ValueError("Missing arguments (expected [my-file.mad] [simulation-length], but found '%s')" % arguments)
-        file_name = self._extract_file_name(arguments)
-        length = self._extract_length(arguments)
-        self.simulate(file_name, length)
 
-    def _extract_file_name(self, arguments):
-        result = arguments[0]
-        if not isinstance(result, str):
-            raise ValueError("Expecting 'MAD file' as Argument 1, but found '%s'" % arguments[0])
-        return result
-
-    def _extract_length(self, arguments):
-        try:
-            return int(arguments[1])
-        except ValueError:
-            raise ValueError("Expecting simulation length as Argument 2, but found '%s'" % arguments[1])

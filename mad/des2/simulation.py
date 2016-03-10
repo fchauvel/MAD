@@ -190,9 +190,9 @@ class Simulation:
     Represent the general simulation, including the current schedule and the associated trace
     """
 
-    def __init__(self):
+    def __init__(self, log):
         self._scheduler = Scheduler()
-        self.log = Log()
+        self.log = log
         self.environment = Environment()
         self.environment.define(Symbols.SIMULATION, self)
         self._next_request_id = 1

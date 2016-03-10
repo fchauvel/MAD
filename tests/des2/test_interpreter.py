@@ -22,13 +22,14 @@ from unittest import TestCase
 from mock import MagicMock
 
 from mad.des2.simulation import Evaluation, Simulation, Service, Operation, Request, Symbols, Worker
+from mad.des2.log import InMemoryLog
 from mad.des2.ast import *
 
 
 class TestInterpreter(TestCase):
 
     def setUp(self):
-        self.simulation = Simulation()
+        self.simulation = Simulation(log=InMemoryLog())
 
     def define(self, symbol, value):
         self.simulation.environment.define(symbol, value)

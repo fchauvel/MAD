@@ -18,24 +18,26 @@
 #
 
 from unittest import TestCase
-from mad.des2.repository import Repository
 
-from mock import MagicMock, mock_open, patch
-from mad.des2.repository import Repository, Interpreter
+from mock import MagicMock
+from mad.des2.repository import Mad, FileSource, Project, Settings
 from mad.des2.ast import Sequence, DefineService, DefineOperation, DefineClientStub, Think, Query
 
 
-class RepositoryTests(TestCase):
+class MadTests(TestCase):
 
     def test_loading(self):
-
+        Settings.new_identifier = MagicMock()
+        Settings.new_identifier.return_value = 1
         parser = self._make_fake_parser()
-        interpreter = Interpreter()
-        repository = Repository(parser, interpreter)
+        source = MagicMock(FileSource)
 
-        simulation = repository.load("test.mad")
+        mad = Mad(parser, source)
+
+        simulation = mad.load(Project("test.mad", 25))
 
         self.assertTrue(parser.parse.called)
+        source.open_stream_to.assert_called_once_with("test_1/trace.log")
         self.assertEqual(len(simulation.services), 1)
         self.assertEqual(len(simulation.clients), 1)
 
@@ -48,3 +50,44 @@ class RepositoryTests(TestCase):
                 DefineClientStub("Client", 10, Query("DB", "Select"))
             )
         return parser
+
+
+class ProjectTests(TestCase):
+    TEST_FILE = "home/test.mad"
+    LIMIT = 25
+
+    def setUp(self):
+        Settings.new_identifier = MagicMock()
+        Settings.new_identifier.return_value = "2016-03-10_8-34-56"
+        self.project = Project(self.TEST_FILE, self.LIMIT)
+
+    def test_limit(self):
+        self.assertEqual(25, self.project.limit)
+
+    def test_root_file(self):
+        self.assertEqual("home/test.mad", self.project.root_file)
+
+    def test_name(self):
+        self.assertEqual("test", self.project.name)
+
+    def test_output_directory(self):
+        self.assertEqual("test_2016-03-10_8-34-56", self.project.output_directory)
+
+    def test_log_file(self):
+        self.assertEqual("test_2016-03-10_8-34-56/trace.log", self.project.log_file)
+
+    def test_parsing_parameter(self):
+        project = Project.from_arguments(["test.mad", "25"])
+        self.assertEqual("test.mad", project.file_name)
+        self.assertEqual(25, project.limit)
+
+    def test_detecting_missing_arguments(self):
+        with self.assertRaises(ValueError):
+            Project.from_arguments([25])
+
+    def test_detecting_wrong_arguments(self):
+        with self.assertRaises(ValueError):
+            Project.from_arguments([25, "test.mad"])
+
+        with self.assertRaises(ValueError):
+            Project.from_arguments(["test.mad", "25x"])

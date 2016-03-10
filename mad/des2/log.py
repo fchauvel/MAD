@@ -37,6 +37,15 @@ class Log:
     The history of message logged recorded during a simulation
     """
 
+    def record(self, time, context, message):
+        pass
+
+
+class InMemoryLog(Log):
+    """
+    Hold the history of events in a list for later processing
+    """
+
     def __init__(self):
         self.entries = []
 
@@ -60,3 +69,18 @@ class Log:
 
     def record(self, time, context, message):
         self.entries.append(Event(time, context, message))
+
+
+class FileLog(Log):
+    """
+    Dump the event into the given stream using the given format
+    """
+
+    def __init__(self, output, format):
+        super().__init__()
+        self.format = format
+        self.output = output
+
+    def record(self, time, context, message):
+        self.output.write(self.format % (time, context, message))
+

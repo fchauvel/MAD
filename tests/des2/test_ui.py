@@ -24,12 +24,13 @@ from re import search, IGNORECASE
 
 from mad import __version__ as MAD_VERSION
 from mad.des2.ui import CommandLineInterface, Display
-from mad.des2.repository import Repository
+from mad.des2.repository import Mad, Project
 
 
-class TestDisplay(TestCase):
+class DisplayTest(TestCase):
 
     def setUp(self):
+        self.project = Project("sample/test.mad", 25)
         self.output = StringIO()
         self.display = Display(self.output)
 
@@ -38,65 +39,37 @@ class TestDisplay(TestCase):
         self._verify_output(MAD_VERSION)
 
     def test_simulation_started(self):
-        path = "test.mad"
-        self.display.simulation_started(path)
-        self._verify_output(path)
+        self.display.simulation_started(self.project)
+        self._verify_output(self.project.file_name)
 
     def test_simulation_update(self):
         self.display.update(20, 100)
         self._verify_output("20 %")
 
     def test_simulation_complete(self):
-        self.display.simulation_complete()
-        self._verify_output("complete")
+        self.display.simulation_complete(self.project)
+        self._verify_output(self.project.output_directory)
 
     def _verify_output(self, expected_pattern):
         output = self.output.getvalue()
         self.assertTrue(search(expected_pattern, output, IGNORECASE), "Found %s" % output)
 
-
-class TestUI(TestCase):
-
-    def test_parsing_parameter(self):
-        cli = CommandLineInterface(None, None)
-        cli.simulate = MagicMock()
-
-        cli.simulate_arguments(["test.mad", "25"])
-
-        cli.simulate.assert_called_once_with("test.mad", 25)
-
-    def test_detecting_missing_arguments(self):
-        cli = CommandLineInterface(None, None)
-        cli.simulate = MagicMock()
-
-        with self.assertRaises(ValueError):
-            cli.simulate_arguments([25])
-
-    def test_detecting_wrong_arguments(self):
-        cli = CommandLineInterface(None, None)
-        cli.simulate = MagicMock()
-
-        with self.assertRaises(ValueError):
-            cli.simulate_arguments([25, "test.mad"])
-
-        with self.assertRaises(ValueError):
-            cli.simulate_arguments(["test.mad", "25x"])
-
     def test_ui_behaviour(self):
         display = MagicMock(Display)
-        repository = self._make_fake_repository()
-        cli = CommandLineInterface(display, repository)
+        mad = self._make_fake_repository()
+        cli = CommandLineInterface(display, mad)
 
-        cli.simulate("test.mad", 25)
+        project = Project("test.mad", 25)
+        cli.simulate(project)
 
-        repository.load.assert_called_once_with("test.mad")
+        mad.load.assert_called_once_with(project)
 
-        display.simulation_started.assert_called_once_with("test.mad")
+        display.simulation_started.assert_called_once_with(project)
         display.update.assert_has_calls([call(5, 25), call(10, 25), call(15, 25), call(20, 25), call(25, 25)])
-        display.simulation_complete.assert_called_once_with()
+        display.simulation_complete.assert_called_once_with(project)
 
     def _make_fake_repository(self):
-        repository = MagicMock(Repository)
+        repository = MagicMock(Mad)
         repository.load.return_value = self._make_fake_simulation()
         return repository
 
