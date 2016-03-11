@@ -23,9 +23,10 @@ from mock import MagicMock
 from mad.des2.ast import *
 from mad.des2.simulation import Simulation
 from mad.des2.log import Event, InMemoryLog
+from mad.des2.monitoring import CSVReportFactory
 
 from mad.des2.parsing import Parser
-from mad.des2.repository import FileSource, Mad, Project
+from mad.des2.repository import FileSource, Mad, Project, InMemoryDataSource
 from mad.des2.ui import Display, CommandLineInterface
 
 
@@ -43,7 +44,7 @@ class TestXXX(TestCase):
 
         cli.simulate(Project("test.mad", 25))
 
-        self.assertEqual(display.update.call_count, 4)
+        self.assertEqual(display.update.call_count, 6) # 4 + 2 Monitoring events
 
     def _make_mad(self, file_name, content):
         source = MagicMock(FileSource)
@@ -133,7 +134,8 @@ class TestMain(TestCase):
         )
 
     def evaluate(self, expression):
-        simulation = Simulation(log=InMemoryLog())
+        factory = CSVReportFactory(Project("test.mad", 25), InMemoryDataSource())
+        simulation = Simulation(log=InMemoryLog(), report_factory=factory)
         simulation.evaluate(expression)
         return simulation
 

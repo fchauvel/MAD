@@ -190,9 +190,10 @@ class Simulation:
     Represent the general simulation, including the current schedule and the associated trace
     """
 
-    def __init__(self, log):
+    def __init__(self, log, report_factory):
         self._scheduler = Scheduler()
         self.log = log
+        self.reports = report_factory
         self.environment = Environment()
         self.environment.define(Symbols.SIMULATION, self)
         self._next_request_id = 1
@@ -251,11 +252,14 @@ class SimulatedEntity:
 
 class Service(SimulatedEntity):
 
+    MONITORING_PERIOD = 10
+
     def __init__(self, name, environment):
         super().__init__(name, environment)
         self.environment.define(Symbols.SELF, self)
         self.tasks = TaskPool()
         self.workers = WorkerPool([self._new_worker(id) for id in range(1, 2)])
+        self.schedule.every(self.MONITORING_PERIOD, self.monitor)
 
     def _new_worker(self, identifier):
         environment = self.environment.create_local_environment()
@@ -285,6 +289,11 @@ class Service(SimulatedEntity):
             worker.assign(task)
         else:
             self.tasks.activate(task)
+
+    def monitor(self):
+        report = self.simulation.reports.report_for_service(self.name)
+        report(time=self.schedule.time_now,
+               queue_length=self.tasks.size)
 
 
 class Operation(SimulatedEntity):

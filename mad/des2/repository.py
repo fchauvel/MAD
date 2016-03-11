@@ -21,13 +21,16 @@ from re import search
 from datetime import datetime
 from os import makedirs
 from os.path import exists, dirname
+from io import StringIO
 
 from mad.des2.simulation import Simulation
 from mad.des2.log import FileLog
+from mad.des2.monitoring import CSVReportFactory
 
 
 class Settings:
     TRACE_FILE = "trace.log"
+    REPORT_NAME = "%s.log"
 
     @staticmethod
     def new_identifier():
@@ -82,8 +85,16 @@ class Project:
     def log_file(self):
         return "%s/%s" % (self.output_directory, Settings.TRACE_FILE)
 
+    def report_for(self, entity_name):
+        report_name = Settings.REPORT_NAME % entity_name
+        return "%s/%s" % (self.output_directory, report_name)
+
 
 class Mad:
+    """
+    Represent the simulation engine. It access the repository, parse the model and
+    build the simulation.
+    """
 
     def __init__(self, parser, output):
         self.parser = parser
@@ -91,7 +102,7 @@ class Mad:
 
     def load(self, project):
         logger = self._create_logger(project.log_file)
-        simulation = Simulation(logger)
+        simulation = Simulation(logger, CSVReportFactory(project, self.output))
         expression = self.parser.parse(project.root_file)
         simulation.evaluate(expression)
         return simulation
@@ -100,12 +111,26 @@ class Mad:
         return FileLog(self.output.open_stream_to(file_name), "%5d %-20s %-s\n")
 
 
-class FileSource:
+class Repository:
+    """
+    Unified interface for opening resources, identified by name
+    """
+
+    @staticmethod
+    def open_stream_to(path):
+        raise NotImplementedError("Method Repository::open_stream_to is abstract")
+
+    @staticmethod
+    def read(model):
+        raise NotImplementedError("Method Repository::read is abstract")
+
+
+class FileSource(Repository):
 
     @staticmethod
     def open_stream_to(path):
         if not exists(path):
-            makedirs(dirname(path))
+            makedirs(dirname(path), exist_ok=True)
         return open(path, "w+")
 
     @staticmethod
@@ -114,5 +139,19 @@ class FileSource:
             return file.read()
 
 
+class InMemoryDataSource(Repository):
 
+    def __init__(self):
+        self.streams = {}
+
+    def open_stream_to(self, path):
+        if path not in self.streams:
+            self.streams[path] = StringIO()
+        return self.streams[path]
+
+    def read(self, model):
+        if model not in self.streams:
+            raise RuntimeError("Unknown resource '%s' (Candidates are %s)" % (model, str(self.streams.keys())))
+        else:
+            return self.streams[model]
 

@@ -76,6 +76,10 @@ class ProjectTests(TestCase):
     def test_log_file(self):
         self.assertEqual("test_2016-03-10_8-34-56/trace.log", self.project.log_file)
 
+    def test_report_file(self):
+        report_name = self.project.report_for("DB")
+        self.assertEqual("test_2016-03-10_8-34-56/DB.log", report_name)
+
     def test_parsing_parameter(self):
         project = Project.from_arguments(["test.mad", "25"])
         self.assertEqual("test.mad", project.file_name)

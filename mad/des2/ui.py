@@ -19,9 +19,11 @@
 
 from mad import __version__ as MAD_VERSION
 
-from mad.des2.repository import Mad, Project
 
 class Display:
+    """
+    Abstract the display where that report and format the progress of the simulation
+    """
 
     def __init__(self, output):
         self.output = output
@@ -47,6 +49,9 @@ class Display:
 
 
 class CommandLineInterface:
+    """
+    Control the interaction between the simulation and the display
+    """
 
     def __init__(self, display, mad):
         self.display = display
