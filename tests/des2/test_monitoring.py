@@ -18,10 +18,34 @@
 #
 
 from unittest import TestCase
+from mock import MagicMock
 from io import StringIO
 
-from mad.des2.repository import InMemoryDataSource, Project
+from mad.des2.repository import InMemoryDataSource, Project, Mad, Settings
 from mad.des2.monitoring import CSVReportFactory, CSVReport
+from mad.des2.parsing import Parser
+
+class MonitoringTests(TestCase):
+
+    def test_loading(self):
+        Settings.new_identifier = MagicMock()
+        Settings.new_identifier = lambda: "1"
+
+        source = InMemoryDataSource(
+                {"test.mad": "service DB:"
+                             "  operation Select:"
+                             "      think 5"
+                             "client Browser:"
+                             "  every 10:"
+                             "      query DB/Select"})
+
+        mad = Mad(Parser(source), source)
+
+        simulation = mad.load(Project("test.mad", 25))
+        simulation.run_until(25)
+
+        data = source.read("test_1/DB.log").getvalue().split("\n")
+        self.assertEqual(4, len(data), data) # header line, + Monitoring at 10, 20 + newline
 
 
 class ReportFactoryTests(TestCase):

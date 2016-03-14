@@ -141,8 +141,8 @@ class FileSource(Repository):
 
 class InMemoryDataSource(Repository):
 
-    def __init__(self):
-        self.streams = {}
+    def __init__(self, streams = {}):
+        self.streams = streams
 
     def open_stream_to(self, path):
         if path not in self.streams:

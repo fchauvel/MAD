@@ -2,7 +2,8 @@
 # This captures the architecture of SensApp, as it is currently.
 #
 
-architecture SensApp:
+
+
 
     service Converter:
 

@@ -293,7 +293,8 @@ class Service(SimulatedEntity):
     def monitor(self):
         report = self.simulation.reports.report_for_service(self.name)
         report(time=self.schedule.time_now,
-               queue_length=self.tasks.size)
+               queue_length=self.tasks.size,
+               utilisation=self.workers.utilisation)
 
 
 class Operation(SimulatedEntity):
