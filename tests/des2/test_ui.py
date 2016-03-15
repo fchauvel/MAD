@@ -23,8 +23,8 @@ from io import StringIO
 from re import search, IGNORECASE
 
 from mad import __version__ as MAD_VERSION
-from mad.des2.ui import CommandLineInterface, Display
-from mad.des2.repository import Mad, Project
+from mad.des2.ui import CommandLineInterface, Display, Arguments
+from mad.des2.datasource import Mad, Project
 
 
 class DisplayTest(TestCase):
@@ -83,3 +83,22 @@ class DisplayTest(TestCase):
 
         simulation.run_until.side_effect = run_simulation
         return simulation
+
+
+class ArgumentsTest(TestCase):
+
+    def test_parsing_parameter(self):
+        project = Arguments(["test.mad", "25"]).as_project
+        self.assertEqual("test.mad", project.file_name)
+        self.assertEqual(25, project.limit)
+
+    def test_detecting_missing_arguments(self):
+        with self.assertRaises(ValueError):
+            Arguments([25]).as_project
+
+    def test_detecting_wrong_arguments(self):
+        with self.assertRaises(ValueError):
+            Arguments([25, "test.mad"]).as_project
+
+        with self.assertRaises(ValueError):
+            Arguments(["test.mad", "25x"]).as_project

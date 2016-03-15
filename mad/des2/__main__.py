@@ -19,17 +19,15 @@
 
 from sys import argv, stdout
 
-from mad.des2.ui import CommandLineInterface, Display
-from mad.des2.repository import Mad, Project, FileSource
+from mad.des2.ui import CommandLineInterface, Display, Arguments
+from mad.des2.datasource import Mad, InFilesDataSource
 from mad.des2.parsing import Parser
 
 
-display = Display(stdout)
-source = FileSource()
-
+source = InFilesDataSource()
 mad = Mad(Parser(source), source)
+cli = CommandLineInterface(Display(stdout), mad)
 
-cli = CommandLineInterface(display, mad)
-
-cli.simulate(Project.from_arguments(argv[1:]))
+project = Arguments(argv[1:]).as_project
+cli.simulate(project)
 

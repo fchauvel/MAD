@@ -19,6 +19,8 @@
 
 from mad import __version__ as MAD_VERSION
 
+from mad.des2.datasource import Project
+
 
 class Display:
     """
@@ -64,4 +66,30 @@ class CommandLineInterface:
         simulation.run_until(project.limit, self.display)
         self.display.simulation_complete(project)
 
+
+class Arguments:
+    """
+    Convert the arguments given on the command line into a MadProject
+    """
+
+    def __init__(self, arguments):
+        self._arguments = arguments
+        self._file_name = self._extract_file_name()
+        self._time_limit = self._extract_length()
+
+    def _extract_file_name(self):
+        result = self._arguments[0]
+        if not isinstance(result, str):
+            raise ValueError("Expecting 'MAD file' as Argument 1, but found '%s'" % self._arguments[0])
+        return result
+
+    def _extract_length(self):
+        try:
+            return int(self._arguments[1])
+        except ValueError:
+            raise ValueError("Expecting simulation length as Argument 2, but found '%s'" % self._arguments[1])
+
+    @property
+    def as_project(self):
+        return Project(self._file_name, self._time_limit)
 

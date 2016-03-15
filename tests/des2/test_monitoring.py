@@ -21,7 +21,7 @@ from unittest import TestCase
 from mock import MagicMock
 from io import StringIO
 
-from mad.des2.repository import InMemoryDataSource, Project, Mad, Settings
+from mad.des2.datasource import InMemoryDataSource, Project, Mad, Settings
 from mad.des2.monitoring import CSVReportFactory, CSVReport
 from mad.des2.parsing import Parser
 

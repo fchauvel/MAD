@@ -20,7 +20,7 @@
 from unittest import TestCase
 
 from mock import MagicMock
-from mad.des2.repository import Mad, FileSource, Project, Settings
+from mad.des2.datasource import Mad, InFilesDataSource, Project, Settings
 from mad.des2.ast import Sequence, DefineService, DefineOperation, DefineClientStub, Think, Query
 
 
@@ -30,7 +30,7 @@ class MadTests(TestCase):
         Settings.new_identifier = MagicMock()
         Settings.new_identifier.return_value = 1
         parser = self._make_fake_parser()
-        source = MagicMock(FileSource)
+        source = MagicMock(InFilesDataSource)
 
         mad = Mad(parser, source)
 
@@ -79,19 +79,3 @@ class ProjectTests(TestCase):
     def test_report_file(self):
         report_name = self.project.report_for("DB")
         self.assertEqual("test_2016-03-10_8-34-56/DB.log", report_name)
-
-    def test_parsing_parameter(self):
-        project = Project.from_arguments(["test.mad", "25"])
-        self.assertEqual("test.mad", project.file_name)
-        self.assertEqual(25, project.limit)
-
-    def test_detecting_missing_arguments(self):
-        with self.assertRaises(ValueError):
-            Project.from_arguments([25])
-
-    def test_detecting_wrong_arguments(self):
-        with self.assertRaises(ValueError):
-            Project.from_arguments([25, "test.mad"])
-
-        with self.assertRaises(ValueError):
-            Project.from_arguments(["test.mad", "25x"])

@@ -26,7 +26,7 @@ from mad.des2.log import Event, InMemoryLog
 from mad.des2.monitoring import CSVReportFactory
 
 from mad.des2.parsing import Parser
-from mad.des2.repository import FileSource, Mad, Project, InMemoryDataSource
+from mad.des2.datasource import InFilesDataSource, Mad, Project, InMemoryDataSource
 from mad.des2.ui import Display, CommandLineInterface
 
 
@@ -47,7 +47,7 @@ class TestXXX(TestCase):
         self.assertEqual(display.update.call_count, 6) # 4 + 2 Monitoring events
 
     def _make_mad(self, file_name, content):
-        source = MagicMock(FileSource)
+        source = MagicMock(InFilesDataSource)
         source.read.return_value = content
         parser = Parser(source)
         return Mad(parser, source)

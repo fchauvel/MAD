@@ -38,28 +38,9 @@ class Settings:
 
 
 class Project:
-
-    @staticmethod
-    def from_arguments(arguments):
-        if len(arguments) != 2:
-            raise ValueError("Missing arguments (expected [my-file.mad] [simulation-length], but found '%s')" % arguments)
-        file_name = Project._extract_file_name(arguments)
-        length = Project._extract_length(arguments)
-        return Project(file_name, length)
-
-    @staticmethod
-    def _extract_file_name(arguments):
-        result = arguments[0]
-        if not isinstance(result, str):
-            raise ValueError("Expecting 'MAD file' as Argument 1, but found '%s'" % arguments[0])
-        return result
-
-    @staticmethod
-    def _extract_length(arguments):
-        try:
-            return int(arguments[1])
-        except ValueError:
-            raise ValueError("Expecting simulation length as Argument 2, but found '%s'" % arguments[1])
+    """
+    Represent a simulation 'request'
+    """
 
     def __init__(self, root_mad_file, limit):
         self.file_name = root_mad_file
@@ -111,7 +92,7 @@ class Mad:
         return FileLog(self.output.open_stream_to(file_name), "%5d %-20s %-s\n")
 
 
-class Repository:
+class DataSource:
     """
     Unified interface for opening resources, identified by name
     """
@@ -125,7 +106,10 @@ class Repository:
         raise NotImplementedError("Method Repository::read is abstract")
 
 
-class FileSource(Repository):
+class InFilesDataSource(DataSource):
+    """
+    Represent a source where data are stored on the file systems
+    """
 
     @staticmethod
     def open_stream_to(path):
@@ -139,7 +123,10 @@ class FileSource(Repository):
             return file.read()
 
 
-class InMemoryDataSource(Repository):
+class InMemoryDataSource(DataSource):
+    """
+    A data source that holds data in memory, in a hash map
+    """
 
     def __init__(self, streams = {}):
         self.streams = streams
