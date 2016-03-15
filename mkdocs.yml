@@ -1,0 +1,8 @@
+site_name: MAD
+repo_url: https://github.com/fchauvel/mad
+docs_dir: docs
+pages:
+ - "Home": index.md
+ - "User Guide":
+   - "Installation": installation.md
+theme: flatly
