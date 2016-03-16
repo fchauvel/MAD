@@ -27,7 +27,7 @@ import mad
 
 class Version:
 
-    LOCATION = "flap/__init__.py"
+    LOCATION = "mad/__init__.py"
 
     @staticmethod
     def from_source_code():
