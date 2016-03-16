@@ -19,10 +19,11 @@
 
 
 from unittest import TestCase
+
+from mad.ast import *
 from mock import MagicMock
 
-from mad.des2.ast import *
-from mad.des2.parsing import Parser, Source
+from mad.parsing import Parser, Source
 
 
 class ParserTests(TestCase):

@@ -19,14 +19,15 @@
 
 
 from unittest import TestCase
+
+from mad.ast import *
+from mad.log import InMemoryLog
+from mad.monitoring import CSVReportFactory
+from mad.simulation import Simulation, Service, Operation, Request, Symbols
 from mock import MagicMock
 
-from mad.des2.datasource import InMemoryDataSource
-from mad.des2.simulation import Evaluation, Simulation, Service, Operation, Request, Symbols, Worker
-from mad.des2.log import InMemoryLog
-from mad.des2.monitoring import CSVReportFactory
-from mad.des2.ast import *
-from mad.des2.datasource import Project
+from mad.datasource import InMemoryDataSource
+from mad.datasource import Project
 
 
 class TestInterpreter(TestCase):

@@ -19,7 +19,7 @@
 
 from unittest import TestCase
 
-from mad.des2.environment import Environment
+from mad.environment import Environment
 
 
 class EnvironmentTest(TestCase):

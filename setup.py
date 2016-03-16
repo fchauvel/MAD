@@ -20,10 +20,11 @@
 import mad
 
 from setuptools import setup, find_packages
+from mad.utils.releasing import Release
 
 setup(name='MAD',
      version=mad.__version__,
-     description='Simulations of microservices architectures dynamics',
+     description='Simulation of microservices architectures dynamics',
      author='Franck Chauvel',
      author_email='franck.chauvel@gmail.com',
      license="GPLv3",
@@ -31,15 +32,16 @@ setup(name='MAD',
      download_url="https://github.com/fchauvel/mad/tarball/v"+mad.__version__,
      packages=find_packages(exclude='tests'),
      test_suite = "tests",
+     cmdclass = { "release": Release},
      classifiers = [
                     "Development Status :: 3 - Alpha",
                     "Intended Audience :: Science/Research",
                     "Environment :: Console",
                     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
                     "Natural Language :: English",
-                    "Programming Language :: Python :: 3.2",
-                    "Programming Language :: Python :: 3.3",
-                    "Programming Language :: Python :: 3.4"
+                    "Programming Language :: Python :: 3.4",
+                    "Topic :: Scientific/Engineering",
+                    "Topic :: Software Development :: Quality Assurance"
                     ]
      )
 

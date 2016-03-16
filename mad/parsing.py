@@ -20,34 +20,17 @@
 import ply.lex as lex
 import ply.yacc as yacc
 
-from mad.ast import Architecture, Service, Operation, Action, RequestAction, TriggerAction, UtilisationRule, Retry
+from mad.ast import *
+
 
 reserved = {
-    "architecture": "ARCHITECTURE",
-    "autoscaling": "AUTOSCALING",
-    "CoDel": "CODEL",
-    "configuration": "CONFIGURATION",
-    "delay": "DELAY",
-    "fail": "FAIL",
-    "FIFO": "FIFO",
-    "LIFO": "LIFO",
-    "limit": "LIMIT",
-    "on-error": "ON_ERROR",
+    "client": "CLIENT",
+    "every": "EVERY",
+    "invoke": "INVOKE",
     "operation": "OPERATION",
-    "queue": "QUEUE",
-    "RED": "RED",
-    "request": "REQUEST",
-    "retry": "RETRY",
-    "resources": "RESOURCES",
-    "rules": "RULES",
-    "scaled": "SCALED",
+    "query": "QUERY",
     "service": "SERVICE",
-    "shared": "SHARED",
-    "taildrop": "TAIL_DROP",
-    "throttling": "THROTTLING",
-    "timeout": "TIMEOUT",
-    "trigger": "TRIGGER",
-    "utilisation": "UTILISATION",
+    "think": "THINK",
 }
 
 # List of token names.   This is always required
@@ -107,105 +90,72 @@ lexer = lex.lex()
 
 # -----------------------------
 # Parsing rules
-
-
-def p_architecture(p):
-    """architecture : ARCHITECTURE IDENTIFIER COLON service_list"""
-    p[0] = Architecture(p[2])
-
-
-def p_service_list(p):
+def p_unit(p):
     """
-    service_list : service service_list
-                 | service
-    """
-    p[0] = aggregate_list(p, "service_list")
-
-
-def p_service(p):
-    """
-    service : SERVICE IDENTIFIER COLON operation_list
-            | SERVICE IDENTIFIER COLON configuration operation_list
-    """
-    if len(p) == 5:
-        p[0] = Service(p[2], p[4])
-    else:
-        p[0] = Service(p[2], p[5])
-
-
-def p_configuration(p):
-    """
-    configuration : CONFIGURATION COLON setting_list
-    """
-    p[0] = p[3]
-
-
-def p_setting_list(p):
-    """
-    setting_list : setting setting_list
-                 | setting
-    """
-    p[0] = aggregate_list(p, "setting_list")
-
-
-def p_setting(p):
-    """
-    setting : queue
-            | resources
-            | throttling
-            | autoscaling
+    unit : definition_list
     """
     p[0] = p[1]
 
 
-def p_queue(p):
+def p_definition_list(p):
     """
-    queue : QUEUE COLON LIFO
-            | QUEUE COLON FIFO
+    definition_list : definition definition_list
+                    | definition
     """
-    if p[3] == "LIFO":
-        p[0] = ("queue", "LIFO")
+    if len(p) == 3:
+        if isinstance(p[2], Sequence):
+            p[0] = Sequence(p[1], *p[2].body)
+        else:
+            p[0] = Sequence(p[1], p[2])
+    elif len(p) == 2:
+        p[0] = p[1]
     else:
-        p[0] = ("queue", "FIFO")
+        raise RuntimeError("Invalid production rules 'p_action_list'")
 
 
-def p_resources(p):
+def p_definition(p):
     """
-    resources : RESOURCES COLON SHARED
-              | RESOURCES COLON SCALED
+    definition : define_service
+                | define_client
     """
-    p[0] = ("resources", p[3])
+    p[0] = p[1]
 
 
-def p_throttling(p):
+def p_define_service(p):
     """
-    throttling : THROTTLING COLON TAIL_DROP
-               | THROTTLING COLON RED
-               | THROTTLING COLON CODEL
+    define_service : SERVICE IDENTIFIER COLON operation_list
     """
-    p[0] = ("throttling", p[3])
-
-
-def p_autoscaling(p):
-    """
-    autoscaling : AUTOSCALING COLON RULES OPEN_BRACKET UTILISATION COMMA NUMBER COMMA NUMBER COMMA NUMBER CLOSE_BRACKET
-    """
-    p[0] = UtilisationRule(float(p[7]), float(p[9]), float(p[11]))
+    p[0] = DefineService(p[2], p[4])
 
 
 def p_operation_list(p):
     """
-    operation_list : operation operation_list
-                   | operation
+    operation_list : define_operation operation_list
+                   | define_operation
     """
-    p[0] = aggregate_list(p, "operation_list")
+    if len(p) == 3:
+        if isinstance(p[2], Sequence):
+            p[0] = Sequence(p[1], *p[2].body)
+        else:
+            p[0] = Sequence(p[1], p[2])
+    elif len(p) == 2:
+        p[0] = p[1]
+    else:
+        raise RuntimeError("Invalid production rules 'p_action_list'")
 
 
-def p_operation(p):
+def p_define_client(p):
     """
-    operation : OPERATION IDENTIFIER COLON action_list
+    define_client : CLIENT IDENTIFIER COLON EVERY NUMBER COLON action_list
     """
-    p[0] = Operation(p[2], p[4])
+    p[0] = DefineClientStub(p[2], int(p[5]), p[7])
+
+
+def p_define_operation(p):
+    """
+    define_operation : OPERATION IDENTIFIER COLON action_list
+    """
+    p[0] = DefineOperation(p[2], p[4])
 
 
 def p_action_list(p):
@@ -213,102 +163,65 @@ def p_action_list(p):
     action_list : action action_list
                 | action
     """
-    p[0] = aggregate_list(p, "action_list")
+    if len(p) == 3:
+        if isinstance(p[2], Sequence):
+            p[0] = Sequence(p[1], *p[2].body)
+        else:
+            p[0] = Sequence(p[1], p[2])
+    elif len(p) == 2:
+        p[0] = p[1]
+    else:
+        raise RuntimeError("Invalid production rules 'p_action_list'")
 
 
 def p_action(p):
     """
-    action : trigger
-           | request
+    action : invoke
+           | query
+           | think
     """
     p[0] = p[1]
 
 
-def p_trigger(p):
+def p_think(p):
     """
-    trigger : TRIGGER IDENTIFIER SLASH IDENTIFIER
+    think : THINK NUMBER
     """
-    p[0] = TriggerAction(p[2], p[4])
+    p[0] = Think(int(p[2]))
 
 
-def p_request(p):
+def p_query(p):
     """
-    request : REQUEST IDENTIFIER SLASH IDENTIFIER
-            | REQUEST IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET option_list CLOSE_CURLY_BRACKET
+    query : QUERY IDENTIFIER SLASH IDENTIFIER
     """
-    if len(p) > 5:
-        options = dict(p[6])
-
-        timeout = Action.DEFAULT_TIMEOUT
-        if "timeout" in options:
-            timeout = options["timeout"]
-
-        p[0] = RequestAction(p[2], p[4], timeout)
-    else:
-        p[0] = RequestAction(p[2], p[4])
+    p[0] = Query(p[2], p[4])
 
 
-def p_option_list(p):
+def p_invoke(p):
     """
-    option_list : option COMMA option_list
-                | option
+    invoke : INVOKE IDENTIFIER SLASH IDENTIFIER
     """
-    p[0] = aggregate_list(p, "option_list", separator = True)
-
-
-def p_option(p):
-    """
-    option : timeout
-    """
-    p[0] = p[1]
-
-
-def p_timeout(p):
-    """
-    timeout : TIMEOUT COLON NUMBER
-    """
-    p[0] = ("timeout", float(p[3]))
-
-
-def p_on_error(p):
-    """
-    on_error : ON_ERROR COLON error_strategy
-    """
-    p[0] = ("on-error", p[3])
-
-
-def p_error_strategy(p):
-    """
-    error_strategy : FAIL
-                   | RETRY OPEN_BRACKET LIMIT COLON NUMBER COMMA DELAY COLON NUMBER CLOSE_BRACKET
-    """
-    if p[1] == "fail":
-        p[0] = "FAIL"
-    else:
-        p[0] = Retry(float(p[5]), float(p[9]))
+    p[0] = Trigger(p[2], p[4])
 
 
 def p_error(t):
     print("Syntax error at '%s'" % t.value)
 
 
-def aggregate_list(p, rule_name, separator = False):
-    tail = 2 if not separator else 3
-    if len(p) == tail + 1:
-        return [p[1]] + p[tail]
-    elif len(p) == 2:
-        return [p[1]]
-    else:
-        raise RuntimeError("Invalid production in rule '%s'" % rule_name)
+class Source:
+
+    def read(self, location):
+        raise NotImplementedError("Source::read is not yet implemented")
 
 
 class Parser:
-    """
-    Encapsulate the procedural code generated by PLY into a property class
-    """
 
-    def parse(self, text, entry_rule="architecture"):
-        parser = yacc.yacc(lexer=lexer, start=entry_rule)
-        return parser.parse(text)
+    def __init__(self, source):
+        self.source = source
+
+    def parse(self, location, entry_rule="unit"):
+        text = self.source.read(location)
+        parser = yacc.yacc(start=entry_rule, errorlog=yacc.NullLogger())
+        return parser.parse(lexer=lexer, input=text)
 
 

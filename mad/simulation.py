@@ -17,9 +17,9 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.des2.environment import Environment
-from mad.des2.scheduling import Scheduler
-from mad.des2.log import Log
+from mad.environment import Environment
+
+from mad.scheduling import Scheduler
 
 
 class Symbols:

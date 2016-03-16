@@ -18,10 +18,10 @@
 #
 
 
-from unittest import TestCase
 from io import StringIO
+from unittest import TestCase
 
-from mad.des2.log import InMemoryLog, FileLog
+from mad.log import InMemoryLog, FileLog
 
 
 class LogTests(TestCase):

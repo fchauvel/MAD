@@ -17,9 +17,18 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from sys import argv
-from mad.mad import Controller, UI, CommandFactory, Controller2, UI, Builder, Repository
+from sys import argv, stdout
+
+from mad.des2.parsing import Parser
+
+from mad.datasource import Mad, InFilesDataSource
+from mad.ui import CommandLineInterface, Display, Arguments
 
 
-controller = Controller2(UI(), Repository(), Builder())
-controller.simulate(argv[1:])
+source = InFilesDataSource()
+mad = Mad(Parser(source), source)
+cli = CommandLineInterface(Display(stdout), mad)
+
+project = Arguments(argv[1:]).as_project
+cli.simulate(project)
+

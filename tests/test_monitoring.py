@@ -17,13 +17,15 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from unittest import TestCase
-from mock import MagicMock
 from io import StringIO
+from unittest import TestCase
 
-from mad.des2.datasource import InMemoryDataSource, Project, Mad, Settings
-from mad.des2.monitoring import CSVReportFactory, CSVReport
-from mad.des2.parsing import Parser
+from mad.monitoring import CSVReportFactory, CSVReport
+from mad.parsing import Parser
+from mock import MagicMock
+
+from mad.datasource import InMemoryDataSource, Project, Mad, Settings
+
 
 class MonitoringTests(TestCase):
 

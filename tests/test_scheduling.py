@@ -19,7 +19,7 @@
 
 from unittest import TestCase
 
-from mad.des2.scheduling import Scheduler
+from mad.scheduling import Scheduler
 
 
 class DummyAction:

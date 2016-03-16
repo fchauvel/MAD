@@ -17,15 +17,16 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from re import search
 from datetime import datetime
+from io import StringIO
 from os import makedirs
 from os.path import exists, dirname
-from io import StringIO
+from re import search
 
-from mad.des2.simulation import Simulation
-from mad.des2.log import FileLog
-from mad.des2.monitoring import CSVReportFactory
+from mad.log import FileLog
+from mad.simulation import Simulation
+
+from mad.monitoring import CSVReportFactory
 
 
 class Settings:

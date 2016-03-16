@@ -17,17 +17,17 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from unittest import TestCase, skip
+from unittest import TestCase
+
+from mad.ast import *
+from mad.log import Event, InMemoryLog
+from mad.monitoring import CSVReportFactory
+from mad.parsing import Parser
+from mad.simulation import Simulation
 from mock import MagicMock
 
-from mad.des2.ast import *
-from mad.des2.simulation import Simulation
-from mad.des2.log import Event, InMemoryLog
-from mad.des2.monitoring import CSVReportFactory
-
-from mad.des2.parsing import Parser
-from mad.des2.datasource import InFilesDataSource, Mad, Project, InMemoryDataSource
-from mad.des2.ui import Display, CommandLineInterface
+from mad.datasource import InFilesDataSource, Mad, Project, InMemoryDataSource
+from mad.ui import Display, CommandLineInterface
 
 
 class TestXXX(TestCase):

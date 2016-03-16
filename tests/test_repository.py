@@ -19,9 +19,10 @@
 
 from unittest import TestCase
 
+from mad.ast import Sequence, DefineService, DefineOperation, DefineClientStub, Think, Query
 from mock import MagicMock
-from mad.des2.datasource import Mad, InFilesDataSource, Project, Settings
-from mad.des2.ast import Sequence, DefineService, DefineOperation, DefineClientStub, Think, Query
+
+from mad.datasource import Mad, InFilesDataSource, Project, Settings
 
 
 class MadTests(TestCase):

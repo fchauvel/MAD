@@ -17,14 +17,15 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from unittest import TestCase
-from mock import MagicMock, call
 from io import StringIO
 from re import search, IGNORECASE
+from unittest import TestCase
+
+from mock import MagicMock, call
 
 from mad import __version__ as MAD_VERSION
-from mad.des2.ui import CommandLineInterface, Display, Arguments
-from mad.des2.datasource import Mad, Project
+from mad.datasource import Mad, Project
+from mad.ui import CommandLineInterface, Display, Arguments
 
 
 class DisplayTest(TestCase):

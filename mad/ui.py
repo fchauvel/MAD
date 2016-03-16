@@ -19,7 +19,7 @@
 
 from mad import __version__ as MAD_VERSION
 
-from mad.des2.datasource import Project
+from mad.datasource import Project
 
 
 class Display:

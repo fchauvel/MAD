@@ -17,128 +17,40 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-
 from unittest import TestCase
-from mad.ast import Architecture, Service, Operation, RequestAction, TriggerAction, UtilisationRule, Retry
+
+from mad.ast import *
 
 
-class ArchitectureTests(TestCase):
+class ThinkTest(TestCase):
 
-    def test_architecture_have_name(self):
-        name = "dummy name"
-        archi = Architecture(name)
-        self.assertEqual(name, archi.name)
+    def test_equality(self):
+        exp1 = Think(5)
+        exp2 = Think(6)
+        exp3 = Think(5)
 
-    def test_architecture_reject_missing_name(self):
-        with self.assertRaises(ValueError):
-            archi = Architecture("")
-
-
-class ServiceTest(TestCase):
-
-    def test_service_have_name(self):
-        name = "dummy"
-        service = Service(name, ["whatever"])
-        self.assertEqual(name, service.name)
-
-    def test_service_must_have_valid_names(self):
-        with self.assertRaises(ValueError):
-            Service(None, ["whatever"])
-
-    def test_service_must_have_at_least_one_operation(self):
-        with self.assertRaises(ValueError):
-            Service("dummy name", [])
+        self.assertNotEqual(exp1, exp2)
+        self.assertEqual(exp1, exp3)
 
 
-class OperationTest(TestCase):
+class QueryTests(TestCase):
 
-    def test_operations_have_name(self):
-        name = "dummy"
-        operation = Operation(name,["whatever"])
-        self.assertEqual(name, operation.name)
+    def test_equality(self):
+        queries = [ Query("S1", "Op1"),
+                    Query("S1", "Op2"),
+                    Query("S2", "Op1"),
+                    Query("S2", "Op2"),
+                    Query("S1", "Op1")]
 
-    def test_invalid_names_are_rejected(self):
-        with self.assertRaises(ValueError):
-            Operation(None, ["whatever"])
+        self.assertNotEqual(queries[0], queries[1])
+        self.assertNotEqual(queries[0], queries[2])
+        self.assertNotEqual(queries[0], queries[3])
+        self.assertEqual(queries[0], queries[4])
 
-    def test_operations_have_behaviour(self):
-        behaviour = ["blablabla"]
-        operation = Operation("dummy", behaviour)
-        self.assertEqual(1, len(operation.behaviour))
+class SequenceTests(TestCase):
 
-    def test_invalid_behaviours_are_rejected(self):
-        with self.assertRaises(ValueError):
-            Operation("dummy", [])
+    def test_equality(self):
+        seq1 = Sequence(Think(5), Think(6))
+        seq2 = Sequence(Think(5), Think(6))
 
-
-class TestAction:
-
-    def create_action(self, service, operation, timeout=10):
-        pass
-
-    def test_actions_refer_to_an_operation(self):
-        service = "service X"
-        operation = "operation A"
-
-        trigger = self.create_action(service, operation)
-
-        self.assertEqual(service, trigger.service)
-        self.assertEqual(operation, trigger.operation)
-
-    def test_invalid_operation_are_rejected(self):
-        with self.assertRaises(ValueError):
-            self.create_action("dummy", None)
-
-    def test_invalid_service_are_rejected(self):
-        with self.assertRaises(ValueError):
-            self.create_action(None, "dummy operation")
-
-    def test_has_timeout(self):
-        action = self.create_action("Svc", "Op.", timeout=1234)
-        self.assertEqual(1234, action.timeout)
-
-    def test_negative_timeout_are_rejected(self):
-        with self.assertRaises(ValueError):
-            action = self.create_action("Svc", "Op", timeout=-34)
-
-
-class TestTriggerAction(TestAction, TestCase):
-
-    def create_action(self, service, operation, timeout=10):
-        return TriggerAction(service, operation, timeout)
-
-
-class TestRequestAction(TestAction, TestCase):
-
-    def create_action(self, service, operation, timeout=10):
-        return RequestAction(service, operation, timeout)
-
-
-class TestUtilisationRules(TestCase):
-
-    def test_has_lower_edge(self):
-        rule = UtilisationRule(75, 85, 1)
-
-        self.assertEqual(75, rule.lower_edge)
-        self.assertEqual(85, rule.upper_edge)
-        self.assertEqual(1, rule.magnitude)
-
-
-class TestRetry(TestCase):
-
-    def test_retry_has_limit(self):
-        retry = Retry(15)
-        self.assertEqual(15, retry.limit)
-
-    def test_retry_has_no_negative_limit(self):
-        with self.assertRaises(ValueError):
-            Retry(-15)
-
-    def test_retry_has_delay(self):
-        retry = Retry(15, 10)
-        self.assertEqual(10, retry.delay)
-
-
-if __name__ == "__main__":
-    import unittest.main as main
-    main()
+        self.assertEqual(seq1, seq2)

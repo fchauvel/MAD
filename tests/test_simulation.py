@@ -19,7 +19,8 @@
 
 
 from unittest import TestCase
-from mad.des2.simulation import WorkerPool, TaskPool
+
+from mad.simulation import WorkerPool, TaskPool
 
 
 class TaskPoolTests(TestCase):
