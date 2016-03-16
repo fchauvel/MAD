@@ -17,6 +17,7 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * Support for timeout
  * Support for autoscaling
  * support for throttling policies
+ * Improve error syntax/semantic error reporting
 
  
 
