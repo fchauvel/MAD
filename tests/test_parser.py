@@ -31,7 +31,7 @@ class ParserTests(TestCase):
     def test_parsing_all_expressions(self):
         for (text, expected_result, rule) in self._all_expressions():
             actual_result = self._do_parse(text, rule)
-            self.assertEqual(expected_result, actual_result)
+            self.assertEqual(expected_result, actual_result, "Fail to parse '%s'" % text)
 
     def _all_expressions(self):
         return [
@@ -42,6 +42,7 @@ class ParserTests(TestCase):
             ("operation Select: think 5", DefineOperation("Select", Think(5)), "define_operation"),
             ("service DB: operation Select: think 4", DefineService("DB", DefineOperation("Select", Think(4))), "define_service"),
             ("client Browser: every 5: query DB/Select", DefineClientStub("Browser", 5, Query("DB", "Select")), "define_client"),
+            ("settings: queue: LIFO", Settings(queue=LIFO()), "settings"),
             ("service DB: "
              "  operation Select: "
              "      think 4 "
@@ -50,7 +51,19 @@ class ParserTests(TestCase):
              "      query DB/Select",
              Sequence(DefineService("DB", DefineOperation("Select", Think(4))),
                       DefineClientStub("Browser", 5, Query("DB", "Select"))),
+             "unit"),
+            ("service DB: "
+             "  settings:"
+             "      queue: LIFO"
+             "  operation Select: "
+             "      think 4 "
+             "client Browser: "
+             "  every 5: "
+             "      query DB/Select",
+             Sequence(DefineService("DB", Sequence(Settings(queue=LIFO()), DefineOperation("Select", Think(4)))),
+                      DefineClientStub("Browser", 5, Query("DB", "Select"))),
              "unit")
+
         ]
 
     def _do_parse(self, text, rule):

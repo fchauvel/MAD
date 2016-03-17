@@ -19,7 +19,7 @@
 
 from sys import argv, stdout
 
-from mad.des2.parsing import Parser
+from mad.parsing import Parser
 
 from mad.datasource import Mad, InFilesDataSource
 from mad.ui import CommandLineInterface, Display, Arguments

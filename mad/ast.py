@@ -30,8 +30,51 @@ class Expression:
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __add__(self, other):
+        assert isinstance(other, Expression), "Can only sequence expressions (found '%s')" % type(other)
+        if isinstance(other, Sequence):
+            content = [self] + other.body
+        else:
+            content = [self, other]
+        return Sequence(*content)
+
     def accept(self, evaluation):
         raise NotImplementedError("Expression::accept is abstract!")
+
+
+class Sequence(Expression):
+    """
+    A sequence of actions (i.e., invocation or think)
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.body = list(args)
+
+    @property
+    def first_expression(self):
+        return self.body[0]
+
+    @property
+    def rest(self):
+        if len(self.body) > 2:
+            return Sequence(*self.body[1:])
+        else:
+            return self.body[1]
+
+    def accept(self, evaluation):
+        return evaluation.of_sequence(self)
+
+    def __repr__(self):
+        body = [str(each_expression) for each_expression in self.body]
+        return "Sequence(%s)" % ", ".join(body)
+
+    def __add__(self, other):
+        assert isinstance(other, Expression), "Can only sequence expressions (found '%s')" % type(other)
+        if isinstance(other, Sequence):
+            content = self.body + other.body
+        else:
+            content = self.body + [other]
+        return Sequence(*content)
 
 
 class Definition(Expression):
@@ -50,11 +93,8 @@ class Definition(Expression):
 
 class Settings(Expression):
 
-    class Queue:
-        LIFO = "LIFO"
-        FIFO = "FIFO"
-
-    def __init__(self, queue=Queue.FIFO):
+    def __init__(self, queue):
+        super().__init__()
         self._queue = queue
 
     @property
@@ -63,6 +103,47 @@ class Settings(Expression):
 
     def accept(self, evaluation):
         return evaluation.of_settings(self)
+
+    def merged_with(self, other):
+        assert isinstance(other, Settings), "Can only merge settings (found '%s')" % type(other)
+        queue = other.queue or self._queue
+        return Settings(queue=queue)
+
+    def __repr__(self):
+        return "Settings(queue: %s)" % str(self._queue)
+
+
+class QueueDiscipline(Expression):
+
+    def __init__(self):
+        super().__init__()
+
+    def accept(self, evaluation):
+        raise NotImplementedError("QueueDiscipline::accept is abstract!")
+
+
+class LIFO(QueueDiscipline):
+
+    def __init__(self):
+        super().__init__()
+
+    def accept(self, evaluation):
+        return evaluation.of_lifo(self)
+
+    def __repr__(self):
+        return "LIFO"
+
+
+class FIFO(QueueDiscipline):
+
+    def accept(self, evaluation):
+        return evaluation.of_fifo(self)
+
+    def __repr__(self):
+        return "FIFO"
+
+
+Settings.DEFAULTS = Settings(queue=FIFO())
 
 
 class DefineService(Definition):
@@ -93,7 +174,7 @@ class DefineOperation(Definition):
         return evaluation.of_operation_definition(self)
 
     def __repr__(self):
-        return "Operation(%s, %s)" % (self.name, str(self.body))
+        return "DefineOperation(%s, %s)" % (self.name, str(self.body))
 
 
 class DefineClientStub(Definition):
@@ -216,28 +297,3 @@ class IgnoreError:
         return "IgnoreError(%s)" % str(self.expression)
 
 
-class Sequence(Expression):
-    """
-    A sequence of actions (i.e., invocation or think)
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.body = list(args)
-
-    @property
-    def first_expression(self):
-        return self.body[0]
-
-    @property
-    def rest(self):
-        if len(self.body) > 2:
-            return Sequence(*self.body[1:])
-        else:
-            return self.body[1]
-
-    def accept(self, evaluation):
-        return evaluation.of_sequence(self)
-
-    def __repr__(self):
-        body = [str(each_expression) for each_expression in self.body]
-        return "Sequence(%s)" % ", ".join(body)

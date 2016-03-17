@@ -50,7 +50,7 @@ class Evaluation:
     def _define(self, symbol, value):
         self.environment.define(symbol, value)
 
-    def _evaluation_of(self, expression, continuation):
+    def _evaluation_of(self, expression, continuation=lambda x: None):
         return Evaluation(self.environment, expression, continuation).result
 
     @property
@@ -59,17 +59,22 @@ class Evaluation:
 
     def of_service_definition(self, service):
         service_environment = self.environment.create_local_environment()
-        Evaluation(service_environment, Settings()).result
+        Evaluation(service_environment, Settings.DEFAULTS).result
         Evaluation(service_environment, service.body).result
         service = Service(service.name, service_environment)
         self._define(service.name, service)
         return self.continuation(Success(service))
 
     def of_settings(self, settings):
-        queue = FIFOTaskPool()
-        if settings.queue == Settings.Queue.LIFO:
-            queue = LIFOTaskPool()
-        self._define(Symbols.QUEUE, queue)
+        self._evaluation_of(settings.queue)
+        return self.continuation(Success(None))
+
+    def of_fifo(self, fifo):
+        self._define(Symbols.QUEUE, FIFOTaskPool())
+        return self.continuation(Success(None))
+
+    def of_lifo(self, lifo):
+        self._define(Symbols.QUEUE, LIFOTaskPool())
         return self.continuation(Success(None))
 
     def of_operation_definition(self, definition):

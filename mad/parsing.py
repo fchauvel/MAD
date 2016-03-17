@@ -26,10 +26,14 @@ from mad.ast import *
 reserved = {
     "client": "CLIENT",
     "every": "EVERY",
+    "FIFO":  "FIFO",
     "invoke": "INVOKE",
+    "LIFO": "LIFO",
     "operation": "OPERATION",
+    "queue": "QUEUE",
     "query": "QUERY",
     "service": "SERVICE",
+    "settings": "SETTINGS",
     "think": "THINK",
 }
 
@@ -103,10 +107,7 @@ def p_definition_list(p):
                     | definition
     """
     if len(p) == 3:
-        if isinstance(p[2], Sequence):
-            p[0] = Sequence(p[1], *p[2].body)
-        else:
-            p[0] = Sequence(p[1], p[2])
+        p[0] = p[1] + p[2]
     elif len(p) == 2:
         p[0] = p[1]
     else:
@@ -123,9 +124,54 @@ def p_definition(p):
 
 def p_define_service(p):
     """
-    define_service : SERVICE IDENTIFIER COLON operation_list
+    define_service : SERVICE IDENTIFIER COLON settings operation_list
+                   | SERVICE IDENTIFIER COLON operation_list
     """
-    p[0] = DefineService(p[2], p[4])
+    if len(p) == 6:
+        body = p[4] + p[5]
+    else:
+        body = p[4]
+    p[0] = DefineService(p[2], body)
+
+
+def p_settings(p):
+    """
+    settings : SETTINGS COLON setting_list
+    """
+    p[0] = p[3]
+
+
+def p_setting_list(p):
+    """
+    setting_list : setting setting_list
+                 | setting
+    """
+    if len(p) == 3:
+        p[0] = p[1].merged_with(p[2])
+    elif len(p) == 2:
+        p[0] = p[1]
+    else:
+        raise RuntimeError("Invalid production rules 'p_setting_list'")
+
+
+def p_setting(p):
+    """
+    setting : queue
+    """
+    p[0] = p[1]
+
+
+def p_queue(p):
+    """
+    queue : QUEUE COLON LIFO
+          | QUEUE COLON FIFO
+    """
+    if p[3] == "LIFO":
+        p[0] = Settings(queue=LIFO())
+    elif p[3] == "FIFO":
+        p[0] = Settings(queue=FIFO())
+    else:
+        raise RuntimeError("Queue discipline '%s' is not supported!" % p[1])
 
 
 def p_operation_list(p):
@@ -134,14 +180,11 @@ def p_operation_list(p):
                    | define_operation
     """
     if len(p) == 3:
-        if isinstance(p[2], Sequence):
-            p[0] = Sequence(p[1], *p[2].body)
-        else:
-            p[0] = Sequence(p[1], p[2])
+        p[0] = p[1] + p[2]
     elif len(p) == 2:
         p[0] = p[1]
     else:
-        raise RuntimeError("Invalid production rules 'p_action_list'")
+        raise RuntimeError("Invalid production rules 'p_operation_list'")
 
 
 def p_define_client(p):
@@ -164,10 +207,7 @@ def p_action_list(p):
                 | action
     """
     if len(p) == 3:
-        if isinstance(p[2], Sequence):
-            p[0] = Sequence(p[1], *p[2].body)
-        else:
-            p[0] = Sequence(p[1], p[2])
+        p[0] = p[1] + p[2]
     elif len(p) == 2:
         p[0] = p[1]
     else:
@@ -221,7 +261,8 @@ class Parser:
 
     def parse(self, location, entry_rule="unit"):
         text = self.source.read(location)
-        parser = yacc.yacc(start=entry_rule, errorlog=yacc.NullLogger())
+        #parser = yacc.yacc(start=entry_rule, errorlog=yacc.NullLogger())
+        parser = yacc.yacc(start=entry_rule)
         return parser.parse(lexer=lexer, input=text)
 
 
