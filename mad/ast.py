@@ -48,6 +48,23 @@ class Definition(Expression):
         raise NotImplementedError("Definition::accept is abstract!")
 
 
+class Settings(Expression):
+
+    class Queue:
+        LIFO = "LIFO"
+        FIFO = "FIFO"
+
+    def __init__(self, queue=Queue.FIFO):
+        self._queue = queue
+
+    @property
+    def queue(self):
+        return self._queue
+
+    def accept(self, evaluation):
+        return evaluation.of_settings(self)
+
+
 class DefineService(Definition):
     """
     Definition of a service and the operations it exposes

@@ -18,7 +18,7 @@
 #
 
 from mad.environment import Environment
-
+from mad.ast import Settings
 from mad.scheduling import Scheduler
 
 
@@ -28,6 +28,7 @@ class Symbols:
     TASK = "!request"
     SERVICE = "!service"
     WORKER = "!worker"
+    QUEUE = "!queue"
 
 
 class Evaluation:
@@ -56,12 +57,20 @@ class Evaluation:
     def result(self):
         return self.expression.accept(self)
 
-    def of_service_definition(self, definition):
+    def of_service_definition(self, service):
         service_environment = self.environment.create_local_environment()
-        Evaluation(service_environment, definition.body).result
-        service = Service(definition.name, service_environment)
-        self._define(definition.name, service)
+        Evaluation(service_environment, Settings()).result
+        Evaluation(service_environment, service.body).result
+        service = Service(service.name, service_environment)
+        self._define(service.name, service)
         return self.continuation(Success(service))
+
+    def of_settings(self, settings):
+        queue = FIFOTaskPool()
+        if settings.queue == Settings.Queue.LIFO:
+            queue = LIFOTaskPool()
+        self._define(Symbols.QUEUE, queue)
+        return self.continuation(Success(None))
 
     def of_operation_definition(self, definition):
         operation = Operation( #TODO: Refactor the signature of an operation to accept a definition directly
@@ -257,7 +266,7 @@ class Service(SimulatedEntity):
     def __init__(self, name, environment):
         super().__init__(name, environment)
         self.environment.define(Symbols.SELF, self)
-        self.tasks = TaskPool()
+        self.tasks = self.environment.look_up(Symbols.QUEUE)
         self.workers = WorkerPool([self._new_worker(id) for id in range(1, 2)])
         self.schedule.every(self.MONITORING_PERIOD, self.monitor)
 
@@ -378,6 +387,7 @@ class Worker(SimulatedEntity):
 
 
 class TaskPool:
+    #TODO: Move to a separate package along with, LIFO, FIFO and Task
 
     def __init__(self):
         self.requests = []
@@ -386,9 +396,7 @@ class TaskPool:
         self.requests.append(request)
 
     def take(self):
-        if self.is_empty:
-            raise ValueError("Cannot take a request from an empty pool!")
-        return self.requests.pop(0)
+        raise NotImplementedError("TaskPool::take is abstract!")
 
     @property
     def is_empty(self):
@@ -403,7 +411,35 @@ class TaskPool:
         return len(self.requests)
 
     def activate(self, request):
+        raise NotImplementedError("TaskPool::activate is abstract!")
+
+
+class FIFOTaskPool(TaskPool):
+
+    def __init__(self):
+        super().__init__()
+
+    def take(self):
+        if self.is_empty:
+            raise ValueError("Cannot take a request from an empty pool!")
+        return self.requests.pop(0)
+
+    def activate(self, request):
         self.requests.insert(0, request)
+
+
+class LIFOTaskPool(TaskPool):
+
+    def __init__(self):
+        super().__init__()
+
+    def take(self):
+        if self.is_empty:
+            raise ValueError("Cannot take a request from an empty pool!")
+        return self.requests.pop(-1)
+
+    def activate(self, request):
+        self.requests.append(request)
 
 
 class Task:

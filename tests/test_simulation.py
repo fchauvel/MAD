@@ -20,19 +20,52 @@
 
 from unittest import TestCase
 
-from mad.simulation import WorkerPool, TaskPool
+from mad.simulation import WorkerPool, LIFOTaskPool, FIFOTaskPool
+
+
+class LIFOTaskPoolTests(TestCase):
+
+    def test_take(self):
+        pool = LIFOTaskPool()
+
+        pool.put("request 1")
+        pool.put("request 2")
+        pool.put("request 3")
+
+        self.assertEqual("request 3", pool.take())
+
+    def test_take_fails_when_empty(self):
+        pool = LIFOTaskPool()
+        self.assertTrue(pool.is_empty)
+
+        with self.assertRaises(ValueError):
+            pool.take()
+
+    def test_reactivated_task_are_taken_first(self):
+        pool = LIFOTaskPool()
+
+        pool.put("request 1")
+        pool.put("request 2")
+        pool.activate("request 3")
+        pool.put("request 4")
+
+        # FIXME: It is not clear which request should come first? The third or the four?
+        self.assertEqual("request 4", pool.take())
 
 
 class TaskPoolTests(TestCase):
 
     def test_put_increases_size(self):
-        pool = TaskPool()
+        pool = self._create_pool()
         pool.put("request 1")
 
         self.assertEqual(pool.size, 1)
 
+    def _create_pool(self):
+        return FIFOTaskPool()
+
     def test_take_decreases_size(self):
-        pool = TaskPool()
+        pool = self._create_pool()
         pool.put("request 1")
         pool.put("request 2")
 
@@ -41,17 +74,17 @@ class TaskPoolTests(TestCase):
         self.assertEqual(pool.size, 1)
 
     def test_taking_from_empty_pool_fails(self):
-        pool = TaskPool()
+        pool = self._create_pool()
         with self.assertRaises(ValueError):
             pool.take()
 
     def test_activate_increases_size(self):
-        pool = TaskPool()
+        pool = self._create_pool()
         pool.activate("request")
         self.assertEqual(pool.size, 1)
 
     def test_activated_requests_come_out_first(self):
-        pool = TaskPool()
+        pool = self._create_pool()
         pool.put("task 1")
         pool.activate("task 2")
         pool.put("task 3")

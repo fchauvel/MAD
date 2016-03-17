@@ -18,8 +18,10 @@
 #
 
 from unittest import TestCase
+from mock import MagicMock
 
 from mad.ast import *
+from mad.simulation import Evaluation
 
 
 class ThinkTest(TestCase):
@@ -47,6 +49,7 @@ class QueryTests(TestCase):
         self.assertNotEqual(queries[0], queries[3])
         self.assertEqual(queries[0], queries[4])
 
+
 class SequenceTests(TestCase):
 
     def test_equality(self):
@@ -54,3 +57,21 @@ class SequenceTests(TestCase):
         seq2 = Sequence(Think(5), Think(6))
 
         self.assertEqual(seq1, seq2)
+
+
+class SettingsTest(TestCase):
+
+    def test_default_queue_settings_is_fifo(self):
+        settings = Settings()
+        self.assertEqual(Settings.Queue.FIFO, settings.queue)
+
+    def test_setting_queue(self):
+        settings = Settings(queue=Settings.Queue.LIFO)
+        self.assertEqual(Settings.Queue.LIFO, settings.queue)
+
+    def test_accept(self):
+        settings = Settings()
+        evaluation = MagicMock(Evaluation)
+        settings.accept(evaluation)
+
+        evaluation.of_settings.assert_called_once_with(settings)
