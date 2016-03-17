@@ -28,6 +28,16 @@
   mad-font-lock-structure
   "Default highlighting expressions for MAD mode") 
 
+(defun mad-indent-line 
+  "Indent a single line of MAD simulation"
+  (beginning-of-line)
+  (cond 
+   ((bopb) (indent-line-to 0))
+   ((looking-at "^[ \t]*\\(service\\|client\\)") (indent-line to (1 * default-tab-width)))
+   ((looking-at "^[ \t]*operation") (indent-line to (2 * default-tab-width)))
+   ))
+
+
 (defvar mad-mode-syntax-table
   (let ((table (make-syntax-table)))
     (modify-syntax-entry ?_ "w" table)
@@ -39,11 +49,11 @@
 (defun mad-mode ()
   "Major mode for editing MAD simulation files"
   (interactive)
-  ;;(kill-all-local-variables)
+  (kill-all-local-variables)
   (set-syntax-table mad-mode-syntax-table)
   (use-local-map mad-mode-map)
   (set (make-local-variable 'font-lock-defaults) '(mad-font-lock-keywords))
-  ;; (set (make-local-variable 'indent-line-function) 'mad-indent-line)  
+  (set (make-local-variable 'indent-line-function) 'mad-indent-line)
   (setq major-mode 'mad-mode)
   (setq mode-name "MAD")
   (run-hooks 'mad-mode-hook))

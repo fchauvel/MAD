@@ -5,4 +5,5 @@ pages:
  - "Home": index.md
  - "User Guide":
    - "Installation": installation.md
+   - "Syntax": syntax.md
 theme: flatly
