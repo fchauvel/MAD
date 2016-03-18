@@ -12,12 +12,20 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
 
 ## TODO
 
- * Support for alternative queue disciplines FIFO, LIFO
- * Support for request differentiation
- * Support for timeout
- * Support for autoscaling
- * support for throttling policies
- * Improve error syntax/semantic error reporting
+ * Features
+    * Support for request differentiation
+    * Support for timeout
+    * Support for autoscaling
+    * Support for throttling policies
+ * Improve error  reporting
+    * Errors in the parameters passed to the CLI
+    * Semantic and syntactic errors in MAD files
+ * Examples
+    * SensApp example
+ * Refactorings
+    * Move TaskPool and Task in a separate module
+    * Move workers and autoscaling-related class in a separate module
+    * Enable parser's logging only when testing
 
  
 
