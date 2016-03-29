@@ -89,7 +89,7 @@ class SequenceTests(TestCase):
 class SettingsTest(TestCase):
 
     def test_default_queue_settings_is_fifo(self):
-        settings = Settings.DEFAULTS
+        settings = Settings()
         self.assertIsInstance(settings.queue, FIFO)
 
     def test_setting_queue(self):
@@ -97,30 +97,25 @@ class SettingsTest(TestCase):
         self.assertIsInstance(settings.queue, LIFO)
 
     def test_accept(self):
-        settings = Settings.DEFAULTS
+        settings = Settings()
         evaluation = MagicMock(Evaluation)
         settings.accept(evaluation)
 
         evaluation.of_settings.assert_called_once_with(settings)
 
-    def test_merging(self):
-        settings_A = Settings(queue=None)
-        settings_B = Settings(queue=FIFO())
-
-        actual = settings_A.merged_with(settings_B)
-
-        self.assertEqual(settings_B, actual)
-
-    def test_merging_does_not_override(self):
-        settings_A = Settings(queue=FIFO())
-        settings_B = Settings(queue=None)
-
-        actual = settings_A.merged_with(settings_B)
-
-        self.assertEqual(settings_A, actual)
-
     def test_equality(self):
          self.assertEqual(Settings(queue=FIFO()), Settings(queue=FIFO()))
+
+
+class AutoscalingSettingsTest(TestCase):
+
+    def test_reject_invalid_limits(self):
+        with self.assertRaises(ValueError):
+            Autoscaling(period=10, limits=23)
+
+    def test_reject_invalid_period(self):
+        with self.assertRaises(ValueError):
+            Autoscaling(period="wrong", limits=23)
 
 
 class FIFOTests(TestCase):

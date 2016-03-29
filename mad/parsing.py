@@ -24,12 +24,15 @@ from mad.ast import *
 
 
 reserved = {
+    "autoscaling": "AUTOSCALING",
     "client": "CLIENT",
     "every": "EVERY",
     "FIFO":  "FIFO",
     "invoke": "INVOKE",
     "LIFO": "LIFO",
+    "limits": "LIMITS",
     "operation": "OPERATION",
+    "period": "PERIOD",
     "queue": "QUEUE",
     "query": "QUERY",
     "service": "SERVICE",
@@ -40,20 +43,24 @@ reserved = {
 # List of token names.   This is always required
 tokens = [  "CLOSE_BRACKET",
             "CLOSE_CURLY_BRACKET",
+            "CLOSE_SQUARE_BRACKET",
             "COLON",
             "COMMA",
             "IDENTIFIER",
             "OPEN_BRACKET",
             "OPEN_CURLY_BRACKET",
+            "OPEN_SQUARE_BRACKET",
             "NUMBER",
             "SLASH"] + list(reserved.values())
 
 t_CLOSE_BRACKET = r"\)"
 t_CLOSE_CURLY_BRACKET = r"\}"
+t_CLOSE_SQUARE_BRACKET = r"\]"
 t_COLON = r":"
 t_COMMA = r","
 t_OPEN_BRACKET = r"\("
 t_OPEN_CURLY_BRACKET = r"\{"
+t_OPEN_SQUARE_BRACKET = r"\["
 t_SLASH = r"/"
 
 
@@ -138,7 +145,7 @@ def p_settings(p):
     """
     settings : SETTINGS COLON setting_list
     """
-    p[0] = p[3]
+    p[0] = Settings(**p[3])
 
 
 def p_setting_list(p):
@@ -147,7 +154,7 @@ def p_setting_list(p):
                  | setting
     """
     if len(p) == 3:
-        p[0] = p[1].merged_with(p[2])
+        p[0] = merge_map(p[1], p[2])
     elif len(p) == 2:
         p[0] = p[1]
     else:
@@ -157,6 +164,7 @@ def p_setting_list(p):
 def p_setting(p):
     """
     setting : queue
+            | autoscaling
     """
     p[0] = p[1]
 
@@ -167,11 +175,46 @@ def p_queue(p):
           | QUEUE COLON FIFO
     """
     if p[3] == "LIFO":
-        p[0] = Settings(queue=LIFO())
+        p[0] = {"queue": LIFO()}
+
     elif p[3] == "FIFO":
-        p[0] = Settings(queue=FIFO())
+        p[0] = {"queue": FIFO()}
+
     else:
         raise RuntimeError("Queue discipline '%s' is not supported!" % p[1])
+
+
+def p_autoscaling(p):
+    """
+    autoscaling : AUTOSCALING COLON autoscaling_setting_list
+    """
+    p[0] = {"autoscaling": Autoscaling(**p[3])}
+
+
+def p_autoscaling_setting_list(p):
+    """
+    autoscaling_setting_list : autoscaling_setting autoscaling_setting_list
+                             | autoscaling_setting
+    """
+    if len(p) == 3:
+        p[0] = merge_map(p[1], p[2])
+    elif len(p) == 2:
+        p[0] = p[1]
+    else:
+        raise RuntimeError("Invalid production in 'autoscaling_setting_list'")
+
+
+def p_autoscaling_setting(p):
+    """
+    autoscaling_setting : PERIOD COLON NUMBER
+                        | LIMITS COLON OPEN_SQUARE_BRACKET NUMBER COMMA NUMBER CLOSE_SQUARE_BRACKET
+    """
+    if len(p) == 8:
+        p[0] = {"limits": (int(p[4]), int(p[6]))}
+    elif len(p) == 4:
+        p[0] = {"period": int(p[3])}
+    else:
+        raise RuntimeError("Invalid product in 'autoscaling_setting'")
 
 
 def p_operation_list(p):
@@ -246,6 +289,12 @@ def p_invoke(p):
 
 def p_error(t):
     print("Syntax error at '%s'" % t.value)
+
+
+def merge_map(map_A, map_B):
+    tmp = map_A.copy()
+    tmp.update(map_B)
+    return tmp
 
 
 class Source:

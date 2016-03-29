@@ -39,10 +39,17 @@ class ParserTests(TestCase):
             ("invoke DB/Select", Trigger("DB", "Select"), "invoke"),
             ("think 5", Think(5), "think"),
             ("think 5 invoke DB/Select", Sequence(Think(5), Trigger("DB", "Select")), "action_list"),
-            ("operation Select: think 5", DefineOperation("Select", Think(5)), "define_operation"),
+
+            ("operation Select: think 5",
+             DefineOperation("Select", Think(5)),
+             "define_operation"),
+
             ("service DB: operation Select: think 4", DefineService("DB", DefineOperation("Select", Think(4))), "define_service"),
+
             ("client Browser: every 5: query DB/Select", DefineClientStub("Browser", 5, Query("DB", "Select")), "define_client"),
+
             ("settings: queue: LIFO", Settings(queue=LIFO()), "settings"),
+
             ("service DB: "
              "  operation Select: "
              "      think 4 "
@@ -52,6 +59,20 @@ class ParserTests(TestCase):
              Sequence(DefineService("DB", DefineOperation("Select", Think(4))),
                       DefineClientStub("Browser", 5, Query("DB", "Select"))),
              "unit"),
+
+            ("autoscaling:"
+             "  period: 10"
+             "  limits: [1, 5]",
+             {"autoscaling": Autoscaling(period=10, limits=(1, 5))},
+             "autoscaling"),
+
+            ("settings:"
+             "  queue: FIFO"
+             "  autoscaling:"
+             "      limits: [1, 5]",
+             Settings(queue=FIFO(), autoscaling=Autoscaling(limits=(1, 5))),
+             "settings"),
+
             ("service DB: "
              "  settings:"
              "      queue: LIFO"

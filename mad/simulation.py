@@ -59,7 +59,7 @@ class Evaluation:
 
     def of_service_definition(self, service):
         service_environment = self.environment.create_local_environment()
-        Evaluation(service_environment, Settings.DEFAULTS).result
+        Evaluation(service_environment, Settings()).result
         Evaluation(service_environment, service.body).result
         service = Service(service.name, service_environment)
         self._define(service.name, service)

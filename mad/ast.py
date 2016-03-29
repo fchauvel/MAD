@@ -79,7 +79,7 @@ class Sequence(Expression):
 
 class Definition(Expression):
     """
-    Abstract definition that bins an name to an expression to be evaluated
+    Abstract definition that binds a name to an expression to be evaluated
     """
 
     def __init__(self, name, body):
@@ -91,26 +91,6 @@ class Definition(Expression):
         raise NotImplementedError("Definition::accept is abstract!")
 
 
-class Settings(Expression):
-
-    def __init__(self, queue):
-        super().__init__()
-        self._queue = queue
-
-    @property
-    def queue(self):
-        return self._queue
-
-    def accept(self, evaluation):
-        return evaluation.of_settings(self)
-
-    def merged_with(self, other):
-        assert isinstance(other, Settings), "Can only merge settings (found '%s')" % type(other)
-        queue = other.queue or self._queue
-        return Settings(queue=queue)
-
-    def __repr__(self):
-        return "Settings(queue: %s)" % str(self._queue)
 
 
 class QueueDiscipline(Expression):
@@ -143,7 +123,38 @@ class FIFO(QueueDiscipline):
         return "FIFO"
 
 
-Settings.DEFAULTS = Settings(queue=FIFO())
+class Autoscaling(Expression):
+
+    def __init__(self, period=30, limits=(1, 4)):
+        super().__init__()
+        if not isinstance(period, int):
+            raise ValueError("Expecting integer value for period, but found '%1$s' (%2$s)" % (str(period), type(period)))
+        self.period = period
+
+        if not isinstance(limits, tuple):
+            raise ValueError("Expecting interval (min, max) for limits but found '%1$s'" % str(limits))
+        self.limits = limits
+
+    def __repr__(self):
+        return "Autoscaling(%1$d, %2$s)" % (self.period, str(self.limits))
+
+
+class Settings(Expression):
+
+    def __init__(self, queue=FIFO(), autoscaling=Autoscaling()):
+        super().__init__()
+        self._queue = queue
+        self._autoscaling = autoscaling
+
+    @property
+    def queue(self):
+        return self._queue
+
+    def accept(self, evaluation):
+        return evaluation.of_settings(self)
+
+    def __repr__(self):
+        return "Settings(queue: %s)" % str(self._queue)
 
 
 class DefineService(Definition):
