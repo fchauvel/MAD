@@ -19,12 +19,14 @@
 
 
 from unittest import TestCase
+from mock import MagicMock, call
 
 from mad.ast import *
 from mad.log import InMemoryLog
 from mad.monitoring import CSVReportFactory
-from mad.simulation import Simulation, Service, Operation, Request, Symbols
-from mock import MagicMock
+from mad.autoscaling import AutoScalingStrategy
+from mad.simulation import Simulation, AutoScaler, Service, Operation, Request, Symbols
+
 
 from mad.datasource import InMemoryDataSource
 from mad.datasource import Project
@@ -223,6 +225,20 @@ class TestInterpreter(TestCase):
         self.simulate_until(20 + 2)
 
         self.assertEqual(client.on_success.call_count, 4)
+
+    def test_autoscaler(self):
+        fake_service = MagicMock(Service)
+        self.define(Symbols.SERVICE, fake_service)
+
+        strategy = MagicMock(AutoScalingStrategy)
+
+        autoscaler = AutoScaler(self.simulation.environment, 10, strategy)
+        self.define(Symbols.AUTOSCALING, autoscaler)
+
+        self.simulate_until(20)
+
+        expected_calls = [call(fake_service), call(fake_service)]
+        strategy.adjust.assert_has_calls(expected_calls)
 
     def fake_request(self, operation):
         return Request(self.fake_client(), operation)

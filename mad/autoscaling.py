@@ -31,10 +31,9 @@ class Rule:
         return self.action(count)
 
 
-class AutoScaling:
+class AutoScalingStrategy:
 
-    def __init__(self, service, minimum, maximum, lower_bound, upper_bound):
-        self._service = service
+    def __init__(self, minimum, maximum, lower_bound, upper_bound):
         self._minimum = minimum
         self._maximum = maximum
         self._rules = [
@@ -44,19 +43,22 @@ class AutoScaling:
                  lambda count: count + 1)
         ]
 
-    def adjust(self):
-        self._set(self._filter(self._update()))
+    def adjust(self, service):
+        utilisation = service.utilisation
+        worker_count = service.worker_count
 
-    def _update(self):
-        for any_rule in self._rules:
-            if any_rule.applies_to(self._service.utilisation):
-                return any_rule.compute(self._service.worker_count)
-        return self._service.worker_count
-
-    def _filter(self, worker_count):
-        if self._minimum < worker_count < self._maximum:
+        def update():
+            for any_rule in self._rules:
+                if any_rule.applies_to(utilisation):
+                    return any_rule.compute(worker_count)
             return worker_count
-        return self._service.worker_count
 
-    def _set(self, new_value):
-        self._service.set_worker_count(new_value)
+        def filter(worker_count):
+            if self._minimum < worker_count < self._maximum:
+                return worker_count
+            return service.worker_count
+
+        def set(new_value):
+            service.set_worker_count(new_value)
+
+        set(filter(update()))

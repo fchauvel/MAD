@@ -16,13 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+from mad.autoscaling import AutoScalingStrategy
 from mad.environment import Environment
 from mad.ast import Settings
 from mad.scheduling import Scheduler
 
 
 class Symbols:
+    AUTOSCALING = "!autoscaling"
     SIMULATION = "!simulation"
     SELF = "!self"
     TASK = "!request"
@@ -67,6 +68,7 @@ class Evaluation:
 
     def of_settings(self, settings):
         self._evaluation_of(settings.queue)
+        self._evaluation_of(settings._autoscaling)
         return self.continuation(Success(None))
 
     def of_fifo(self, fifo):
@@ -75,6 +77,12 @@ class Evaluation:
 
     def of_lifo(self, lifo):
         self._define(Symbols.QUEUE, LIFOTaskPool())
+        return self.continuation(Success(None))
+
+    def of_autoscaling(self, autoscaling):
+        strategy = AutoScalingStrategy(autoscaling.limits[0], autoscaling.limits[1], 70, 80)
+        autoscaler =  AutoScaler(self.environment, autoscaling.period, strategy)
+        self._define(Symbols.AUTOSCALING, autoscaler)
         return self.continuation(Success(None))
 
     def of_operation_definition(self, definition):
@@ -262,6 +270,23 @@ class SimulatedEntity:
 
     def look_up(self, symbol):
         return self.environment.look_up(symbol)
+
+
+class AutoScaler(SimulatedEntity):
+    """
+    Autoscaler periodically recomputes the number of worker for service in its logical scope.
+    """
+    NAME = "!Autoscaler"
+
+    def __init__(self, environment, period, strategy):
+        super().__init__(self.NAME, environment)
+        self.period = period
+        self.schedule.every(period, self.auto_scale)
+        self.strategy = strategy
+
+    def auto_scale(self):
+        service = self.look_up(Symbols.SERVICE)
+        self.strategy.adjust(service)
 
 
 class Service(SimulatedEntity):

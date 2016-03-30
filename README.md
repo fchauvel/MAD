@@ -23,6 +23,8 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * Examples
     * SensApp example
  * Refactorings
+    * Break the coupling between simulation and evaluation (if possible)
+    * Extract monitoring into a separate simulated entity, which can be configured throughout the settings
     * Move TaskPool and Task in a separate module
     * Move workers and autoscaling-related class in a separate module
     * Enable parser's logging only when testing

@@ -135,6 +135,9 @@ class Autoscaling(Expression):
             raise ValueError("Expecting interval (min, max) for limits but found '%1$s'" % str(limits))
         self.limits = limits
 
+    def accept(self, evaluation):
+        return evaluation.of_autoscaling(self)
+
     def __repr__(self):
         return "Autoscaling(%1$d, %2$s)" % (self.period, str(self.limits))
 

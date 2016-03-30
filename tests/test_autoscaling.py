@@ -21,40 +21,40 @@ from unittest import TestCase
 from mock import MagicMock, PropertyMock
 
 from mad.simulation import Service
-from mad.autoscaling import AutoScaling
+from mad.autoscaling import AutoScalingStrategy
 
 
 class AutoScalingTests(TestCase):
 
     def test_decrease_worker_count(self):
+        autoscaling = AutoScalingStrategy(1, 5, 70, 80)
         service = self.prepare_service(worker_count=5, utilisation=50.)
-        autoscaling = AutoScaling(service, 1, 5, 70, 80)
 
-        autoscaling.adjust()
+        autoscaling.adjust(service)
 
         service.set_worker_count.assert_called_once_with(4)
 
     def test_increase_when_utilisation_too_high(self):
+        autoscaling = AutoScalingStrategy(1, 5, 70, 80)
         service = self.prepare_service(worker_count=5, utilisation=99.)
-        autoscaling = AutoScaling(service, 1, 5, 70, 80)
 
-        autoscaling.adjust()
+        autoscaling.adjust(service)
 
         service.set_worker_count.assert_called_once_with(5)
 
     def test_do_not_decrease_below_minimum(self):
+        autoscaling = AutoScalingStrategy(1, 5, 70, 80)
         service = self.prepare_service(worker_count=1, utilisation=50.)
-        autoscaling = AutoScaling(service, 1, 5, 70, 80)
 
-        autoscaling.adjust()
+        autoscaling.adjust(service)
 
         service.set_worker_count.assert_called_once_with(1)
 
     def test_do_not_exceed_capacity(self):
+        autoscaling = AutoScalingStrategy(1, 5, 70, 80)
         service = self.prepare_service(worker_count=5, utilisation=99.)
-        autoscaling = AutoScaling(service, 1, 5, 70, 80)
 
-        autoscaling.adjust()
+        autoscaling.adjust(service)
 
         service.set_worker_count.assert_called_once_with(5)
 

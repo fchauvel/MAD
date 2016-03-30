@@ -117,6 +117,13 @@ class AutoscalingSettingsTest(TestCase):
         with self.assertRaises(ValueError):
             Autoscaling(period="wrong", limits=23)
 
+    def test_evaluation(self):
+        settings = Autoscaling()
+        evaluation = MagicMock(Evaluation)
+        settings.accept(evaluation)
+
+        evaluation.of_autoscaling.assert_called_once_with(settings)
+
 
 class FIFOTests(TestCase):
 
