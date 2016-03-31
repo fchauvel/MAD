@@ -90,7 +90,7 @@ class ParserTests(TestCase):
     def _do_parse(self, text, rule):
         source = self._make_source("test.mad", text)
         parser = Parser(source)
-        return parser.parse("test.mad", entry_rule=rule)
+        return parser.parse("test.mad", entry_rule=rule, logger=None)
 
     def _make_source(self, name, text):
         source = MagicMock(Source)
