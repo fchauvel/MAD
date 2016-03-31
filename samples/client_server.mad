@@ -3,6 +3,12 @@
 #
 
 service DB:
+
+    settings:
+        autoscaling:
+            period: 10
+            limits: [1, 4]
+
    operation Select:
       think 3
 

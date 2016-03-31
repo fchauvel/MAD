@@ -108,8 +108,9 @@ class WorkerPoolTests(TestCase):
 
     def test_release_worker(self):
         pool = WorkerPool(["a", "b", "c"])
+        pool.acquire_one()
         pool.release("d")
-        self.assertEqual(pool.idle_worker_count, 4)
+        self.assertEqual(pool.idle_worker_count, 3)
 
     def test_acquire_is_not_permitted_on_empty_pools(self):
         pool = WorkerPool(["w1"])
@@ -125,6 +126,12 @@ class WorkerPoolTests(TestCase):
         pool.acquire_one()
         self.assertAlmostEqual(pool.utilisation, float(100))
 
+    def test_add_worker(self):
+        pool = WorkerPool(["w1", "w2"])
+        self.assertEqual(2, pool.capacity)
+
+        pool.add_workers(["w3", "w4"])
+        self.assertEqual(4, pool.capacity)
 
 if __name__ == "__main__":
     import unittest.main

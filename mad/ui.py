@@ -65,6 +65,7 @@ class CommandLineInterface:
         simulation = self.mad.load(project)
         simulation.run_until(project.limit, self.display)
         self.display.simulation_complete(project)
+        return simulation
 
 
 class Arguments:

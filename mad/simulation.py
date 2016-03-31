@@ -296,6 +296,7 @@ class Service(SimulatedEntity):
     def __init__(self, name, environment):
         super().__init__(name, environment)
         self.environment.define(Symbols.SELF, self)
+        self.environment.define(Symbols.SERVICE, self)
         self.tasks = self.environment.look_up(Symbols.QUEUE)
         self.workers = WorkerPool([self._new_worker(id) for id in range(1, 2)])
         self.schedule.every(self.MONITORING_PERIOD, self.monitor)
@@ -304,6 +305,23 @@ class Service(SimulatedEntity):
         environment = self.environment.create_local_environment()
         environment.define(Symbols.SERVICE, self)
         return Worker(identifier, environment)
+
+    @property
+    def worker_count(self):
+        return self.workers.capacity
+
+    def set_worker_count(self, capacity):
+        error = self.workers.capacity - capacity
+        if error < 0:
+            new_workers = [self._new_worker(id) for id in range(self.workers.capacity, capacity+1)]
+            self.workers.add_workers(new_workers)
+        elif error > 0:
+            self.workers.shutdown(error)
+
+
+    @property
+    def utilisation(self):
+        return self.workers.utilisation
 
     def process(self, request):
         task = Task(request)
@@ -372,6 +390,15 @@ class WorkerPool:
         self.capacity = len(workers)
         self.idle_workers = workers
 
+    def add_workers(self, new_workers):
+        assert len(new_workers) > 0, "Cannot add empty list of workers!"
+        self.idle_workers.extend(new_workers)
+        self.capacity += len(new_workers)
+
+    def shutdown(self, count):
+        assert count < self.capacity, "Invalid shutdown %d (capacity %d)" % (count, self.capacity)
+        self.capacity -= count
+
     @property
     def utilisation(self):
         return 100 * (1 - len(self.idle_workers) / self.capacity)
@@ -390,7 +417,9 @@ class WorkerPool:
         return self.idle_workers.pop(0)
 
     def release(self, worker):
-        self.idle_workers.append(worker)
+        if len(self.idle_workers) < self.capacity:
+            self.idle_workers.append(worker)
+        # Discard otherwise (it has been shutdown)
 
 
 class Worker(SimulatedEntity):

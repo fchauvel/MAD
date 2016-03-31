@@ -17,7 +17,7 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Support for timeout
     * Support for autoscaling
     * Support for throttling policies
- * Improve error  reporting
+ * Improve error reporting
     * Errors in the parameters passed to the CLI
     * Semantic and syntactic errors in MAD files
  * Examples

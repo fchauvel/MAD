@@ -35,7 +35,11 @@ class Environment:
             self.define(symbol, value)
 
     def look_up(self, symbol):
-        return self.bindings.get(symbol, None)
+        match = self.bindings.get(symbol, None)
+        # TODO:
+        #if match is None:
+        #    raise ValueError("Could not find object for symbol '%s'" % symbol)
+        return match
 
     def dynamic_look_up(self):
         return self.look_up()

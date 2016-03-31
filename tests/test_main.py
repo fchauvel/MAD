@@ -32,6 +32,29 @@ from mad.ui import Display, CommandLineInterface
 
 class TestXXX(TestCase):
 
+    def test_client_server_with_autoscaling(self):
+        display = MagicMock(Display)
+        mad = self._make_mad("test.mad", "service DB:"
+                                         "  settings:"
+                                         "      autoscaling:"
+                                         "          period: 15"
+                                         "          limits: [2, 4]"
+                                         ""
+                                         "  operation Select:"
+                                         "      think 10"
+                                         ""
+                                         "client Browser:"
+                                         "  every 2:"
+                                         "      query DB/Select")
+
+        cli = CommandLineInterface(display, mad)
+
+        simulation = cli.simulate(Project("test.mad", 500))
+
+        server = simulation.environment.look_up("DB")
+        self.assertEqual(4, server.worker_count)
+
+
     def test_client_server(self):
         display = MagicMock(Display)
         mad = self._make_mad("test.mad", "service DB:"

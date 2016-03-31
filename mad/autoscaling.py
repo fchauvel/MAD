@@ -44,6 +44,7 @@ class AutoScalingStrategy:
         ]
 
     def adjust(self, service):
+        assert service, "Invalid service (found '%s')" % service
         utilisation = service.utilisation
         worker_count = service.worker_count
 
@@ -54,7 +55,7 @@ class AutoScalingStrategy:
             return worker_count
 
         def filter(worker_count):
-            if self._minimum < worker_count < self._maximum:
+            if self._minimum <= worker_count <= self._maximum:
                 return worker_count
             return service.worker_count
 
