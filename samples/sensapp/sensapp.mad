@@ -38,13 +38,13 @@ service DB:
     operation insert:
         think 5
 
-    operation search:
+    operation select:
         think 5
 
 
 client WebUI:
 
-    every 20 do:
+    every 20:
         query Storage/search
 
 service Followers:
