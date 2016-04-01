@@ -15,13 +15,14 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * Features
     * Support for request differentiation
     * Support for timeout
-    * Support for autoscaling
     * Support for throttling policies
  * Improve error reporting
     * Errors in the parameters passed to the CLI
     * Semantic and syntactic errors in MAD files
  * Examples
     * SensApp example
+ * Tests
+    * Test shutting down workers, they shall first complete there currenttask
  * Refactorings
     * Break the coupling between simulation and evaluation (if possible)
     * Extract monitoring into a separate simulated entity, which can be configured throughout the settings

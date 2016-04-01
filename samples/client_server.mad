@@ -10,9 +10,9 @@ service DB:
             limits: [1, 4]
 
    operation Select:
-      think 3
+      think 5
 
 client Browser:
-   every 5:
+   every 2:
       query DB/Select
     

@@ -119,12 +119,18 @@ class WorkerPoolTests(TestCase):
             pool.acquire_one()
 
     def test_utilisation(self):
-        pool = WorkerPool(["w1", "w2"])
+        pool = WorkerPool(["w1", "w2", "w3", "w4"])
         self.assertAlmostEqual(pool.utilisation, float(0))
         pool.acquire_one()
-        self.assertAlmostEqual(pool.utilisation, float(50))
         pool.acquire_one()
-        self.assertAlmostEqual(pool.utilisation, float(100))
+        self.assertAlmostEqual(pool.utilisation, float(100 * 2 / 4))
+        pool.add_workers(["w5", "w6"])
+        self.assertAlmostEqual(pool.utilisation, float(100 * 2 / 6))
+        pool.release("w2")
+        self.assertAlmostEqual(pool.utilisation, float(100 * 1 / 6))
+        pool.shutdown(4)
+        self.assertAlmostEqual(pool.utilisation, float(100 * 1 / 2))
+
 
     def test_add_worker(self):
         pool = WorkerPool(["w1", "w2"])

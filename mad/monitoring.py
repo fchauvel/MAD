@@ -59,7 +59,8 @@ class CSVReportFactory(ReportFactory):
         return self._make_report(  service,
                             [("time", "%5d"),
                              ("queue_length", "%5d"),
-                             ("utilisation", "%6.2f")])
+                             ("utilisation", "%6.2f"),
+                             ("worker_count", "%5d")])
 
     def _make_report_for_client(self, client):
         # TODO: Update this definition

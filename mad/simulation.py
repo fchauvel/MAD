@@ -351,7 +351,8 @@ class Service(SimulatedEntity):
         report = self.simulation.reports.report_for_service(self.name)
         report(time=self.schedule.time_now,
                queue_length=self.tasks.size,
-               utilisation=self.workers.utilisation)
+               utilisation=self.workers.utilisation,
+               worker_count=self.worker_count)
 
 
 class Operation(SimulatedEntity):
@@ -398,10 +399,13 @@ class WorkerPool:
     def shutdown(self, count):
         assert count < self.capacity, "Invalid shutdown %d (capacity %d)" % (count, self.capacity)
         self.capacity -= count
+        for index in range(min(len(self.idle_workers), count)):
+            self.idle_workers.pop(0)
+
 
     @property
     def utilisation(self):
-        return 100 * (1 - len(self.idle_workers) / self.capacity)
+        return 100 * (1 - (len(self.idle_workers) / self.capacity))
 
     @property
     def idle_worker_count(self):
