@@ -28,11 +28,11 @@ from mad.datasource import Project
 from mad.simulation.factory import Simulation
 from mad.simulation.autoscaling import AutoScaler
 from mad.simulation.service import Service, Operation
-from mad.evaluation import Request, Symbols
+from mad.evaluation import Symbols
 from mad.log import InMemoryLog
 from mad.monitoring import CSVReportFactory
 from mad.simulation.autoscaling import AutoScalingStrategy
-
+from mad.simulation.requests import Request
 
 class TestInterpreter(TestCase):
 

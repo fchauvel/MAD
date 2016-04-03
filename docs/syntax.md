@@ -73,3 +73,20 @@ In this example, the autoscaling runs every 10 units of time and computes a numb
 number results from two rules: 
  * when utilisation raises above 80 %, a new instance is started
  * when utilisation drops below 70 %, a existing instance is stopped
+ 
+#### Throttling
+ 
+Throttling controls whether a service accepts or reject incoming requests, generally based on the length of the queue of
+pending requests. This filtering is done by active queue management algorithms such as TailDrop, RED, CoDel, 
+etc. The throttling algorithm is configured in the settings as follows:
+
+    service DB:
+        settings:
+            queue: LIFO
+            throttling: TailDrop(50)
+            
+        operation select:
+            think 5
+
+Here, we specify that our DB service throttles incoming requests using the TailDrop algorithm. TailDrop simply drops
+requests once the queue reach the specified capacity, here 50 pending requests.

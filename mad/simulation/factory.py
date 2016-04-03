@@ -24,6 +24,7 @@ from mad.simulation.service import Service, Operation
 from mad.simulation.client import ClientStub
 from mad.simulation.tasks import FIFOTaskPool, LIFOTaskPool
 from mad.simulation.autoscaling import AutoScalingStrategy, AutoScaler
+from mad.simulation.requests import Request
 
 
 class Factory(SimulationFactory):
@@ -54,6 +55,9 @@ class Factory(SimulationFactory):
             definition.body,
             environment
         )
+
+    def create_request(self, sender, operation, on_success=lambda: None, on_error=lambda: None):
+        return Request(sender, operation, on_success, on_error)
 
 
 class Simulation:

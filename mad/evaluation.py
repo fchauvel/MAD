@@ -54,6 +54,9 @@ class SimulationFactory:
     def create_client_stub(self, environment, definition):
         self._abort(self.create_client_stub.__name__)
 
+    def create_request(self, sender, operation, on_success=lambda: None, on_error=lambda: None):
+        self._abort(self.create_request.__name__)
+
     def _abort(self, caller_name):
         raise NotImplementedError("Method '%s::%s' is abstract and must not be directly called!" % (self.__class__.__name__, caller_name))
 
@@ -136,7 +139,8 @@ class Evaluation:
     def of_trigger(self, trigger):
         sender = self._look_up(Symbols.SELF)
         recipient = self._look_up(trigger.service)
-        Request(sender, trigger.operation).send_to(recipient)
+        request = self.factory.create_request(sender, trigger.operation)
+        request.send_to(recipient)
         return self.continuation(Success(None))
 
     def of_query(self, query):
@@ -164,7 +168,7 @@ class Evaluation:
             task.resume = resume
             sender.activate(task)
 
-        request = Request(sender, query.operation, on_success, on_error)
+        request = self.factory.create_request(sender, query.operation, on_success, on_error)
         sender.log("Sending Req. %d to %s::%s", (request.identifier, query.service, query.operation))
         request.send_to(recipient)
 
@@ -229,23 +233,4 @@ class Error(Result):
     def __init__(self):
         super().__init__(Result.ERROR, None)
 
-
-class Request:
-
-    def __init__(self, sender, operation, on_success=lambda: None, on_error=lambda: None):
-        assert sender, "Invalid sender (found %s)" % str(sender)
-        self.identifier = sender.simulation.next_request_id()
-        self.sender = sender
-        self.operation = operation
-        self.on_success = on_success
-        self.on_error = on_error
-
-    def send_to(self, service):
-        service.process(self)
-
-    def reply_success(self):
-        self.on_success()
-
-    def reply_error(self):
-        self.on_error()
 
