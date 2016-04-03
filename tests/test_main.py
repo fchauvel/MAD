@@ -23,7 +23,7 @@ from mad.ast import *
 from mad.log import Event, InMemoryLog
 from mad.monitoring import CSVReportFactory
 from mad.parsing import Parser
-from mad.simulation import Simulation
+from mad.simulation.factory import Simulation
 from mock import MagicMock
 
 from mad.datasource import InFilesDataSource, Mad, Project, InMemoryDataSource

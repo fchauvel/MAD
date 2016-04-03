@@ -19,17 +19,19 @@
 
 
 from unittest import TestCase
+
 from mock import MagicMock, call
 
 from mad.ast import *
-from mad.log import InMemoryLog
-from mad.monitoring import CSVReportFactory
-from mad.autoscaling import AutoScalingStrategy
-from mad.simulation import Simulation, AutoScaler, Service, Operation, Request, Symbols
-
-
 from mad.datasource import InMemoryDataSource
 from mad.datasource import Project
+from mad.simulation.factory import Simulation
+from mad.simulation.autoscaling import AutoScaler
+from mad.simulation.service import Service, Operation
+from mad.evaluation import Request, Symbols
+from mad.log import InMemoryLog
+from mad.monitoring import CSVReportFactory
+from mad.simulation.autoscaling import AutoScalingStrategy
 
 
 class TestInterpreter(TestCase):

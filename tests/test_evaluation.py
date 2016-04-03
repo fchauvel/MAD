@@ -24,7 +24,10 @@ from mad.environment import Environment
 from mad.ast import *
 from mad.log import InMemoryLog
 from mad.monitoring import ReportFactory
-from mad.simulation import Evaluation, Symbols, Simulation, LIFOTaskPool, FIFOTaskPool, AutoScaler
+from mad.evaluation import Evaluation, Symbols
+from mad.simulation.factory import Simulation, Factory
+from mad.simulation.tasks import LIFOTaskPool, FIFOTaskPool
+from mad.simulation.autoscaling import AutoScaler
 
 
 class EvaluationTest(TestCase):
@@ -33,7 +36,7 @@ class EvaluationTest(TestCase):
         environment = Environment()
         queue = FIFO()
 
-        Evaluation(environment, queue).result
+        Evaluation(environment, queue, Factory()).result
 
         queue = environment.look_up(Symbols.QUEUE)
         self.assertIsInstance(queue, FIFOTaskPool)
@@ -42,7 +45,7 @@ class EvaluationTest(TestCase):
         environment = Environment()
         queue = LIFO()
 
-        Evaluation(environment, queue).result
+        Evaluation(environment, queue, Factory()).result
 
         queue = environment.look_up(Symbols.QUEUE)
         self.assertIsInstance(queue, LIFOTaskPool)

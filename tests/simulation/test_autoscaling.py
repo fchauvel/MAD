@@ -18,10 +18,11 @@
 #
 
 from unittest import TestCase
+
 from mock import MagicMock, PropertyMock
 
-from mad.simulation import Service
-from mad.autoscaling import AutoScalingStrategy
+from mad.simulation.service import Service
+from mad.simulation.autoscaling import AutoScalingStrategy
 
 
 class AutoScalingTests(TestCase):

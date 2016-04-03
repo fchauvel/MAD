@@ -289,6 +289,7 @@ def p_invoke(p):
 
 def p_error(t):
     print("Syntax error at '%s'" % t.value)
+    raise MADSyntaxError((t.lineno, 0), "Syntax error near '%s'" % t.value)
 
 
 def merge_map(map_A, map_B):
@@ -301,6 +302,13 @@ class Source:
 
     def read(self, location):
         raise NotImplementedError("Source::read is not yet implemented")
+
+
+class MADSyntaxError(BaseException):
+
+    def __init__(self, position, message):
+        self.position = position
+        self.message = message
 
 
 class Parser:

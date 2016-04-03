@@ -24,7 +24,7 @@ from os.path import exists, dirname
 from re import search
 
 from mad.log import FileLog
-from mad.simulation import Simulation
+from mad.simulation.factory import Simulation
 
 from mad.monitoring import CSVReportFactory
 

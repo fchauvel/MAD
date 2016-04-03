@@ -21,7 +21,7 @@ from unittest import TestCase
 from mock import MagicMock
 
 from mad.ast import *
-from mad.simulation import Evaluation
+from mad.evaluation import Evaluation
 
 
 class ExpressionTest(TestCase):

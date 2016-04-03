@@ -23,7 +23,7 @@ from unittest import TestCase
 from mad.ast import *
 from mock import MagicMock
 
-from mad.parsing import Parser, Source
+from mad.parsing import Parser, Source, MADSyntaxError
 
 
 class ParserTests(TestCase):
@@ -86,6 +86,29 @@ class ParserTests(TestCase):
              "unit")
 
         ]
+
+    def _do_parse(self, text, rule):
+        source = self._make_source("test.mad", text)
+        parser = Parser(source)
+        return parser.parse("test.mad", entry_rule=rule, logger=None)
+
+    def _make_source(self, name, text):
+        source = MagicMock(Source)
+        source.read = MagicMock()
+        source.read.return_value = text
+        return source
+
+
+class ParserErrorTests(TestCase):
+
+    def test_illegal_expression(self):
+        try:
+            self._do_parse("qqqquery DB/Select", "query")
+            self.fail("Syntax error expected, but no exception was raised.")
+
+        except MADSyntaxError as error:
+            self.assertEqual((1, 0), error.position)
+
 
     def _do_parse(self, text, rule):
         source = self._make_source("test.mad", text)

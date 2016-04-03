@@ -17,6 +17,26 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from mad.evaluation import Symbols
+from mad.simulation.commons import SimulatedEntity
+
+
+class AutoScaler(SimulatedEntity):
+    """
+    The 'AutoScaler' periodically recomputes the number of worker for the service in its logical scope.
+    """
+    NAME = "!Autoscaler"
+
+    def __init__(self, environment, period, strategy):
+        super().__init__(self.NAME, environment)
+        self.period = period
+        self.schedule.every(period, self.auto_scale)
+        self.strategy = strategy
+
+    def auto_scale(self):
+        service = self.look_up(Symbols.SERVICE)
+        self.strategy.adjust(service)
+
 
 class Rule:
 
