@@ -3,7 +3,10 @@ repo_url: https://github.com/fchauvel/mad
 docs_dir: docs
 pages:
  - "Home": index.md
- - "User Guide":
-   - "Installation": installation.md
-   - "Syntax": syntax.md
+ - "Installation": installation.md
+ - "MAD Syntax":
+   - "Example": syntax.md
+   - "Queue": queue.md
+   - "Autoscaling": autoscaling.md
+   - "Throttling": throttling.md
 theme: flatly
