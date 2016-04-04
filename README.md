@@ -18,8 +18,9 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
         * Support for timeout
         * Support for throttling policies
         * Monitoring
+            * Current timeout
+            * Current back-off
             * incoming/outgoing rejection rate/count
-            * 
     * Clients
         * Multiple clients
         * Workload patterns
@@ -32,7 +33,9 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Test shutting down workers, they shall first complete there current task
  * Refactorings
     * Extract monitoring into a separate simulated entity, which can be configured throughout the settings
+    * Breakdown AST into multiple files
     
 
 
+    
     

@@ -20,17 +20,22 @@
 from mad.scheduling import Scheduler
 from mad.environment import Environment
 from mad.evaluation import Symbols, Evaluation, SimulationFactory
+
 from mad.simulation.service import Service, Operation
 from mad.simulation.client import ClientStub
 from mad.simulation.tasks import FIFOTaskPool, LIFOTaskPool
 from mad.simulation.autoscaling import AutoScalingStrategy, AutoScaler
 from mad.simulation.requests import Request
+from mad.simulation.throttling import NoThrottling
 
 
 class Factory(SimulationFactory):
     """
     Instantiate all necessary elements for a simulation
     """
+
+    def create_simulation(self, log, report_factory):
+        return Simulation(log, report_factory)
 
     def create_autoscaler(self, environment, autoscaling):
         strategy = AutoScalingStrategy(autoscaling.limits[0], autoscaling.limits[1], 70, 80)
@@ -58,6 +63,9 @@ class Factory(SimulationFactory):
 
     def create_request(self, sender, operation, on_success=lambda: None, on_error=lambda: None):
         return Request(sender, operation, on_success, on_error)
+
+    def create_no_throttling(self):
+        return NoThrottling()
 
 
 class Simulation:

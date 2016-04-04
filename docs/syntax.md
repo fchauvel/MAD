@@ -89,4 +89,5 @@ etc. The throttling algorithm is configured in the settings as follows:
             think 5
 
 Here, we specify that our DB service throttles incoming requests using the TailDrop algorithm. TailDrop simply drops
-requests once the queue reach the specified capacity, here 50 pending requests.
+requests once the queue has reached the specified capacity (here 50 pending requests). By default, throttling is disabled: 
+services store requests until they exhaust their internal resources.

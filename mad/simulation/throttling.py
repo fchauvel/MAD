@@ -24,16 +24,25 @@ INVALID_CAPACITY = "Capacity must be an integer, but found '{object.__class__.__
 INVALID_TASK_POOL = "TaskPool object required, but found '{object.__class__.__name__:s}'"
 
 
-class NoThrottling:
+class ThrottlingPolicy:
     """
-    Always accept requests.
+    Common interface of all throttling policies
+    """
+
+    def accepts(self, task):
+        raise NotImplementedError("ThrottlingPolicy::accept(task) is abstract!")
+
+
+class NoThrottling(ThrottlingPolicy):
+    """
+    Default policy: Always accept requests.
     """
 
     def accepts(self, task):
         return True;
 
 
-class TailDrop:
+class TailDrop(ThrottlingPolicy):
     """
     Reject requests once the given task pool size reaches the
     specified capacity

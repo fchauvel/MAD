@@ -62,7 +62,7 @@ class Service(SimulatedEntity):
         self.environment.define(Symbols.SELF, self)
         self.environment.define(Symbols.SERVICE, self)
         self.tasks = self.environment.look_up(Symbols.QUEUE)
-        self.throttling = NoThrottling()
+        self.throttling = self.environment.look_up(Symbols.THROTTLING)
         self.workers = WorkerPool([self._new_worker(id) for id in range(1, 2)])
         self.schedule.every(self.MONITORING_PERIOD, self.monitor)
 
@@ -82,7 +82,6 @@ class Service(SimulatedEntity):
             self.workers.add_workers(new_workers)
         elif error > 0:
             self.workers.shutdown(error)
-
 
     @property
     def utilisation(self):

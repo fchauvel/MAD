@@ -28,6 +28,7 @@ class Symbols:
     SERVICE = "!service"
     WORKER = "!worker"
     QUEUE = "!queue"
+    THROTTLING = "!throttling"
 
 
 class SimulationFactory:
@@ -56,6 +57,9 @@ class SimulationFactory:
 
     def create_request(self, sender, operation, on_success=lambda: None, on_error=lambda: None):
         self._abort(self.create_request.__name__)
+
+    def create_no_throttling(self):
+        self._abort(self.create_no_throttling.__name__)
 
     def _abort(self, caller_name):
         raise NotImplementedError("Method '%s::%s' is abstract and must not be directly called!" % (self.__class__.__name__, caller_name))
@@ -99,6 +103,7 @@ class Evaluation:
     def of_settings(self, settings):
         self._evaluation_of(settings.queue)
         self._evaluation_of(settings._autoscaling)
+        self.environment.define(Symbols.THROTTLING, self.factory.create_no_throttling())
         return self.continuation(Success(None))
 
     def of_fifo(self, fifo):

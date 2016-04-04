@@ -91,8 +91,6 @@ class Definition(Expression):
         raise NotImplementedError("Definition::accept is abstract!")
 
 
-
-
 class QueueDiscipline(Expression):
 
     def __init__(self):
