@@ -33,13 +33,16 @@ reserved = {
     "invoke": "INVOKE",
     "LIFO": "LIFO",
     "limits": "LIMITS",
+    "none": "NONE",
     "operation": "OPERATION",
     "period": "PERIOD",
     "queue": "QUEUE",
     "query": "QUERY",
     "service": "SERVICE",
     "settings": "SETTINGS",
+    "tail-drop": "TAIL_DROP",
     "think": "THINK",
+    "throttling": "THROTTLING",
 }
 
 # List of token names.   This is always required
@@ -167,6 +170,7 @@ def p_setting(p):
     """
     setting : queue
             | autoscaling
+            | throttling
     """
     p[0] = p[1]
 
@@ -184,6 +188,17 @@ def p_queue(p):
 
     else:
         raise RuntimeError("Queue discipline '%s' is not supported!" % p[1])
+
+
+def p_throttling(p):
+    """
+    throttling : THROTTLING COLON NONE
+               | THROTTLING COLON TAIL_DROP OPEN_BRACKET NUMBER CLOSE_BRACKET
+    """
+    throttling = NoThrottlingSettings()
+    if len(p) == 7:
+        throttling = TailDropSettings(int(p[5]))
+    p[0] = {"throttling": throttling}
 
 
 def p_autoscaling(p):

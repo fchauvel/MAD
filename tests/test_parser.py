@@ -51,8 +51,6 @@ class ParserTests(TestCase):
 
             ("client Browser: every 5: query DB/Select", DefineClientStub("Browser", 5, Query("DB", "Select")), "define_client"),
 
-            ("settings: queue: LIFO", Settings(queue=LIFO()), "settings"),
-
             ("service DB: "
              "  operation Select: "
              "      think 4 "
@@ -63,17 +61,31 @@ class ParserTests(TestCase):
                       DefineClientStub("Browser", 5, Query("DB", "Select"))),
              "unit"),
 
+            ("settings: queue: LIFO", Settings(queue=LIFO()), "settings"),
+
             ("autoscaling:"
              "  period: 10"
              "  limits: [1, 5]",
              {"autoscaling": Autoscaling(period=10, limits=(1, 5))},
              "autoscaling"),
 
+            ("throttling: none",
+             {"throttling": NoThrottlingSettings()},
+             "throttling"),
+
+            ("throttling: tail-drop(50)",
+             {"throttling": TailDropSettings(capacity=50)},
+             "throttling"),
+
             ("settings:"
              "  queue: FIFO"
              "  autoscaling:"
-             "      limits: [1, 5]",
-             Settings(queue=FIFO(), autoscaling=Autoscaling(limits=(1, 5))),
+             "      limits: [1, 5]"
+             "  throttling: tail-drop(50)",
+             Settings(
+                     queue=FIFO(),
+                     autoscaling=Autoscaling(limits=(1, 5)),
+                     throttling=TailDropSettings(50)),
              "settings"),
 
             ("service DB: "
