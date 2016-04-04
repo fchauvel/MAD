@@ -26,7 +26,7 @@ service_overview <- function(service) {
   show_queue_length(service, data);
   show_utilisation(service, data);
   show_worker_count(service, data);
-  
+  show_rejection_count(service, data);
   
 }
 
@@ -67,6 +67,15 @@ show_worker_count <- function(service, data) {
        ylab="worker count");    
 }
 
+# Plot the number of request rejected over time
+show_rejection_count <- function(service, data) {
+  plot(data$rejection.count ~ data$time,
+       type="s",
+       col="darkred",
+       lty=1,
+       xlab="simulation time",
+       ylab="rejection count");
+}
 
 service_name <- function(file_name) {
   return(sub("\\.[[:alnum:]]+$", "", file_name));

@@ -21,7 +21,6 @@ from mad.evaluation import Symbols, Evaluation
 from mad.simulation.commons import SimulatedEntity
 from mad.simulation.workers import WorkerPool, Worker
 from mad.simulation.tasks import Task
-from mad.simulation.throttling import NoThrottling
 
 
 class Operation(SimulatedEntity):
@@ -119,4 +118,5 @@ class Service(SimulatedEntity):
         report(time=self.schedule.time_now,
                queue_length=self.tasks.size,
                utilisation=self.workers.utilisation,
-               worker_count=self.worker_count)
+               worker_count=self.worker_count,
+               rejection_count=self.throttling.rejection_count)

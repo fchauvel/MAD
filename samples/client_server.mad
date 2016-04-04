@@ -5,12 +5,14 @@
 service DB:
 
     settings:
+        queue: LIFO
+        throttling: tail-drop(5)
         autoscaling:
             period: 10
-            limits: [1, 4]
+            limits: [1, 2]
 
    operation Select:
-      think 5
+      think 10
 
 client Browser:
    every 2:

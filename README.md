@@ -30,10 +30,11 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * SensApp example
  * Tests
     * Test shutting down workers, they shall first complete there current task
+    * Test whether the limit are respected in autoscaling
  * Refactorings
     * Extract monitoring into a separate simulated entity, which can be configured throughout the settings
-    * Breakdown AST into multiple files
-    
+    * Format of the logs should be defined by the service itself, not by the factory
+ * Documentation   
 
 
     

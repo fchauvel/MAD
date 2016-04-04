@@ -32,6 +32,10 @@ class ThrottlingPolicy:
     def accepts(self, task):
         raise NotImplementedError("ThrottlingPolicy::accept(task) is abstract!")
 
+    @property
+    def rejection_count(self):
+        raise NotImplementedError("ThrottlingPolicy::rejection_count is abstract")
+
 
 class NoThrottling(ThrottlingPolicy):
     """
@@ -41,6 +45,10 @@ class NoThrottling(ThrottlingPolicy):
     def accepts(self, task):
         return True;
 
+    @ThrottlingPolicy.rejection_count.getter
+    def rejection_count(self):
+        return 0
+
 
 class TailDrop(ThrottlingPolicy):
     """
@@ -49,11 +57,20 @@ class TailDrop(ThrottlingPolicy):
     """
 
     def __init__(self, capacity, task_pool):
+        super().__init__()
         assert isinstance(capacity, int), INVALID_CAPACITY.format(object=capacity)
         assert capacity > 0, NEGATIVE_CAPACITY.format(capacity=capacity)
         self.capacity = capacity
         assert isinstance(task_pool, TaskPool), INVALID_TASK_POOL.format(object=task_pool)
         self.task_pool = task_pool
+        self._rejection = 0
 
     def accepts(self, task):
-        return self.capacity > self.task_pool.size
+        if self.task_pool.size >= self.capacity:
+            self._rejection += 1
+            return False
+        return True
+
+    @ThrottlingPolicy.rejection_count.getter
+    def rejection_count(self):
+        return self._rejection

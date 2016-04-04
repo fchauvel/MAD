@@ -39,10 +39,10 @@ class TailDropTests(TestCase):
     def setUp(self):
         self.capacity = 50
         self.queue = MagicMock(TaskPool)
-        self.set_queue_length(50)
+        self.set_pending_tasks(50)
         self.throttling = TailDrop(self.capacity, self.queue)
 
-    def set_queue_length(self, length):
+    def set_pending_tasks(self, length):
         type(self.queue).size = PropertyMock(return_value=length)
 
     def test_rejects_non_integer_capacity(self):
@@ -64,16 +64,24 @@ class TailDropTests(TestCase):
             self.assertEqual(error.args[0], NEGATIVE_CAPACITY.format(capacity=capacity))
 
     def test_reject_at_capacity(self):
-        self.set_queue_length(self.capacity)
+        self.set_pending_tasks(self.capacity)
         self.assertFalse(self.throttling.accepts(DUMMY_TASK))
 
     def test_reject_at_capacity(self):
-        self.set_queue_length(self.capacity+1)
+        self.set_pending_tasks(self.capacity + 1)
         self.assertFalse(self.throttling.accepts(DUMMY_TASK))
 
     def test_accept_before_capacity(self):
-        self.set_queue_length(self.capacity-1)
+        self.set_pending_tasks(self.capacity - 1)
         self.assertTrue(self.throttling.accepts(DUMMY_TASK))
+
+    def test_expose_rejection_count(self):
+        pending_request = self.capacity - 2
+        self.set_pending_tasks(pending_request);
+        for i in range(1, 11):
+            self.throttling.accepts(DUMMY_TASK)
+            self.set_pending_tasks(pending_request + i);
+        self.assertEqual(8, self.throttling.rejection_count)
 
 
 if __name__ == "__main__":
