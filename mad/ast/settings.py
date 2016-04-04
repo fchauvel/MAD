@@ -21,6 +21,31 @@
 from mad.ast.commons import Expression
 
 
+class NoThrottlingSettings(Expression):
+    """
+    Configuration of a "no throttling" policy
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def accept(self, evaluation):
+        return evaluation.of_no_throttling(self)
+
+
+class TailDropSettings(Expression):
+    """
+    Configuration of a "tail drop" throttling policy
+    """
+
+    def __init__(self, capacity):
+        super().__init__()
+        self.capacity = capacity
+
+    def accept(self, evaluation):
+        return evaluation.of_tail_drop(self)
+
+
 class QueueDiscipline(Expression):
 
     def __init__(self):
@@ -72,14 +97,11 @@ class Autoscaling(Expression):
 
 class Settings(Expression):
 
-    def __init__(self, queue=FIFO(), autoscaling=Autoscaling()):
+    def __init__(self, queue=None, autoscaling=None, throttling=None):
         super().__init__()
-        self._queue = queue
-        self._autoscaling = autoscaling
-
-    @property
-    def queue(self):
-        return self._queue
+        self.queue = queue or FIFO()
+        self.autoscaling = autoscaling or Autoscaling()
+        self.throttling = throttling or NoThrottlingSettings()
 
     def accept(self, evaluation):
         return evaluation.of_settings(self)

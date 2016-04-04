@@ -18,7 +18,7 @@
 #
 
 
-from unittest import TestCase, main
+from unittest import TestCase
 
 from mad.simulation.workers import WorkerPool
 

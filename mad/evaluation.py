@@ -61,6 +61,9 @@ class SimulationFactory:
     def create_no_throttling(self):
         self._abort(self.create_no_throttling.__name__)
 
+    def create_tail_drop(self, capacity, task_pool):
+        self._abort(self.create_tail_drop.__name__)
+
     def _abort(self, caller_name):
         raise NotImplementedError("Method '%s::%s' is abstract and must not be directly called!" % (self.__class__.__name__, caller_name))
 
@@ -102,8 +105,8 @@ class Evaluation:
 
     def of_settings(self, settings):
         self._evaluation_of(settings.queue)
-        self._evaluation_of(settings._autoscaling)
-        self.environment.define(Symbols.THROTTLING, self.factory.create_no_throttling())
+        self._evaluation_of(settings.throttling)
+        self._evaluation_of(settings.autoscaling)
         return self.continuation(Success(None))
 
     def of_fifo(self, fifo):
@@ -119,6 +122,17 @@ class Evaluation:
     def of_autoscaling(self, autoscaling):
         autoscaler = self.factory.create_autoscaler(self.environment, autoscaling)
         self._define(Symbols.AUTOSCALING, autoscaler)
+        return self.continuation(Success(None))
+
+    def of_tail_drop(self, definition):
+        task_pool = self._look_up(Symbols.QUEUE)
+        tail_drop = self.factory.create_tail_drop(definition.capacity, task_pool)
+        self._define(Symbols.THROTTLING, tail_drop)
+        return self.continuation(Success(None))
+
+    def of_no_throttling(self, no_throttling):
+        no_throttling = self.factory.create_no_throttling()
+        self._define(Symbols.THROTTLING, no_throttling)
         return self.continuation(Success(None))
 
     def of_operation_definition(self, operation_definition):

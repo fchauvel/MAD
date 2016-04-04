@@ -17,75 +17,12 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+
 from unittest import TestCase
-from mock import MagicMock
+from mock import MagicMock, call
 
-from mad.ast.commons import *
 from mad.ast.settings import *
-from mad.ast.actions import *
 from mad.evaluation import Evaluation
-
-
-class ExpressionTest(TestCase):
-
-    def test_concatenation(self):
-        actual = Think(1) + Think(2)
-        self.assertEqual(Sequence(Think(1), Think(2)), actual)
-
-    def test_concatenation_with_sequence(self):
-        actual = Think(1) + Sequence(Think(2), Think(3))
-        self.assertEqual(Sequence(Think(1), Think(2), Think(3)), actual)
-
-
-class ThinkTest(TestCase):
-
-    def test_equality(self):
-        exp1 = Think(5)
-        exp2 = Think(6)
-        exp3 = Think(5)
-
-        self.assertNotEqual(exp1, exp2)
-        self.assertEqual(exp1, exp3)
-
-
-class QueryTests(TestCase):
-
-    def test_equality(self):
-        queries = [ Query("S1", "Op1"),
-                    Query("S1", "Op2"),
-                    Query("S2", "Op1"),
-                    Query("S2", "Op2"),
-                    Query("S1", "Op1")]
-
-        self.assertNotEqual(queries[0], queries[1])
-        self.assertNotEqual(queries[0], queries[2])
-        self.assertNotEqual(queries[0], queries[3])
-        self.assertEqual(queries[0], queries[4])
-
-
-class SequenceTests(TestCase):
-
-    def test_equality(self):
-        seq1 = Sequence(Think(5), Think(6))
-        seq2 = Sequence(Think(5), Think(6))
-
-        self.assertEqual(seq1, seq2)
-
-    def test_concatenation_between_sequence(self):
-        seq1 = Sequence(Think(1), Think(2))
-        seq2 = Sequence(Think(3), Think(4))
-
-        actual = seq1 + seq2
-        expected = Sequence(Think(1), Think(2), Think(3), Think(4))
-        self.assertEqual(expected, actual)
-
-    def test_concatenation_with_an_expression(self):
-        seq = Sequence(Think(1), Think(2))
-
-        actual = seq + Think(3)
-
-        expected = Sequence(Think(1), Think(2), Think(3))
-        self.assertEqual(expected, actual)
 
 
 class SettingsTest(TestCase):
@@ -97,6 +34,15 @@ class SettingsTest(TestCase):
     def test_setting_queue(self):
         settings = Settings(queue=LIFO())
         self.assertIsInstance(settings.queue, LIFO)
+
+    def test_default_throttling_is_none(self):
+        settings = Settings()
+        self.assertIsInstance(settings.throttling, NoThrottlingSettings)
+
+    def test_specifying_throttling(self):
+        tail_drop = TailDropSettings(50)
+        settings = Settings(throttling=tail_drop)
+        self.assertIs(tail_drop, settings.throttling)
 
     def test_accept(self):
         settings = Settings()
@@ -151,3 +97,29 @@ class LIFOTests(TestCase):
 
      def test_equality(self):
          self.assertEqual(FIFO(), FIFO())
+
+
+class NoThrottlingTests(TestCase):
+
+    def test_evaluation(self):
+        evaluation = MagicMock(Evaluation)
+        throttling = NoThrottlingSettings()
+        throttling.accept(evaluation)
+
+        evaluation.of_no_throttling.has_calls([call(throttling)])
+
+
+class TailDropTests(TestCase):
+
+    def test_should_expose_the_capacity(self):
+        capacity = 50
+        tail_drop = TailDropSettings(capacity)
+        self.assertEqual(capacity, tail_drop.capacity)
+
+    def test_should_switch_to_the_proper_evaluation(self):
+        evaluation = MagicMock(Evaluation)
+        tail_drop = TailDropSettings(50)
+        tail_drop.accept(evaluation)
+
+        evaluation.of_tail_drop.has_calls([call(tail_drop)])
+

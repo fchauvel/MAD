@@ -26,7 +26,7 @@ from mad.simulation.client import ClientStub
 from mad.simulation.tasks import FIFOTaskPool, LIFOTaskPool
 from mad.simulation.autoscaling import AutoScalingStrategy, AutoScaler
 from mad.simulation.requests import Request
-from mad.simulation.throttling import NoThrottling
+from mad.simulation.throttling import NoThrottling, TailDrop
 
 
 class Factory(SimulationFactory):
@@ -67,6 +67,8 @@ class Factory(SimulationFactory):
     def create_no_throttling(self):
         return NoThrottling()
 
+    def create_tail_drop(self, capacity, task_pool):
+        return TailDrop(capacity, task_pool)
 
 class Simulation:
     """
