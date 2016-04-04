@@ -27,8 +27,6 @@ from mad.simulation.throttling import NoThrottling, TailDrop, INVALID_CAPACITY, 
 DUMMY_TASK = "whatever"
 
 
-
-
 class NoThrottlingTests(TestCase):
 
     def test_never_rejects(self):

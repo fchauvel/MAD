@@ -20,7 +20,8 @@
 from unittest import TestCase
 from mock import MagicMock
 
-from mad.ast import DefineOperation, Think
+from mad.ast.definitions import DefineOperation
+from mad.ast.actions import Think
 
 from mad.evaluation import Symbols
 from mad.monitoring import ReportFactory

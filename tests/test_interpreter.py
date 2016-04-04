@@ -22,7 +22,9 @@ from unittest import TestCase
 
 from mock import MagicMock, call
 
-from mad.ast import *
+from mad.ast.commons import *
+from mad.ast.definitions import *
+from mad.ast.actions import *
 from mad.datasource import InMemoryDataSource
 from mad.datasource import Project
 from mad.simulation.factory import Simulation
@@ -33,6 +35,7 @@ from mad.log import InMemoryLog
 from mad.monitoring import CSVReportFactory
 from mad.simulation.autoscaling import AutoScalingStrategy
 from mad.simulation.requests import Request
+
 
 class TestInterpreter(TestCase):
 

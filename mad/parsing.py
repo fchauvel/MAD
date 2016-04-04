@@ -20,7 +20,9 @@
 import ply.lex as lex
 import ply.yacc as yacc
 
-from mad.ast import *
+from mad.ast.settings import *
+from mad.ast.definitions import *
+from mad.ast.actions import *
 
 
 reserved = {

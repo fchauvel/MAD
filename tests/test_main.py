@@ -19,7 +19,9 @@
 
 from unittest import TestCase
 
-from mad.ast import *
+from mad.ast.commons import *
+from mad.ast.definitions import *
+from mad.ast.actions import *
 from mad.log import Event, InMemoryLog
 from mad.monitoring import CSVReportFactory
 from mad.parsing import Parser

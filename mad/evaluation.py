@@ -17,7 +17,7 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.ast import Settings
+from mad.ast.settings import Settings
 
 
 class Symbols:

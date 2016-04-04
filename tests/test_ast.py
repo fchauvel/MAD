@@ -20,7 +20,9 @@
 from unittest import TestCase
 from mock import MagicMock
 
-from mad.ast import *
+from mad.ast.commons import *
+from mad.ast.settings import *
+from mad.ast.actions import *
 from mad.evaluation import Evaluation
 
 

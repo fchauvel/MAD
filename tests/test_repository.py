@@ -19,7 +19,10 @@
 
 from unittest import TestCase
 
-from mad.ast import Sequence, DefineService, DefineOperation, DefineClientStub, Think, Query
+from mad.ast.commons import *
+from mad.ast.definitions import *
+from mad.ast.actions import *
+
 from mock import MagicMock
 
 from mad.datasource import Mad, InFilesDataSource, Project, Settings

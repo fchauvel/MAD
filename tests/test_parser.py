@@ -20,7 +20,10 @@
 
 from unittest import TestCase
 
-from mad.ast import *
+from mad.ast.commons import *
+from mad.ast.settings import *
+from mad.ast.definitions import *
+from mad.ast.actions import *
 from mock import MagicMock
 
 from mad.parsing import Parser, Source, MADSyntaxError

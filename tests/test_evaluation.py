@@ -21,7 +21,7 @@ from unittest import TestCase
 from mock import MagicMock
 
 from mad.environment import Environment
-from mad.ast import *
+from mad.ast.settings import *
 from mad.log import InMemoryLog
 from mad.monitoring import ReportFactory
 from mad.evaluation import Evaluation, Symbols
