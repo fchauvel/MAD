@@ -16,7 +16,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Services
         * Support for request differentiation
         * Support for timeout
-        * Support for throttling policies
         * Monitoring
             * Current timeout
             * Current back-off

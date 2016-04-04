@@ -76,18 +76,18 @@ number results from two rules:
  
 #### Throttling
  
-Throttling controls whether a service accepts or reject incoming requests, generally based on the length of the queue of
-pending requests. This filtering is done by active queue management algorithms such as TailDrop, RED, CoDel, 
-etc. The throttling algorithm is configured in the settings as follows:
+Throttling controls whether a service accepts or rejects incoming requests, generally based on the number of
+pending requests. This filtering is controled by active queue management algorithms (AQM) such as TailDrop, RED, or 
+CoDel The throttling algorithm is configured in the settings as follows:
 
     service DB:
         settings:
             queue: LIFO
-            throttling: TailDrop(50)
+            throttling: tail-drop(50)
             
         operation select:
             think 5
 
-Here, we specify that our DB service throttles incoming requests using the TailDrop algorithm. TailDrop simply drops
+Here, we specify that our DB service throttles incoming requests using the `tail-drop` algorithm. TailDrop simply drops
 requests once the queue has reached the specified capacity (here 50 pending requests). By default, throttling is disabled: 
-services store requests until they exhaust their internal resources.
+services store requests until they exhaust their internal resources (using `throttling: none`).
