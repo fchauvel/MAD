@@ -26,19 +26,46 @@ class AutoScaler(SimulatedEntity):
     The 'AutoScaler' periodically recomputes the number of worker for the service in its logical scope.
     """
     NAME = "!Autoscaler"
+    UPPER = 1
+    LOWER = 0
 
-    def __init__(self, environment, period, strategy):
+    def __init__(self, environment, period, limits, strategy):
         super().__init__(self.NAME, environment)
         self.period = period
         self.schedule.every(period, self.auto_scale)
+        self.limits = limits
         self.strategy = strategy
 
     def auto_scale(self):
         service = self.look_up(Symbols.SERVICE)
-        self.strategy.adjust(service)
+        new_worker_count = self._filter(self.strategy.adjust(service))
+        service.set_worker_count(new_worker_count)
+
+    def _filter(self, value):
+        if self._too_low(value):
+            return self._minimum()
+        elif self._too_high(value):
+            return self._maximum()
+        else:
+            return value
+
+    def _too_high(self, value):
+        return value > self._maximum()
+
+    def _too_low(self, value):
+        return value < self._minimum()
+
+    def _maximum(self):
+        return self.limits[self.UPPER]
+
+    def _minimum(self):
+        return self.limits[self.LOWER]
 
 
 class Rule:
+    """
+    AutoScaling rule such as 'when x < 20, then worker += 1'
+    """
 
     def __init__(self, guard, action):
         self.guard = guard
@@ -51,35 +78,21 @@ class Rule:
         return self.action(count)
 
 
-class AutoScalingStrategy:
+class RuleBasedStrategy:
 
-    def __init__(self, minimum, maximum, lower_bound, upper_bound):
-        self._minimum = minimum
-        self._maximum = maximum
+    def __init__(self, lower_threshold, upper_threshold):
         self._rules = [
-            Rule(lambda utilisation: utilisation < lower_bound,
+            Rule(lambda utilisation: utilisation < lower_threshold,
                  lambda count: count - 1),
-            Rule(lambda utilisation: utilisation > upper_bound,
-                 lambda count: count + 1)
+            Rule(lambda utilisation: utilisation > upper_threshold,
+                 lambda count: count + 1),
+            # Default case: the identity rule that always triggers
+            Rule(lambda utilisation: True,
+                 lambda count: count)
         ]
 
     def adjust(self, service):
         assert service, "Invalid service (found '%s')" % service
-        utilisation = service.utilisation
-        worker_count = service.worker_count
-
-        def update():
-            for any_rule in self._rules:
-                if any_rule.applies_to(utilisation):
-                    return any_rule.compute(worker_count)
-            return worker_count
-
-        def filter(worker_count):
-            if self._minimum <= worker_count <= self._maximum:
-                return worker_count
-            return service.worker_count
-
-        def set(new_value):
-            service.set_worker_count(new_value)
-
-        set(filter(update()))
+        for any_rule in self._rules:
+            if any_rule.applies_to(service.utilisation):
+                return any_rule.compute(service.worker_count)

@@ -18,7 +18,7 @@
 #
 
 from unittest import TestCase
-from mock import MagicMock, PropertyMock
+from mock import MagicMock, PropertyMock, call
 
 from mad.ast.definitions import DefineOperation
 from mad.ast.actions import Think
@@ -28,9 +28,11 @@ from mad.monitoring import ReportFactory
 from mad.log import InMemoryLog
 
 from mad.simulation.factory import Factory
+from mad.simulation.service import Service
 from mad.simulation.requests import Request
 from mad.simulation.tasks import TaskPool
 from mad.simulation.throttling import ThrottlingPolicy
+from mad.simulation.autoscaling import RuleBasedStrategy, AutoScaler
 
 
 class ServiceTests(TestCase):

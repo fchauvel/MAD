@@ -21,43 +21,93 @@ from unittest import TestCase
 
 from mock import MagicMock, PropertyMock
 
+from mad.evaluation import Symbols
+from mad.log import InMemoryLog
+from mad.monitoring import ReportFactory
+
+from mad.simulation.factory import Simulation
 from mad.simulation.service import Service
-from mad.simulation.autoscaling import AutoScalingStrategy
+from mad.simulation.autoscaling import AutoScaler, RuleBasedStrategy
+
+
+class MockFactory:
+
+    def __init__(self):
+        self.simulation = Simulation(InMemoryLog(), MagicMock(ReportFactory))
+
+    def service(self):
+        service = MagicMock(Service)
+        self.simulation.environment.define(Symbols.SERVICE, service)
+        return service
+
+    def auto_scaling_strategy(self, adjust_return):
+        strategy = MagicMock(RuleBasedStrategy)
+        strategy.adjust.return_value = adjust_return
+        return strategy
+
+
+class AutoScalerTest(TestCase):
+
+    def setUp(self):
+        self.mock = MockFactory()
+
+    def test_triggers_periodically(self):
+        (duration, period) = (20, 10)
+        self.mock.service()
+        strategy = self.mock.auto_scaling_strategy(adjust_return=10)
+        AutoScaler(self.mock.simulation.environment, 10, (1, 3), strategy)
+
+        self.mock.simulation.run_until(20)
+
+        self.assertEqual(duration / period, strategy.adjust.call_count)
+
+    def test_lower_limit_is_not_exceeded(self):
+        (min, max) = (1, 30)
+        service = self.mock.service()
+        strategy = self.mock.auto_scaling_strategy(adjust_return=min-1)
+        auto_scaler = AutoScaler(self.mock.simulation.environment, 10, (min, max), strategy)
+
+        auto_scaler.auto_scale()
+
+        service.set_worker_count.assert_called_once_with(min)
+
+    def test_upper_limit_is_not_exceeded(self):
+        (min, max) = (1, 30)
+        service = self.mock.service()
+        strategy = self.mock.auto_scaling_strategy(adjust_return=max+1)
+        auto_scaler = AutoScaler(self.mock.simulation.environment, 10, (min, max), strategy)
+
+        auto_scaler.auto_scale()
+
+        service.set_worker_count.assert_called_once_with(max)
 
 
 class AutoScalingTests(TestCase):
 
     def test_decrease_worker_count(self):
-        autoscaling = AutoScalingStrategy(1, 5, 70, 80)
+        autoscaling = RuleBasedStrategy(70, 80)
         service = self.prepare_service(worker_count=5, utilisation=50.)
 
-        autoscaling.adjust(service)
+        actual = autoscaling.adjust(service)
 
-        service.set_worker_count.assert_called_once_with(4)
+        self.assertEqual(4, actual)
 
     def test_increase_when_utilisation_too_high(self):
-        autoscaling = AutoScalingStrategy(1, 5, 70, 80)
-        service = self.prepare_service(worker_count=5, utilisation=99.)
+        autoscaling = RuleBasedStrategy(70, 80)
+        service = self.prepare_service(worker_count=4, utilisation=99.)
 
-        autoscaling.adjust(service)
+        actual = autoscaling.adjust(service)
 
-        service.set_worker_count.assert_called_once_with(5)
+        self.assertEqual(5, actual)
 
-    def test_do_not_decrease_below_minimum(self):
-        autoscaling = AutoScalingStrategy(1, 5, 70, 80)
-        service = self.prepare_service(worker_count=1, utilisation=50.)
+    def test_does_not_change_a_value_within_the_range(self):
+        worker_count = 4
+        autoscaling = RuleBasedStrategy(70, 80)
+        service = self.prepare_service(worker_count, utilisation=75.)
 
-        autoscaling.adjust(service)
+        actual = autoscaling.adjust(service)
 
-        service.set_worker_count.assert_called_once_with(1)
-
-    def test_do_not_exceed_capacity(self):
-        autoscaling = AutoScalingStrategy(1, 5, 70, 80)
-        service = self.prepare_service(worker_count=5, utilisation=99.)
-
-        autoscaling.adjust(service)
-
-        service.set_worker_count.assert_called_once_with(5)
+        self.assertEqual(worker_count, actual)
 
     def prepare_service(self, worker_count, utilisation):
         service = MagicMock(Service)

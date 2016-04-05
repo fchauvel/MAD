@@ -24,7 +24,7 @@ from mad.evaluation import Symbols, Evaluation, SimulationFactory
 from mad.simulation.service import Service, Operation
 from mad.simulation.client import ClientStub
 from mad.simulation.tasks import FIFOTaskPool, LIFOTaskPool
-from mad.simulation.autoscaling import AutoScalingStrategy, AutoScaler
+from mad.simulation.autoscaling import RuleBasedStrategy, AutoScaler
 from mad.simulation.requests import Request
 from mad.simulation.throttling import NoThrottling, TailDrop
 
@@ -38,8 +38,8 @@ class Factory(SimulationFactory):
         return Simulation(log, report_factory)
 
     def create_autoscaler(self, environment, autoscaling):
-        strategy = AutoScalingStrategy(autoscaling.limits[0], autoscaling.limits[1], 70, 80)
-        return AutoScaler(environment, autoscaling.period, strategy)
+        strategy = RuleBasedStrategy(70, 80)
+        return AutoScaler(environment, autoscaling.period, autoscaling.limits, strategy)
 
     def create_FIFO_task_pool(self):
         return FIFOTaskPool()

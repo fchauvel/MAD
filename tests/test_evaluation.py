@@ -67,8 +67,10 @@ class EvaluationTest(TestCase):
         simulation.evaluate(settings)
 
         autoscaler = simulation.environment.look_up(Symbols.AUTOSCALING)
+
         self.assertIsInstance(autoscaler, AutoScaler)
         self.assertEqual(PERIOD, autoscaler.period)
+        self.assertEqual((3, 5), autoscaler.limits)
 
 
 
