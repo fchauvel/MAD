@@ -18,27 +18,65 @@
 #
 
 
+class Operation:
+
+    def __init__(self, name):
+        self.name = name
+        self.invocation_count = 0
+
+    def invoke(self):
+        self.invocation_count += 1
+
+    def is_not_invoked(self):
+        return self.invocation_count == 0
+
+
+class Service:
+
+    def __init__(self, name):
+        self.name = name
+        self.operations = {}
+
+    def add_operation(self, name):
+        self.operations[name] = Operation(name)
+
+
 class SymbolTable:
 
     def __init__(self):
         self.services = {}
         self._current_service = None
 
+    @property
+    def service(self):
+        assert self._current_service, "No service currently opened!"
+        return self.services[self._current_service]
+
     def open_service(self, service):
-        self.services[service.name] = []
-        self._current_service = self.services[service.name]
+        assert not self._current_service, "Service '%s' currently opened!" % self._current_service
+        if service.name in self.services:
+            raise ValueError("Duplicated Service")
+        self.services[service.name] = Service(service.name)
+        self._current_service = service.name
 
     def close_service(self):
+        assert self._current_service, "No service currently opened!"
         self._current_service = None
 
     def add_operation(self, operation):
-        self._current_service.append(operation.name)
+        if operation.name in self.service.operations:
+            raise ValueError("Duplicate operation")
+        self.service.add_operation(operation.name)
 
     def miss_service(self, service):
         return service not in self.services
 
     def miss_operation(self, service, operation):
-        return (service, operation) not in self.services.items()
+        return not (service in self.services and
+                    operation in self.services[service].operations)
+
+    def never_invoked(self, service, operation):
+        return self.services[service].operations[operation].is_not_invoked()
 
 
 class Validator:
@@ -53,13 +91,22 @@ class Validator:
             each_check(self.symbols)
 
     def of_service_definition(self, service):
-        self.symbols.open_service(service)
-        service.body.accept(self)
-        self.symbols.close_service()
+        try:
+            self.symbols.open_service(service)
+            service.body.accept(self)
+            self.symbols.close_service()
+        except ValueError:
+            error = DuplicateService(service.name)
+            self._report(error)
 
     def of_operation_definition(self, operation):
-        self.symbols.add_operation(operation)
-        operation.body.accept(self)
+        try:
+            self.symbols.add_operation(operation)
+            operation.body.accept(self)
+            self._check_is_invoked(self.symbols.service.name, operation.name)
+        except ValueError:
+            error = DuplicateOperation(self.symbols.service.name, operation.name)
+            self._report(error)
 
     def of_client_stub_definition(self, client):
         client.body.accept(self)
@@ -79,24 +126,36 @@ class Validator:
         def check(symbols):
             if symbols.miss_service(service):
                 error = UnknownService(service)
-                self._record(error)
+                self._report(error)
         self.checks.append(check)
 
-    def _record(self, error):
-        self.errors.append(error)
+    def _check_is_invoked(self, service, operation):
+        def check(symbols):
+            if symbols.never_invoked(service, operation):
+                warning = NeverInvokedOperation(service, operation)
+                self._report(warning)
+        self.checks.append(check)
 
     def _check_has_operation(self, service, operation):
         def check(symbols):
             if symbols.miss_operation(service, operation):
                 error = UnknownOperation(service, operation)
-                self._record(error)
+                self._report(error)
         self.checks.append(check)
+
+    def _report(self, error):
+        self.errors.append(error)
 
 
 class SemanticError:
     """
     Commonalities between all semantic errors
     """
+    ERROR = 0
+    WARNING = 1
+
+    def __init__(self, level):
+        self.level = level
 
     def __eq__(self, other):
         return (isinstance(other, self.__class__)
@@ -109,13 +168,39 @@ class SemanticError:
 class UnknownService(SemanticError):
 
     def __init__(self, missing_service):
-        super().__init__()
+        super().__init__(self.ERROR)
         self.service = missing_service
 
 
 class UnknownOperation(SemanticError):
 
     def __init__(self, service, missing_operation):
-        super().__init__()
+        super().__init__(self.ERROR)
         self.service = service
         self.operation = missing_operation
+
+
+class NeverInvokedOperation(SemanticError):
+
+    def __init__(self, service, operation):
+        super().__init__(self.WARNING)
+        self.service = service
+        self.operation = operation
+
+
+class DuplicateService(SemanticError):
+
+    def __init__(self, service):
+        super().__init__(self.ERROR)
+        self.service = service
+
+
+class DuplicateOperation(SemanticError):
+
+    def __init__(self, service, operation):
+        super().__init__(self.ERROR)
+        self.service = service
+        self.operation = operation
+
+    def __repr__(self):
+        return "Duplicate operation {0.service}::{0.operation}".format(self)

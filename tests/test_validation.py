@@ -24,32 +24,68 @@ from mad.ast.definitions import DefineClientStub, DefineOperation, DefineService
 from mad.ast.actions import Trigger, Think
 from mad.ast.commons import Sequence
 
-from mad.validation import Validator, UnknownService, UnknownOperation
+from mad.validation import Validator, UnknownService, UnknownOperation, NeverInvokedOperation, DuplicateService, DuplicateOperation
 
 
 class ValidatorTests(TestCase):
 
     def test_all_errors(self):
         for each_case in self.all_erroneous_cases():
-            self._do_test(*each_case)
+            self._do_test(**each_case)
 
     def _do_test(self, expression, expected_errors):
         validation = Validator(expression)
         for each_expected_error in expected_errors:
-            self.assertTrue(each_expected_error in validation.errors)
+            self.assertTrue(each_expected_error in validation.errors,
+                            "Expression '%s'\n"
+                            "should raise %s\n"
+                            "but found %s" % (str(expression), expected_errors, validation.errors))
 
     def all_erroneous_cases(self):
         return [
-            (DefineClientStub("Erroneous", 2, Trigger("DB", "Select")),
-             [UnknownService("DB")]),
-
-             (Sequence(
-                DefineService(
-                    "DB",
-                    Sequence(DefineOperation("Insert", Think(5)))),
-                DefineClientStub("Erroneous", 2, Trigger("DB", "Select"))),
-              [UnknownOperation("DB", "Select")])
+            self.unknown_service(),
+            self.unknown_operation(),
+            self.duplicate_service(),
+            self.duplicate_operation(),
+            self.never_invoked_operation(),
         ]
+
+    def unknown_operation(self):
+        return {"expression":
+            Sequence(
+                DefineService("DB", DefineOperation("Insert", Think(5))),
+                DefineClientStub("Erroneous", 2, Trigger("DB", "Select"))),
+            "expected_errors":
+                [UnknownOperation("DB", "Select")]}
+
+    def duplicate_operation(self):
+        return {"expression":
+                    DefineService("DB", Sequence(
+                        DefineOperation("Insert", Think(5)),
+                        DefineOperation("Insert", Think(5)))
+                                  ),
+                "expected_errors":
+                    [DuplicateOperation("DB", "Insert")]}
+
+    def duplicate_service(self):
+        return {"expression":
+            Sequence(
+                DefineService("DB", DefineOperation("Insert", Think(5))),
+                DefineService("DB", DefineOperation("Select", Think(5)))),
+            "expected_errors":
+                [DuplicateService("DB")]}
+
+    def never_invoked_operation(self):
+        return {"expression":
+                    DefineService("DB", Sequence(DefineOperation("Insert", Think(5)))),
+                "expected_errors":
+                    [NeverInvokedOperation("DB", "Insert")]}
+
+    def unknown_service(self):
+        return {"expression":
+                    DefineClientStub("Browser", 2, Trigger("DB", "Select")),
+                "expected_errors":
+                    [UnknownService("DB")]}
 
 
 if __name__ == "__main__":
