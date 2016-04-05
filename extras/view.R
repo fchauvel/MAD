@@ -17,6 +17,9 @@
 #
 #
 
+TRACE_FILE = "trace.log";
+MAD_OUTPUTS = "*.log";
+VIEW_NAME = "%s_view.pdf";
 
 service_overview <- function(service) {
   data <- read.csv(file=file_name_for(service), header=TRUE);
@@ -27,7 +30,6 @@ service_overview <- function(service) {
   show_utilisation(service, data);
   show_worker_count(service, data);
   show_rejection_count(service, data);
-  
 }
 
 # Compute the name of the log file associated with the given service
@@ -82,15 +84,13 @@ service_name <- function(file_name) {
 }
 
 view_name <- function(service) {
-  return(sprintf("%s_view.pdf", service));
+  return(sprintf(VIEW_NAME, service));
 }
 
 # Main script
 # - Generate a PDF file for all services (all .log files, except 'trace.log')
 
-TRACE_FILE = "trace.log";
-
-for (each.file in list.files(pattern="*.log")) {
+for (each.file in list.files(pattern=MAD_OUTPUTS)) {
   if (each.file != TRACE_FILE) {
     service <- service_name(each.file);
     pdf(
