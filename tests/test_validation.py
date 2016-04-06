@@ -24,7 +24,8 @@ from mad.ast.definitions import DefineClientStub, DefineOperation, DefineService
 from mad.ast.actions import Trigger, Think
 from mad.ast.commons import Sequence
 
-from mad.validation import Validator, UnknownService, UnknownOperation, NeverInvokedOperation, DuplicateService, DuplicateOperation
+from mad.validation.issues import *
+from mad.validation.engine import Validator
 
 
 class ValidatorTests(TestCase):

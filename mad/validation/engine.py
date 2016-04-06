@@ -17,6 +17,8 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from mad.validation.issues import *
+
 
 class Operation:
 
@@ -145,62 +147,3 @@ class Validator:
 
     def _report(self, error):
         self.errors.append(error)
-
-
-class SemanticError:
-    """
-    Commonalities between all semantic errors
-    """
-    ERROR = 0
-    WARNING = 1
-
-    def __init__(self, level):
-        self.level = level
-
-    def __eq__(self, other):
-        return (isinstance(other, self.__class__)
-                and self.__dict__ == other.__dict__)
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-
-class UnknownService(SemanticError):
-
-    def __init__(self, missing_service):
-        super().__init__(self.ERROR)
-        self.service = missing_service
-
-
-class UnknownOperation(SemanticError):
-
-    def __init__(self, service, missing_operation):
-        super().__init__(self.ERROR)
-        self.service = service
-        self.operation = missing_operation
-
-
-class NeverInvokedOperation(SemanticError):
-
-    def __init__(self, service, operation):
-        super().__init__(self.WARNING)
-        self.service = service
-        self.operation = operation
-
-
-class DuplicateService(SemanticError):
-
-    def __init__(self, service):
-        super().__init__(self.ERROR)
-        self.service = service
-
-
-class DuplicateOperation(SemanticError):
-
-    def __init__(self, service, operation):
-        super().__init__(self.ERROR)
-        self.service = service
-        self.operation = operation
-
-    def __repr__(self):
-        return "Duplicate operation {0.service}::{0.operation}".format(self)
