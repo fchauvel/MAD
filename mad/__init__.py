@@ -19,3 +19,7 @@
 
 __version__ = "0.0.4"
 
+__copyright_years__ = "2015, 2016"
+
+__copyright_owner__ = "Franck CHAUVEL"
+
