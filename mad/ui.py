@@ -17,7 +17,8 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from _datetime import datetime
+from re import search
+from datetime import datetime
 
 from mad.datasource import Project
 from mad.storage import DataStorage
@@ -52,7 +53,6 @@ class Messages:
     ERROR_UNKNOWN_OPERATION = " - [error] Unknown operation {service}::{operation}\n"
 
     ERROR_NEVER_INVOKED_OPERATION = " - [warning] Operation {service}::{operation} is never invoked.\n"
-
 
 
 class Controller:
@@ -152,30 +152,12 @@ class Display:
             operation=error.operation)
 
 
-class CommandLineInterface:
-    """
-    Control the interaction between the simulation and the display
-    """
-
-    def __init__(self, display, mad):
-        self.display = display
-        self.mad = mad
-
-    def simulate(self, project):
-        self.display.boot_up()
-        self.display.simulation_started(project)
-        simulation = self.mad.load(project)
-        simulation.run_until(project.limit, self.display)
-        self.display.simulation_complete(project)
-        return simulation
-
-
 class Arguments:
     """
     Convert the arguments given on the command line into a MadProject
     """
 
-    BASE_NAME = r"(.*)\.\w+$"
+    BASE_NAME = r"(.+)\.(\w+)$"
     LOG_FILE = "trace.log"
     LOG_FORMAT = "%5d %-20s %-s\n"
     PATH_TO_LOG_FILE = "{directory:s}/{log_file:s}"
@@ -217,13 +199,11 @@ class Arguments:
 
     @property
     def _model_name(self):
-        import re
-        return re.match(self.BASE_NAME, self._file_name).group(1)
+        return search(self.BASE_NAME, self._file_name).group(1)
 
     @staticmethod
     def _identifier():
         return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
 
     def report_for(self, entity):
         return self.REPORT.format(

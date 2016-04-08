@@ -17,6 +17,19 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from os import makedirs
+from os.path import exists, dirname
+
+
+class FileSystem:
+
+    def open_input_stream(self, location):
+        return open(location, "r")
+
+    def open_output_stream(self, location):
+        if not exists(location):
+            makedirs(dirname(location), exist_ok=True)
+        return open(location, "w")
 
 
 class DataStorage:

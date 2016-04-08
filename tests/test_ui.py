@@ -25,7 +25,7 @@ from mock import MagicMock, call
 
 from mad import __version__ as MAD_VERSION
 from mad.datasource import Mad, Project
-from mad.ui import CommandLineInterface, Display, Arguments
+from mad.ui import Display, Arguments
 
 
 class DisplayTest(TestCase):
@@ -55,20 +55,6 @@ class DisplayTest(TestCase):
         output = self.output.getvalue()
         match = search(escape(expected_pattern), output, IGNORECASE)
         self.assertIsNotNone(match, msg="Could not find '%s' in output '%s'" % (expected_pattern, output))
-
-    def test_ui_behaviour(self):
-        display = MagicMock(Display)
-        mad = self._make_fake_repository()
-        cli = CommandLineInterface(display, mad)
-
-        project = Project("test.mad", 25)
-        cli.simulate(project)
-
-        mad.load.assert_called_once_with(project)
-
-        display.simulation_started.assert_called_once_with(project)
-        display.update.assert_has_calls([call(5, 25), call(10, 25), call(15, 25), call(20, 25), call(25, 25)])
-        display.simulation_complete.assert_called_once_with(project)
 
     def _make_fake_repository(self):
         repository = MagicMock(Mad)

@@ -39,6 +39,8 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * Tests
     * Test shutting down workers, they shall first complete there current task
     * Test that rejection count is not cumulative
+    * Test that the simulation call back the display
+    
  * Refactorings
     * Extract monitoring into a separate simulated entity, which can be configured throughout the settings
     * Format of the logs should be defined by the service itself, not by the factory

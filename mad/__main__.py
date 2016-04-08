@@ -19,16 +19,10 @@
 
 from sys import argv, stdout
 
-from mad.parsing import Parser
-
-from mad.datasource import Mad, InFilesDataSource
-from mad.ui import CommandLineInterface, Display, Arguments
+from mad.storage import FileSystem
+from mad.ui import Controller
 
 
-source = InFilesDataSource()
-mad = Mad(Parser(source), source)
-cli = CommandLineInterface(Display(stdout), mad)
-
-project = Arguments(argv[1:]).as_project
-cli.simulate(project)
+controller = Controller(stdout, FileSystem())
+controller.execute(*argv[1:])
 
