@@ -19,21 +19,39 @@
 
 
 from unittest import TestCase
+from tests.fakes import InMemoryFileSystem
 
 from mad.ast.commons import *
 from mad.ast.settings import *
 from mad.ast.definitions import *
 from mad.ast.actions import *
-from mock import MagicMock
 
-from mad.parsing import Parser, Source, MADSyntaxError
+from mad.parsing import Parser, MADSyntaxError
 
 
 class ParserTests(TestCase):
 
+    MAD_FILE = "test.mad"
+
+    def setUp(self):
+        self.file_system = InMemoryFileSystem()
+
+    def _do_parse(self, rule):
+        parser = Parser(self.file_system, self.MAD_FILE)
+        return parser.parse(entry_rule=rule, logger=None)
+
+
+class CorrectExpressionTests(ParserTests):
+
+    MAD_FILE = "test.mad"
+
+    def setUp(self):
+        self.file_system = InMemoryFileSystem()
+
     def test_parsing_all_expressions(self):
         for (text, expected_result, rule) in self._all_expressions():
-            actual_result = self._do_parse(text, rule)
+            self.file_system.define(self.MAD_FILE, text)
+            actual_result = self._do_parse(rule)
             self.assertEqual(expected_result, actual_result, "Fail to parse '%s'" % text)
 
     def _all_expressions(self):
@@ -102,36 +120,16 @@ class ParserTests(TestCase):
 
         ]
 
-    def _do_parse(self, text, rule):
-        source = self._make_source("test.mad", text)
-        parser = Parser(source)
-        return parser.parse("test.mad", entry_rule=rule, logger=None)
 
-    def _make_source(self, name, text):
-        source = MagicMock(Source)
-        source.read = MagicMock()
-        source.read.return_value = text
-        return source
-
-
-class ParserErrorTests(TestCase):
+class ParserErrorTests(ParserTests):
 
     def test_illegal_expression(self):
         try:
-            self._do_parse("qqqquery DB/Select", "query")
+            text = "qqqquery DB/Select"
+            self.file_system.define(self.MAD_FILE, text)
+            self._do_parse("query")
             self.fail("Syntax error expected, but no exception was raised.")
 
         except MADSyntaxError as error:
             self.assertEqual((1, 0), error.position)
 
-
-    def _do_parse(self, text, rule):
-        source = self._make_source("test.mad", text)
-        parser = Parser(source)
-        return parser.parse("test.mad", entry_rule=rule, logger=None)
-
-    def _make_source(self, name, text):
-        source = MagicMock(Source)
-        source.read = MagicMock()
-        source.read.return_value = text
-        return source

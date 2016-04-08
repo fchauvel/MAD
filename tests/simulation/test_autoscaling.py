@@ -18,8 +18,8 @@
 #
 
 from unittest import TestCase
-
 from mock import MagicMock, PropertyMock
+from tests.fakes import InMemoryDataStorage
 
 from mad.evaluation import Symbols
 from mad.log import InMemoryLog
@@ -33,7 +33,7 @@ from mad.simulation.autoscaling import AutoScaler, RuleBasedStrategy
 class MockFactory:
 
     def __init__(self):
-        self.simulation = Simulation(InMemoryLog(), MagicMock(ReportFactory))
+        self.simulation = Simulation(InMemoryDataStorage(None))
 
     def service(self):
         service = MagicMock(Service)

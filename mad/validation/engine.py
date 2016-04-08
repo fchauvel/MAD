@@ -81,16 +81,32 @@ class SymbolTable:
         return self.services[service].operations[operation].is_not_invoked()
 
 
+class InvalidModel(Exception):
+
+    def __init__(self, issues):
+        self.issues = issues
+
+
 class Validator:
     "Traverse the AST searching for inconsistencies, so called 'Semantic Errors'"
 
-    def __init__(self, expression):
+    def __init__(self):
         self.checks = []
         self.errors = []
         self.symbols = SymbolTable()
+
+    def validate(self, expression):
         expression.accept(self)
         for each_check in self.checks:
             each_check(self.symbols)
+        if self._has_any_error():
+            raise InvalidModel(self.errors)
+
+    def _has_any_error(self):
+        for any_issue in self.errors:
+            if any_issue.is_error():
+                return True
+        return False
 
     def of_service_definition(self, service):
         try:
@@ -117,12 +133,19 @@ class Validator:
         self._check_is_defined(trigger.service)
         self._check_has_operation(trigger.service, trigger.operation)
 
+    def of_query(self, query):
+        self._check_is_defined(query.service)
+        self._check_has_operation(query.service, query.operation)
+
     def of_think(self, think):
         pass
 
     def of_sequence(self, sequence):
         for each_expression in sequence.body:
             each_expression.accept(self)
+
+    def of_settings(self, settings):
+        pass
 
     def _check_is_defined(self, service):
         def check(symbols):

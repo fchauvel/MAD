@@ -55,9 +55,15 @@ class Operation(SimulatedEntity):
 class Service(SimulatedEntity):
 
     MONITORING_PERIOD = 10
+    REPORT_FORMAT = [("time", "%5d"),
+                     ("queue_length", "%5d"),
+                     ("utilisation", "%6.2f"),
+                     ("worker_count", "%5d"),
+                     ("rejection_count", "%5d")]
 
     def __init__(self, name, environment):
         super().__init__(name, environment)
+        self.report = self.create_report(self.REPORT_FORMAT)
         self.environment.define(Symbols.SELF, self)
         self.environment.define(Symbols.SERVICE, self)
         self.tasks = self.environment.look_up(Symbols.QUEUE)
@@ -114,9 +120,8 @@ class Service(SimulatedEntity):
             self.tasks.activate(task)
 
     def monitor(self):
-        report = self.simulation.reports.report_for_service(self.name)
-        report(time=self.schedule.time_now,
-               queue_length=self.tasks.size,
-               utilisation=self.workers.utilisation,
-               worker_count=self.worker_count,
-               rejection_count=self.throttling.rejection_count)
+        self.report(time=self.schedule.time_now,
+                    queue_length=self.tasks.size,
+                    utilisation=self.workers.utilisation,
+                    worker_count=self.worker_count,
+                    rejection_count=self.throttling.rejection_count)

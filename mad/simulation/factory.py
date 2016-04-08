@@ -34,8 +34,8 @@ class Factory(SimulationFactory):
     Instantiate all necessary elements for a simulation
     """
 
-    def create_simulation(self, log, report_factory):
-        return Simulation(log, report_factory)
+    def create_simulation(self, data_store):
+        return Simulation(data_store)
 
     def create_autoscaler(self, environment, autoscaling):
         strategy = RuleBasedStrategy(70, 80)
@@ -70,16 +70,16 @@ class Factory(SimulationFactory):
     def create_tail_drop(self, capacity, task_pool):
         return TailDrop(capacity, task_pool)
 
+
 class Simulation:
     """
     Represent the general simulation, including the current schedule and the associated trace
     """
     # TODO: This should inherits from SimulatedEntity as well
 
-    def __init__(self, log, report_factory):
+    def __init__(self, storage):
+        self._storage = storage
         self._scheduler = Scheduler()
-        self.log = log
-        self.reports = report_factory
         self.environment = Environment()
         self.environment.define(Symbols.SIMULATION, self)
         self._next_request_id = 1
@@ -87,6 +87,10 @@ class Simulation:
 
     def run_until(self, end, display=None):
         self._scheduler.simulate_until(end, display)
+
+    @property
+    def log(self):
+        return self._storage.log
 
     @property
     def schedule(self):

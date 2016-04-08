@@ -18,7 +18,7 @@
 #
 
 from io import StringIO
-from re import search, IGNORECASE
+from re import search, escape, IGNORECASE
 from unittest import TestCase
 
 from mock import MagicMock, call
@@ -45,7 +45,7 @@ class DisplayTest(TestCase):
 
     def test_simulation_update(self):
         self.display.update(20, 100)
-        self._verify_output("20 %")
+        self._verify_output("20.00 %")
 
     def test_simulation_complete(self):
         self.display.simulation_complete(self.project)
@@ -53,7 +53,8 @@ class DisplayTest(TestCase):
 
     def _verify_output(self, expected_pattern):
         output = self.output.getvalue()
-        self.assertTrue(search(expected_pattern, output, IGNORECASE), "Found %s" % output)
+        match = search(escape(expected_pattern), output, IGNORECASE)
+        self.assertIsNotNone(match, msg="Could not find '%s' in output '%s'" % (expected_pattern, output))
 
     def test_ui_behaviour(self):
         display = MagicMock(Display)

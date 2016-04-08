@@ -18,12 +18,10 @@
 #
 
 from unittest import TestCase
-from mock import MagicMock
+from tests.fakes import InMemoryDataStorage
 
 from mad.environment import Environment
 from mad.ast.settings import *
-from mad.log import InMemoryLog
-from mad.monitoring import ReportFactory
 from mad.evaluation import Evaluation, Symbols
 from mad.simulation.factory import Simulation, Factory
 from mad.simulation.tasks import LIFOTaskPool, FIFOTaskPool
@@ -53,7 +51,7 @@ class EvaluationTest(TestCase):
     def test_evaluation_of_queue_settings(self):
         settings = Settings(queue=LIFO())
 
-        simulation = Simulation(InMemoryLog(), MagicMock(ReportFactory))
+        simulation = Simulation(InMemoryDataStorage(None))
         simulation.evaluate(settings)
 
         queue = simulation.environment.look_up(Symbols.QUEUE)
@@ -63,7 +61,7 @@ class EvaluationTest(TestCase):
         PERIOD = 23
         settings = Settings(autoscaling=Autoscaling(PERIOD, limits=(3, 5)))
 
-        simulation = Simulation(InMemoryLog(), MagicMock(ReportFactory))
+        simulation = Simulation(InMemoryDataStorage(None))
         simulation.evaluate(settings)
 
         autoscaler = simulation.environment.look_up(Symbols.AUTOSCALING)

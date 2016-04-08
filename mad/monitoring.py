@@ -23,6 +23,7 @@ class ReportFactory:
     Factory that produce reports for both service and clients. Each
     report is associated with a name, so that it never recreated.
     """
+    # TODO Remove, useless now
 
     def __init__(self):
         self._registry = {}
@@ -49,6 +50,7 @@ class ReportFactory:
 
 
 class CSVReportFactory(ReportFactory):
+    # TODO: Remove this class, now useless
 
     def __init__(self, project, repository):
         super().__init__()

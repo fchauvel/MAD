@@ -19,35 +19,40 @@
 
 from unittest import TestCase
 from mock import MagicMock
+from tests.fakes import InMemoryFileSystem
 
 from io import StringIO
 
 from mad.monitoring import CSVReportFactory, CSVReport
-from mad.parsing import Parser
-
+from mad.ui import Controller, Arguments
 from mad.datasource import InMemoryDataSource, Project, Mad, Settings
 
 
 class MonitoringTests(TestCase):
 
+    MAD_FILE = "test.mad"
+
+    def setUp(self):
+        self.file_system = InMemoryFileSystem()
+
     def test_loading(self):
         Settings.new_identifier = MagicMock()
-        Settings.new_identifier = lambda: "1"
+        Arguments._identifier = lambda s: "1"
 
-        source = InMemoryDataSource(
-                {"test.mad": "service DB:"
-                             "  operation Select:"
-                             "      think 5"
-                             "client Browser:"
-                             "  every 10:"
-                             "      query DB/Select"})
+        self.file_system.define(
+            self.MAD_FILE,
+            "service DB:"
+            "  operation Select:"
+            "      think 5"
+            "client Browser:"
+            "  every 10:"
+            "      query DB/Select")
 
-        mad = Mad(Parser(source), source)
+        controller = Controller(StringIO(), self.file_system)
 
-        simulation = mad.load(Project("test.mad", 25))
-        simulation.run_until(25)
+        controller.execute("test.mad", "25")
 
-        data = source.read("test_1/DB.log").getvalue().split("\n")
+        data = self.file_system.opened_files["test_1/DB.log"].getvalue().split("\n")
         self.assertEqual(4, len(data), data) # header line, + Monitoring at 10, 20 + newline
 
 

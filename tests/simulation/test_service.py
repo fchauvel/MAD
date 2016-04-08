@@ -18,7 +18,8 @@
 #
 
 from unittest import TestCase
-from mock import MagicMock, PropertyMock, call
+from mock import MagicMock, PropertyMock
+from tests.fakes import InMemoryDataStorage
 
 from mad.ast.definitions import DefineOperation
 from mad.ast.actions import Think
@@ -39,7 +40,7 @@ class ServiceTests(TestCase):
 
     def setUp(self):
         self.factory = Factory()
-        self.reports = MagicMock(ReportFactory)
+        self.storage = InMemoryDataStorage(None)
 
     def test_throttling_is_trigger(self):
         self.create_service(
@@ -78,11 +79,11 @@ class ServiceTests(TestCase):
     def create_report(self):
         report = MagicMock()
         report.__call__ = MagicMock()
-        self.reports.report_for_service.return_value = report
+        self.storage.report_for = MagicMock(return_value = report)
         return report
 
     def create_service(self, busy_worker, queue_length, accept_next, rejection_count):
-        self.simulation = self.factory.create_simulation(InMemoryLog(), self.reports)
+        self.simulation = self.factory.create_simulation(self.storage)
         self.environment = self.simulation.environment.create_local_environment()
         self.create_throttling(rejection_count, accept_next)
         self.create_queue(queue_length)

@@ -25,7 +25,7 @@ from mad.ast.actions import Trigger, Think
 from mad.ast.commons import Sequence
 
 from mad.validation.issues import *
-from mad.validation.engine import Validator
+from mad.validation.engine import Validator, InvalidModel
 
 
 class ValidatorTests(TestCase):
@@ -35,12 +35,16 @@ class ValidatorTests(TestCase):
             self._do_test(**each_case)
 
     def _do_test(self, expression, expected_errors):
-        validation = Validator(expression)
-        for each_expected_error in expected_errors:
-            self.assertTrue(each_expected_error in validation.errors,
-                            "Expression '%s'\n"
-                            "should raise %s\n"
-                            "but found %s" % (str(expression), expected_errors, validation.errors))
+        try:
+            validation = Validator()
+            validation.validate(expression)
+
+        except InvalidModel:
+            for each_expected_error in expected_errors:
+                self.assertTrue(each_expected_error in validation.errors,
+                                "Expression '%s'\n"
+                                "should raise %s\n"
+                                "but found %s" % (str(expression), expected_errors, validation.errors))
 
     def all_erroneous_cases(self):
         return [

@@ -35,6 +35,12 @@ class SemanticIssue:
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def is_error(self):
+        return self.level == self.ERROR
+
+    def accept(self, visitor):
+        raise NotImplementedError("SemanticIssue::accept is abstract")
+
 
 class ServiceIssue(SemanticIssue):
 
@@ -61,11 +67,17 @@ class UnknownOperation(OperationIssue):
     def __init__(self, service, missing_operation):
         super().__init__(self.ERROR, service, missing_operation)
 
+    def accept(self, visitor):
+        visitor.unknown_operation(self.service, self.operation)
+
 
 class NeverInvokedOperation(OperationIssue):
 
     def __init__(self, service, operation):
         super().__init__(self.WARNING, service, operation)
+
+    def accept(self, visitor):
+        visitor.never_invoked_operation(self)
 
 
 class DuplicateService(ServiceIssue):

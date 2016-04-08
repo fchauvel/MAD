@@ -17,65 +17,49 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from io import StringIO
+
 from unittest import TestCase
+from tests.fakes import InMemoryDataStorage, InMemoryFileSystem
 
 from mad.ast.commons import *
 from mad.ast.definitions import *
 from mad.ast.actions import *
-from mad.log import Event, InMemoryLog
-from mad.monitoring import CSVReportFactory
+from mad.log import Event
 from mad.parsing import Parser
 from mad.simulation.factory import Simulation
 from mock import MagicMock
 
 from mad.datasource import InFilesDataSource, Mad, Project, InMemoryDataSource
-from mad.ui import Display, CommandLineInterface
+from mad.ui import Display, Controller
 
 
 class TestXXX(TestCase):
+    # TODO to be move in the acceptance tests
+
+    def setUp(self):
+        self.file_system = InMemoryFileSystem()
 
     def test_client_server_with_autoscaling(self):
-        display = MagicMock(Display)
-        mad = self._make_mad("test.mad", "service DB:"
-                                         "  settings:"
-                                         "      autoscaling:"
-                                         "          period: 15"
-                                         "          limits: [2, 4]"
-                                         ""
-                                         "  operation Select:"
-                                         "      think 10"
-                                         ""
-                                         "client Browser:"
-                                         "  every 2:"
-                                         "      query DB/Select")
+        self.file_system.define(
+            "test.mad", "service DB:"
+            "  settings:"
+            "      autoscaling:"
+            "          period: 15"
+            "          limits: [2, 4]"
+            ""
+            "  operation Select:"
+            "      think 10"
+            ""
+            "client Browser:"
+            "  every 2:"
+            "      query DB/Select")
 
-        cli = CommandLineInterface(display, mad)
-
-        simulation = cli.simulate(Project("test.mad", 500))
+        controller = Controller(StringIO(), self.file_system)
+        simulation = controller.execute("test.mad", "500")
 
         server = simulation.environment.look_up("DB")
         self.assertEqual(4, server.worker_count)
-
-
-    def test_client_server(self):
-        display = MagicMock(Display)
-        mad = self._make_mad("test.mad", "service DB:"
-                                         "    operation Select:"
-                                         "        think 5"
-                                         "client Browser:"
-                                         "    every 10:"
-                                         "        query DB/Select")
-        cli = CommandLineInterface(display, mad)
-
-        cli.simulate(Project("test.mad", 25))
-
-        self.assertEqual(display.update.call_count, 6) # 4 + 2 Monitoring events
-
-    def _make_mad(self, file_name, content):
-        source = MagicMock(InFilesDataSource)
-        source.read.return_value = content
-        parser = Parser(source)
-        return Mad(parser, source)
 
 
 class TestMain(TestCase):
@@ -128,7 +112,18 @@ class TestMain(TestCase):
                 "   every 10:" \
                 "       query S1::op"
 
-        expression = self.parse(model)
+        expression = Sequence(
+            DefineService(
+                "S1",
+                DefineOperation(
+                        "op",
+                        Think(5))),
+            DefineClientStub(
+                "C1",
+                10,
+                Query("S1", "op")
+            )
+        )
         simulation = self.evaluate(expression)
         self.run_until(simulation, 25)
 
@@ -144,23 +139,8 @@ class TestMain(TestCase):
                  Event(25, "C1", "Req. 2 complete")]
         )
 
-    def parse(self, model):
-        return Sequence(
-            DefineService(
-                "S1",
-                DefineOperation(
-                        "op",
-                        Think(5))),
-            DefineClientStub(
-                "C1",
-                10,
-                Query("S1", "op")
-            )
-        )
-
     def evaluate(self, expression):
-        factory = CSVReportFactory(Project("test.mad", 25), InMemoryDataSource())
-        simulation = Simulation(log=InMemoryLog(), report_factory=factory)
+        simulation = Simulation(InMemoryDataStorage(None))
         simulation.evaluate(expression)
         return simulation
 
