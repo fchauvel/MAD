@@ -21,17 +21,16 @@ from io import StringIO
 from re import search, escape, IGNORECASE
 from unittest import TestCase
 
-from mock import MagicMock, call
+from mock import MagicMock
 
 from mad import __version__ as MAD_VERSION
-from mad.datasource import Mad, Project
 from mad.ui import Display, Arguments
 
 
 class DisplayTest(TestCase):
 
     def setUp(self):
-        self.project = Project("sample/test.mad", 25)
+        self.project = Arguments(["test.mad", "25"])
         self.output = StringIO()
         self.display = Display(self.output)
 
@@ -41,7 +40,7 @@ class DisplayTest(TestCase):
 
     def test_simulation_started(self):
         self.display.simulation_started(self.project)
-        self._verify_output(self.project.file_name)
+        self._verify_output(self.project._file_name)
 
     def test_simulation_update(self):
         self.display.update(20, 100)
@@ -49,17 +48,12 @@ class DisplayTest(TestCase):
 
     def test_simulation_complete(self):
         self.display.simulation_complete(self.project)
-        self._verify_output(self.project.output_directory)
+        self._verify_output(self.project._output_directory)
 
     def _verify_output(self, expected_pattern):
         output = self.output.getvalue()
         match = search(escape(expected_pattern), output, IGNORECASE)
         self.assertIsNotNone(match, msg="Could not find '%s' in output '%s'" % (expected_pattern, output))
-
-    def _make_fake_repository(self):
-        repository = MagicMock(Mad)
-        repository.load.return_value = self._make_fake_simulation()
-        return repository
 
     def _make_fake_simulation(self):
         simulation = MagicMock()
@@ -76,17 +70,17 @@ class DisplayTest(TestCase):
 class ArgumentsTest(TestCase):
 
     def test_parsing_parameter(self):
-        project = Arguments(["test.mad", "25"]).as_project
-        self.assertEqual("test.mad", project.file_name)
-        self.assertEqual(25, project.limit)
+        project = Arguments(["test.mad", "25"])
+        self.assertEqual("test.mad", project._file_name)
+        self.assertEqual(25, project._time_limit)
 
     def test_detecting_missing_arguments(self):
         with self.assertRaises(ValueError):
-            Arguments([25]).as_project
+            Arguments([25])
 
     def test_detecting_wrong_arguments(self):
         with self.assertRaises(ValueError):
-            Arguments([25, "test.mad"]).as_project
+            Arguments([25, "test.mad"])
 
         with self.assertRaises(ValueError):
-            Arguments(["test.mad", "25x"]).as_project
+            Arguments(["test.mad", "25x"])

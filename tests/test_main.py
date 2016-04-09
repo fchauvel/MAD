@@ -26,12 +26,9 @@ from mad.ast.commons import *
 from mad.ast.definitions import *
 from mad.ast.actions import *
 from mad.log import Event
-from mad.parsing import Parser
 from mad.simulation.factory import Simulation
-from mock import MagicMock
 
-from mad.datasource import InFilesDataSource, Mad, Project, InMemoryDataSource
-from mad.ui import Display, Controller
+from mad.ui import Controller
 
 
 class TestXXX(TestCase):

@@ -23,9 +23,8 @@ from tests.fakes import InMemoryFileSystem
 
 from io import StringIO
 
-from mad.monitoring import CSVReportFactory, CSVReport
+from mad.monitoring import CSVReport
 from mad.ui import Controller, Arguments
-from mad.datasource import InMemoryDataSource, Project, Mad, Settings
 
 
 class MonitoringTests(TestCase):
@@ -36,7 +35,6 @@ class MonitoringTests(TestCase):
         self.file_system = InMemoryFileSystem()
 
     def test_loading(self):
-        Settings.new_identifier = MagicMock()
         Arguments._identifier = lambda s: "1"
 
         self.file_system.define(
@@ -54,19 +52,6 @@ class MonitoringTests(TestCase):
 
         data = self.file_system.opened_files["test_1/DB.log"].getvalue().split("\n")
         self.assertEqual(4, len(data), data) # header line, + Monitoring at 10, 20 + newline
-
-
-class ReportFactoryTests(TestCase):
-
-    def test_report_unicity(self):
-        factory = CSVReportFactory(Project("test.mad", 25), InMemoryDataSource())
-
-        report1 = factory.report_for_service("my-service")
-        report2 = factory.report_for_service("my-service")
-
-        self.assertIsNotNone(report1)
-        self.assertIsNotNone(report2)
-        self.assertIs(report1, report2)
 
 
 class ReportTests(TestCase):

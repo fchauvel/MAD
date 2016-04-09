@@ -40,12 +40,13 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Test shutting down workers, they shall first complete there current task
     * Test that rejection count is not cumulative
     * Test that the simulation call back the display
-    
+    * Test that the outputs are indeed created in the current directory (not in samples)
  * Refactorings
     * Extract monitoring into a separate simulated entity, which can be configured throughout the settings
     * Format of the logs should be defined by the service itself, not by the factory
     * A test factory shared among simulation test
     * Unify the logs and report factory into a DataStore
+    * Remove CSVReportFactory
 
 
     

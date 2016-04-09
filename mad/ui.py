@@ -20,7 +20,6 @@
 from re import search
 from datetime import datetime
 
-from mad.datasource import Project
 from mad.storage import DataStorage
 from mad.validation.engine import Validator, InvalidModel
 
@@ -42,11 +41,11 @@ class Messages:
                  "This is free software, and you are welcome to redistribute it\n" \
                  "under certain conditions.\n"
 
-    MODEL_LOADED = "MAD model loaded from {location:s}\n"
+    MODEL_LOADED = "MAD model loaded from '{location:s}'\n"
 
-    SIMULATION_PROGRESS = "\rSimulation {progress:.2f} %%"
+    SIMULATION_PROGRESS = "\rSimulation {progress:.2f} %"
 
-    RESULTS_AVAILABLE = "\nSee results in {location:s}\n"
+    RESULTS_AVAILABLE = "\n\nSee results in {location:s}\n"
 
     ERROR_INVALID_MODEL = "Error, the model is invalid\n"
 
@@ -95,7 +94,9 @@ class Controller:
     def _simulate(self, expression, arguments):
         simulation = Simulation(self.storage)
         simulation.evaluate(expression)
+        self.display.simulation_started(arguments)
         simulation.run_until(arguments._time_limit, self.display)
+        self.display.simulation_complete(arguments)
         return simulation
 
 
@@ -130,14 +131,14 @@ class Display:
         self._format(Messages.VERSION, version=MAD_VERSION)
 
     def simulation_started(self, project):
-        self._format(Messages.MODEL_LOADED, location=project.file_name)
+        self._format(Messages.MODEL_LOADED, location=project._file_name)
 
     def update(self, current_time, end):
         progress = current_time / end * 100
         self._format(Messages.SIMULATION_PROGRESS, progress=progress)
 
     def simulation_complete(self, project):
-        self._format(Messages.RESULTS_AVAILABLE, location=project.output_directory)
+        self._format(Messages.RESULTS_AVAILABLE, location=project._output_directory)
 
     def invalid_model(self):
         self._format(Messages.ERROR_INVALID_MODEL)
@@ -180,10 +181,6 @@ class Arguments:
             return int(self._arguments[1])
         except ValueError:
             raise ValueError("Expecting simulation length as Argument 2, but found '%s'" % self._arguments[1])
-
-    @property
-    def as_project(self):
-        return Project(self._file_name, self._time_limit)
 
     @property
     def log_file(self):

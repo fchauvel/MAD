@@ -25,20 +25,15 @@ from tests.fakes import InMemoryDataStorage
 from mad.ast.commons import *
 from mad.ast.definitions import *
 from mad.ast.actions import *
-from mad.datasource import InMemoryDataSource
-from mad.datasource import Project
 from mad.simulation.factory import Simulation
 from mad.simulation.service import Service, Operation
 from mad.evaluation import Symbols
-from mad.log import InMemoryLog
-from mad.monitoring import CSVReportFactory
 from mad.simulation.requests import Request
 
 
 class TestInterpreter(TestCase):
 
     def setUp(self):
-        factory = CSVReportFactory(Project("test.mad", 25), InMemoryDataSource())
         self.simulation = Simulation(InMemoryDataStorage(None))
 
     def define(self, symbol, value):
