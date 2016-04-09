@@ -90,13 +90,13 @@ class AcceptanceTests(TestCase):
         self._verify_output(display, Messages.COPYRIGHT, years=YEARS, owner=OWNER)
 
     def _verify_valid_model(self, display):
-        self._verify_output_excludes(display, Messages.ERROR_INVALID_MODEL)
+        self._verify_output_excludes(display, Messages.INVALID_MODEL)
 
     def _verify_invalid_model(self, display):
-        self._verify_output(display, Messages.ERROR_INVALID_MODEL)
+        self._verify_output(display, Messages.INVALID_MODEL)
 
     def _verify_unknown_operation(self, display):
-        self._verify_output(display, Messages.ERROR_UNKNOWN_OPERATION, service="DB", operation="Insert")
+        self._verify_output(display, Messages.ERROR_UNKNOWN_OPERATION, severity=Messages.SEVERITY_ERROR, service="DB", operation="Insert")
 
     def _verify_output(self, display, message, **values):
         from re import search, escape

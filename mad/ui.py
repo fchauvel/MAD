@@ -47,11 +47,17 @@ class Messages:
 
     RESULTS_AVAILABLE = "\n\nSee results in {location:s}\n"
 
-    ERROR_INVALID_MODEL = "Error, the model is invalid\n"
+    INVALID_MODEL = "Error, the model is invalid\n"
 
-    ERROR_UNKNOWN_OPERATION = " - [error] Unknown operation {service}::{operation}\n"
+    ERROR = " - {severity:8s} "
 
-    ERROR_NEVER_INVOKED_OPERATION = " - [warning] Operation {service}::{operation} is never invoked.\n"
+    ERROR_UNKNOWN_OPERATION = ERROR + "Unknown operation '{service}::{operation}'\n"
+
+    ERROR_NEVER_INVOKED_OPERATION = ERROR + "Operation '{service}::{operation}' is never invoked.\n"
+
+    SEVERITY_ERROR = "error"
+
+    SEVERITY_WARNING = "warning"
 
 
 class Controller:
@@ -141,16 +147,24 @@ class Display:
         self._format(Messages.RESULTS_AVAILABLE, location=project._output_directory)
 
     def invalid_model(self):
-        self._format(Messages.ERROR_INVALID_MODEL)
+        self._format(Messages.INVALID_MODEL)
 
-    def unknown_operation(self, service, operation):
-        self._format(Messages.ERROR_UNKNOWN_OPERATION, service=service, operation=operation)
+    def unknown_operation(self, error):
+        self._format(
+            Messages.ERROR_UNKNOWN_OPERATION,
+            severity=self._severity_of(error),
+            service=error.service,
+            operation=error.operation)
 
     def never_invoked_operation(self, error):
         self._format(
             Messages.ERROR_NEVER_INVOKED_OPERATION,
+            severity=self._severity_of(error),
             service=error.service,
             operation=error.operation)
+
+    def _severity_of(self, error):
+        return Messages.SEVERITY_ERROR if error.is_error() else Messages.SEVERITY_WARNING
 
 
 class Arguments:

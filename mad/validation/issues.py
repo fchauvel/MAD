@@ -68,7 +68,7 @@ class UnknownOperation(OperationIssue):
         super().__init__(self.ERROR, service, missing_operation)
 
     def accept(self, visitor):
-        visitor.unknown_operation(self.service, self.operation)
+        visitor.unknown_operation(self)
 
 
 class NeverInvokedOperation(OperationIssue):

@@ -1,0 +1,20 @@
+#
+# Sample client server architecture
+#
+
+service DB:
+
+    settings:
+        queue: LIFO
+        throttling: tail-drop(5)
+        autoscaling:
+            period: 10
+            limits: [1, 10]
+
+   operation Select:
+      think 10
+
+client Browser:
+   every 2:
+      query DB/Insert  # This operation is not defined
+    
