@@ -84,3 +84,21 @@ class ArgumentsTest(TestCase):
 
         with self.assertRaises(ValueError):
             Arguments(["test.mad", "25x"])
+
+    def test_output_directory_is_in_the_current_directory(self):
+        Arguments._identifier = MagicMock(return_value="1")
+
+        tests = [
+            ("foo/test.mad", "test_1"),
+            ("foo/bar/test.mad", "test_1"),
+            ("foo/bar\\test.mad", "test_1"),
+            ("foo/bar\\test my file.mad", "test my file_1"),
+            ("C:\\Users\\foo\\test.mad", "test_1"),
+            ("/home/foo/test.mad", "test_1"),
+            ("../test.mad", "test_1"),
+            ("http://www.example.com/test.mad", "test_1")
+        ]
+        for (each_path, each_expected_output) in tests:
+            arguments = Arguments([each_path, "25"])
+            self.assertEquals(each_expected_output, arguments._output_directory)
+

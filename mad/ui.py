@@ -158,7 +158,7 @@ class Arguments:
     Convert the arguments given on the command line into a MadProject
     """
 
-    BASE_NAME = r"(.+)\.(\w+)$"
+    BASE_NAME = r"([^\\/]+)\.(\w+)$"
     LOG_FILE = "trace.log"
     LOG_FORMAT = "%5d %-20s %-s\n"
     PATH_TO_LOG_FILE = "{directory:s}/{log_file:s}"
