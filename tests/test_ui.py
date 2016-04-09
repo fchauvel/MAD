@@ -39,7 +39,7 @@ class DisplayTest(TestCase):
         self._verify_output(MAD_VERSION)
 
     def test_simulation_started(self):
-        self.display.simulation_started(self.project)
+        self.display.model_loaded(self.project)
         self._verify_output(self.project._file_name)
 
     def test_simulation_update(self):

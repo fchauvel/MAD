@@ -91,7 +91,10 @@ class Controller:
             Parser(self.file_system, arguments._file_name),
             FileLog(self.file_system.open_output_stream(arguments.log_file), Arguments.LOG_FORMAT),
             lambda name, format: CSVReport(self.file_system.open_output_stream(arguments.report_for(name)), format))
-        return self.storage.model()
+        self.display.model_loaded(arguments)
+        expression = self.storage.model()
+        return expression
+
 
     def _validate(self, expression):
         validator = Validator()
@@ -100,7 +103,6 @@ class Controller:
     def _simulate(self, expression, arguments):
         simulation = Simulation(self.storage)
         simulation.evaluate(expression)
-        self.display.simulation_started(arguments)
         simulation.run_until(arguments._time_limit, self.display)
         self.display.simulation_complete(arguments)
         return simulation
@@ -136,7 +138,7 @@ class Display:
         from mad import __version__ as MAD_VERSION
         self._format(Messages.VERSION, version=MAD_VERSION)
 
-    def simulation_started(self, project):
+    def model_loaded(self, project):
         self._format(Messages.MODEL_LOADED, location=project._file_name)
 
     def update(self, current_time, end):

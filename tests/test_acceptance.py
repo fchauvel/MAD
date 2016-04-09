@@ -33,6 +33,7 @@ class AcceptanceTests(TestCase):
 
     IDENTIFIER = "1"
     MODEL_NAME = "test"
+    LOCATION = MODEL_NAME + ".mad"
 
     def setUp(self):
         Arguments._identifier = MagicMock(return_value=self.IDENTIFIER)
@@ -49,8 +50,8 @@ class AcceptanceTests(TestCase):
 
         self._execute()
 
-        self._verify_opening(self.display)
-        self._verify_valid_model(self.display)
+        self._verify_opening()
+        self._verify_valid_model()
         self._verify_reports_for(["DB"])
         self._verify_log()
 
@@ -64,51 +65,57 @@ class AcceptanceTests(TestCase):
 
         self._execute()
 
-        self._verify_opening(self.display)
-        self._verify_invalid_model(self.display)
-        self._verify_unknown_operation(self.display)
+        self._verify_opening()
+        self._verify_model_loaded()
+        self._verify_invalid_model()
+        self._verify_unknown_operation()
 
     def _execute(self):
         mad = Controller(self.display, self.file_system)
-        mad.execute(self.MODEL_NAME + ".mad", 1000)
+        mad.execute(self.LOCATION, 1000)
 
-    def _verify_opening(self, display):
-        self._verify_version(display)
-        self._verify_copyright(display)
-        self._verify_disclaimer(display)
+    def _verify_opening(self):
+        self._verify_version()
+        self._verify_copyright()
+        self._verify_disclaimer()
 
-    def _verify_disclaimer(self, display):
-        self._verify_output(display, Messages.DISCLAIMER)
+    def _verify_model_loaded(self):
+        self._verify_output(Messages.MODEL_LOADED, location=self.LOCATION)
 
-    def _verify_version(self, display):
+    def _verify_disclaimer(self):
+        self._verify_output(Messages.DISCLAIMER)
+
+    def _verify_version(self):
         from mad import __version__ as MAD_VERSION
-        self._verify_output(display, Messages.VERSION, version=MAD_VERSION)
+        self._verify_output(Messages.VERSION, version=MAD_VERSION)
 
-    def _verify_copyright(self, display):
+    def _verify_copyright(self):
         from mad import __copyright_years__ as YEARS
         from mad import __copyright_owner__ as OWNER
-        self._verify_output(display, Messages.COPYRIGHT, years=YEARS, owner=OWNER)
+        self._verify_output(Messages.COPYRIGHT, years=YEARS, owner=OWNER)
 
-    def _verify_valid_model(self, display):
-        self._verify_output_excludes(display, Messages.INVALID_MODEL)
+    def _verify_valid_model(self):
+        self._verify_output_excludes(Messages.INVALID_MODEL)
 
-    def _verify_invalid_model(self, display):
-        self._verify_output(display, Messages.INVALID_MODEL)
+    def _verify_invalid_model(self):
+        self._verify_output(Messages.INVALID_MODEL)
 
-    def _verify_unknown_operation(self, display):
-        self._verify_output(display, Messages.ERROR_UNKNOWN_OPERATION, severity=Messages.SEVERITY_ERROR, service="DB", operation="Insert")
+    def _verify_unknown_operation(self):
+        self._verify_output(Messages.ERROR_UNKNOWN_OPERATION, severity=Messages.SEVERITY_ERROR, service="DB", operation="Insert")
 
-    def _verify_output(self, display, message, **values):
+    def _verify_output(self, message, **values):
         from re import search, escape
         text = escape(message.format(**values))
-        match = search(text, display.getvalue())
-        self.assertIsNotNone(match, "\nCould not found text '%s' in output:\n%s" % (str(text), display.getvalue()))
+        output = self.display.getvalue()
+        match = search(text, output)
+        self.assertIsNotNone(match, "\nCould not found text '%s' in output:\n%s" % (str(text), output))
 
-    def _verify_output_excludes(self, display, message, **values):
+    def _verify_output_excludes(self, message, **values):
         from re import search, escape
         text = escape(message.format(**values))
-        match = search(text, display.getvalue())
-        self.assertIsNone(match, "\nFound unexpected text '%s' in output:\n%s" % (str(text), display.getvalue()))
+        output = self.display.getvalue()
+        match = search(text, output)
+        self.assertIsNone(match, "\nFound unexpected text '%s' in output:\n%s" % (str(text), output))
 
     def _verify_reports_for(self, entities):
         for each_entity in entities:
