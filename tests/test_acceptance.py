@@ -52,10 +52,11 @@ class AcceptanceTests(TestCase):
 
         self._verify_opening()
         self._verify_valid_model()
+        self._verify_no_warnings()
         self._verify_reports_for(["DB"])
         self._verify_log()
 
-    def test_erroneous_inputs(self):
+    def test_error_unknown_operation(self):
         self.file_system.define("test.mad", "service DB:"
                                             "   operation Select:"
                                             "      think 5"
@@ -68,7 +69,75 @@ class AcceptanceTests(TestCase):
         self._verify_opening()
         self._verify_model_loaded()
         self._verify_invalid_model()
-        self._verify_unknown_operation()
+        self._verify_unknown_operation("DB", "Insert")
+        self._verify_operation_never_invoked("DB", "Select")
+
+    def test_error_duplicate_service(self):
+        self.file_system.define("test.mad", "service DB:"
+                                            "   operation Select:"
+                                            "      think 5"
+                                            "service DB:"
+                                            "   operation Insert:"
+                                            "      think 17"
+                                            "client Browser:"
+                                            "   every 5:"
+                                            "      query DB/Select")
+
+        self._execute()
+
+        self._verify_opening()
+        self._verify_model_loaded()
+        self._verify_invalid_model()
+        self._verify_duplicate_service("DB")
+
+    def test_error_duplicate_operation(self):
+        self.file_system.define("test.mad", "service DB:"
+                                            "   operation Select:"
+                                            "      think 5"
+                                            "   operation Select:"
+                                            "      think 17"
+                                            "client Browser:"
+                                            "   every 5:"
+                                            "      query DB/Select")
+
+        self._execute()
+
+        self._verify_opening()
+        self._verify_model_loaded()
+        self._verify_invalid_model()
+        self._verify_duplicate_operation("DB", "Select")
+
+    def test_warning_operation_never_invoked(self):
+        self.file_system.define("test.mad", "service DB:"
+                                            "   operation Select:"
+                                            "      think 5"
+                                            "   operation Insert:"
+                                            "      think 17"
+                                            "client Browser:"
+                                            "   every 5:"
+                                            "      query DB/Select")
+
+        self._execute()
+
+        self._verify_opening()
+        self._verify_model_loaded()
+        self._verify_valid_model()
+        self._verify_operation_never_invoked("DB", "Insert")
+
+    def test_error_unknown_service(self):
+        self.file_system.define("test.mad", "service DB:"
+                                            "   operation Select:"
+                                            "      think 5"
+                                            "client Browser:"
+                                            "   every 5:"
+                                            "      query DBBBB/Select")
+
+        self._execute()
+
+        self._verify_opening()
+        self._verify_model_loaded()
+        self._verify_invalid_model()
+        self._verify_unknown_service("DBBBB")
 
     def _execute(self):
         mad = Controller(self.display, self.file_system)
@@ -96,12 +165,41 @@ class AcceptanceTests(TestCase):
 
     def _verify_valid_model(self):
         self._verify_output_excludes(Messages.INVALID_MODEL)
+        self._verify_output_excludes(Messages.SEVERITY_ERROR)
+
+    def _verify_no_warnings(self):
+        self._verify_output_excludes(Messages.SEVERITY_WARNING)
 
     def _verify_invalid_model(self):
         self._verify_output(Messages.INVALID_MODEL)
 
-    def _verify_unknown_operation(self):
-        self._verify_output(Messages.ERROR_UNKNOWN_OPERATION, severity=Messages.SEVERITY_ERROR, service="DB", operation="Insert")
+    def _verify_unknown_operation(self, service_name, operation_name):
+        self._verify_output(Messages.ERROR_UNKNOWN_OPERATION,
+                            severity=Messages.SEVERITY_ERROR,
+                            service=service_name,
+                            operation=operation_name)
+
+    def _verify_duplicate_service(self, service_name):
+        self._verify_output(Messages.ERROR_DUPLICATE_SERVICE,
+                            severity=Messages.SEVERITY_ERROR,
+                            service=service_name)
+
+    def _verify_duplicate_operation(self, service_name, operation_name):
+        self._verify_output(Messages.ERROR_DUPLICATE_OPERATION,
+                            severity=Messages.SEVERITY_ERROR,
+                            operation=operation_name,
+                            service=service_name)
+
+    def _verify_operation_never_invoked(self, service_name, operation_name):
+        self._verify_output(Messages.ERROR_NEVER_INVOKED_OPERATION,
+                            severity=Messages.SEVERITY_WARNING,
+                            operation=operation_name,
+                            service=service_name)
+
+    def _verify_unknown_service(self, service_name):
+        self._verify_output(Messages.ERROR_UNKNOWN_SERVICE,
+                            severity=Messages.SEVERITY_ERROR,
+                            service=service_name)
 
     def _verify_output(self, message, **values):
         from re import search, escape

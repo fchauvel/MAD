@@ -45,7 +45,7 @@ class Messages:
 
     SIMULATION_PROGRESS = "\rSimulation {progress:.2f} %"
 
-    RESULTS_AVAILABLE = "\n\nSee results in {location:s}\n"
+    RESULTS_AVAILABLE = "\n\nSee results in directory: ./{location:s}/\n"
 
     INVALID_MODEL = "Error, the model is invalid\n"
 
@@ -54,6 +54,12 @@ class Messages:
     ERROR_UNKNOWN_OPERATION = ERROR + "Unknown operation '{service}::{operation}'\n"
 
     ERROR_NEVER_INVOKED_OPERATION = ERROR + "Operation '{service}::{operation}' is never invoked.\n"
+
+    ERROR_DUPLICATE_SERVICE = ERROR + "Service '{service}' is defined multiple times.\n"
+
+    ERROR_DUPLICATE_OPERATION = ERROR + "Operation '{service}::{operation}' is defined multiple times.\n"
+
+    ERROR_UNKNOWN_SERVICE = ERROR + "Unknown service '{service}'\n"
 
     SEVERITY_ERROR = "error"
 
@@ -95,10 +101,12 @@ class Controller:
         expression = self.storage.model()
         return expression
 
-
     def _validate(self, expression):
         validator = Validator()
         validator.validate(expression)
+        if validator.raised_warnings():
+            for each_warning in validator.errors:
+                each_warning.accept(self.display)
 
     def _simulate(self, expression, arguments):
         simulation = Simulation(self.storage)
@@ -151,6 +159,12 @@ class Display:
     def invalid_model(self):
         self._format(Messages.INVALID_MODEL)
 
+    def unknown_service(self, error):
+        self._format(
+            Messages.ERROR_UNKNOWN_SERVICE,
+            severity=self._severity_of(error),
+            service=error.service)
+
     def unknown_operation(self, error):
         self._format(
             Messages.ERROR_UNKNOWN_OPERATION,
@@ -164,6 +178,17 @@ class Display:
             severity=self._severity_of(error),
             service=error.service,
             operation=error.operation)
+
+    def duplicate_service(self, error):
+        self._format(Messages.ERROR_DUPLICATE_SERVICE,
+                     severity=self._severity_of(error),
+                     service=error.service)
+
+    def duplicate_operation(self, error):
+        self._format(Messages.ERROR_DUPLICATE_OPERATION,
+                     severity=self._severity_of(error),
+                     operation=error.operation,
+                     service=error.service)
 
     def _severity_of(self, error):
         return Messages.SEVERITY_ERROR if error.is_error() else Messages.SEVERITY_WARNING

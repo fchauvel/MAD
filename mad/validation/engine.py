@@ -77,6 +77,11 @@ class SymbolTable:
         return not (service in self.services and
                     operation in self.services[service].operations)
 
+    def invoke(self, service, operation):
+        if service in self.services and \
+           operation in self.services[service].operations:
+            self.services[service].operations[operation].invoke()
+
     def never_invoked(self, service, operation):
         return self.services[service].operations[operation].is_not_invoked()
 
@@ -108,6 +113,12 @@ class Validator:
                 return True
         return False
 
+    def raised_warnings(self):
+        for any_issue in self.errors:
+            if any_issue.is_warning():
+                return True
+        return False
+
     def of_service_definition(self, service):
         try:
             self.symbols.open_service(service)
@@ -130,10 +141,12 @@ class Validator:
         client.body.accept(self)
 
     def of_trigger(self, trigger):
+        self.symbols.invoke(trigger.service, trigger.operation)
         self._check_is_defined(trigger.service)
         self._check_has_operation(trigger.service, trigger.operation)
 
     def of_query(self, query):
+        self.symbols.invoke(query.service, query.operation)
         self._check_is_defined(query.service)
         self._check_has_operation(query.service, query.operation)
 

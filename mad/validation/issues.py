@@ -38,6 +38,9 @@ class SemanticIssue:
     def is_error(self):
         return self.level == self.ERROR
 
+    def is_warning(self):
+        return self.level == self.WARNING
+
     def accept(self, visitor):
         raise NotImplementedError("SemanticIssue::accept is abstract")
 
@@ -48,11 +51,17 @@ class ServiceIssue(SemanticIssue):
         super().__init__(level)
         self.service = service
 
+    def accept(self, visitor):
+        raise NotImplementedError("ServiceIssue::accept is abstract")
+
 
 class UnknownService(ServiceIssue):
 
     def __init__(self, missing_service):
         super().__init__(self.ERROR, missing_service)
+
+    def accept(self, visitor):
+        visitor.unknown_service(self)
 
 
 class OperationIssue(ServiceIssue):
@@ -60,6 +69,9 @@ class OperationIssue(ServiceIssue):
     def __init__(self, level, service, operation):
         super().__init__(level, service)
         self.operation = operation
+
+    def accept(self, visitor):
+        raise NotImplementedError("OperationIssue::accept is abstract")
 
 
 class UnknownOperation(OperationIssue):
@@ -85,11 +97,17 @@ class DuplicateService(ServiceIssue):
     def __init__(self, service):
         super().__init__(self.ERROR, service)
 
+    def accept(self, visitor):
+        visitor.duplicate_service(self)
+
 
 class DuplicateOperation(OperationIssue):
 
     def __init__(self, service, operation):
         super().__init__(self.ERROR, service, operation)
+
+    def accept(self, visitor):
+        visitor.duplicate_operation(self)
 
     def __repr__(self):
         return "Duplicate operation {0.service}::{0.operation}".format(self)
