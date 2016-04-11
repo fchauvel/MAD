@@ -18,65 +18,6 @@
 #
 
 
-class ReportFactory:
-    """
-    Factory that produce reports for both service and clients. Each
-    report is associated with a name, so that it never recreated.
-    """
-    # TODO Remove, useless now
-
-    def __init__(self):
-        self._registry = {}
-
-    def report_for_service(self, name):
-        return self._fetch_or_create(name, self._make_report_for_service)
-
-    def report_for_client(self, name):
-        return self._fetch_or_create(name, self._make_report_for_client)
-
-    def _fetch_or_create(self, name, factory):
-        if name not in self._registry:
-            report = factory(name)
-            self._registry[name] = report
-            return report
-        else:
-            return self._registry[name]
-
-    def _make_report_for_service(self, name):
-        raise NotImplementedError("ReportFactory::_make_report_for_service is abstract")
-
-    def _make_report_for_client(self, client_name):
-        raise NotImplementedError("ReportFactory::_make_report_for_client is abstract")
-
-
-class CSVReportFactory(ReportFactory):
-    # TODO: Remove this class, now useless
-
-    def __init__(self, project, repository):
-        super().__init__()
-        self.project = project
-        self.repository = repository
-
-    def _make_report_for_service(self, service):
-        return self._make_report(  service,
-                            [("time", "%5d"),
-                             ("queue_length", "%5d"),
-                             ("utilisation", "%6.2f"),
-                             ("worker_count", "%5d"),
-                             ("rejection_count", "%5d")])
-
-    def _make_report_for_client(self, client):
-        # TODO: Update this definition
-        return self._make_report(  client,
-                            [("time", "%5d"),
-                            ("queue_length", "%5d")])
-
-    def _make_report(self, name, format):
-        resource = self.project.report_for(name)
-        output = self.repository.open_stream_to(resource)
-        return CSVReport(output, format)
-
-
 class CSVReport:
     """
     Format monitored data as CSV entries and push them in the designated

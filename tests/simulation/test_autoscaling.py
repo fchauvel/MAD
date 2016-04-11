@@ -22,8 +22,6 @@ from mock import MagicMock, PropertyMock
 from tests.fakes import InMemoryDataStorage
 
 from mad.evaluation import Symbols
-from mad.log import InMemoryLog
-from mad.monitoring import ReportFactory
 
 from mad.simulation.factory import Simulation
 from mad.simulation.service import Service

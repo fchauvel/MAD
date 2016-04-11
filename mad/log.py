@@ -41,36 +41,6 @@ class Log:
         pass
 
 
-class InMemoryLog(Log):
-    """
-    Hold the history of events in a list for later processing
-    """
-
-    def __init__(self):
-        self.entries = []
-
-    def __repr__(self):
-        return "\n".join([str(each_entry) for each_entry in self.entries])
-
-    def __len__(self):
-        return len(self.entries)
-
-    def __iter__(self):
-        for each_entry in self.entries:
-            yield each_entry
-
-    @property
-    def is_empty(self):
-        return len(self) == 0
-
-    @property
-    def size(self):
-        return len(self)
-
-    def record(self, time, context, message):
-        self.entries.append(Event(time, context, message))
-
-
 class FileLog(Log):
     """
     Dump the event into the given stream using the given format

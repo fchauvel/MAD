@@ -29,10 +29,7 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * Improve error reporting
     * Errors in the parameters passed to the CLI
     * Semantic and syntactic errors in MAD files
-        * Operations that are never called (warning)
-        * Operations/Services that are called, but not defined (error)
         * Services without operations
-        * Services or operations defined multiple time
         * Client and Service that have the same name
  * Examples
     * SensApp example

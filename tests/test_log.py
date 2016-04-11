@@ -21,7 +21,8 @@
 from io import StringIO
 from unittest import TestCase
 
-from mad.log import InMemoryLog, FileLog
+from mad.log import FileLog
+from tests.fakes import InMemoryLog
 
 
 class LogTests(TestCase):
