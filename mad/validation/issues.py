@@ -55,6 +55,15 @@ class ServiceIssue(SemanticIssue):
         raise NotImplementedError("ServiceIssue::accept is abstract")
 
 
+class EmptyService(ServiceIssue):
+
+    def __init__(self, service):
+        super().__init__(self.ERROR, service)
+
+    def accept(self, visitor):
+        visitor.empty_service(self)
+
+
 class UnknownService(ServiceIssue):
 
     def __init__(self, missing_service):

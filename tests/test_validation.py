@@ -38,17 +38,25 @@ class ValidatorTests(TestCase):
         try:
             validation = Validator()
             validation.validate(expression)
+            if not validation.raised_warnings():
+                self.fail("Expecting issue detected for expression %s" % str(expression))
+            else:
+                self._verify_issues(expression, validation.errors, expected_errors)
 
         except InvalidModel:
-            for each_expected_error in expected_errors:
-                self.assertTrue(each_expected_error in validation.errors,
+            self._verify_issues(expression, validation.errors, expected_errors)
+
+    def _verify_issues(self, expression, actual, expected):
+            for each_expected_error in expected:
+                self.assertTrue(each_expected_error in actual,
                                 "Expression '%s'\n"
                                 "should raise %s\n"
-                                "but found %s" % (str(expression), expected_errors, validation.errors))
+                                "but found %s" % (str(expression), expected, actual))
 
     def all_erroneous_cases(self):
         return [
             self.unknown_service(),
+            self.empty_service(),
             self.unknown_operation(),
             self.duplicate_service(),
             self.duplicate_operation(),
@@ -79,6 +87,12 @@ class ValidatorTests(TestCase):
                 DefineService("DB", DefineOperation("Select", Think(5)))),
             "expected_errors":
                 [DuplicateService("DB")]}
+
+    def empty_service(self):
+        return {"expression":
+                    DefineService("DB", Sequence()),
+                "expected_errors":
+                    [EmptyService("DB")]}
 
     def never_invoked_operation(self):
         return {"expression":

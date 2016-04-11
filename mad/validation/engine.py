@@ -123,6 +123,7 @@ class Validator:
         try:
             self.symbols.open_service(service)
             service.body.accept(self)
+            self._check_has_at_least_one_operation(service)
             self.symbols.close_service()
         except ValueError:
             error = DuplicateService(service.name)
@@ -164,6 +165,13 @@ class Validator:
         def check(symbols):
             if symbols.miss_service(service):
                 error = UnknownService(service)
+                self._report(error)
+        self.checks.append(check)
+
+    def _check_has_at_least_one_operation(self, service):
+        def check(symbols):
+            if len(symbols.services[service.name].operations) == 0:
+                error = EmptyService(service.name)
                 self._report(error)
         self.checks.append(check)
 
