@@ -125,6 +125,7 @@ class ParserErrorTests(ParserTests):
 
     def test_illegal_expression(self):
         try:
+            from mad.parsing import lexer
             text = "qqqquery DB/Select"
             self.file_system.define(self.MAD_FILE, text)
             self._do_parse("query")

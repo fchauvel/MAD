@@ -23,7 +23,7 @@ from datetime import datetime
 from mad.storage import DataStorage
 from mad.validation.engine import Validator, InvalidModel
 
-from mad.parsing import Parser
+from mad.parsing import Parser, MADSyntaxError
 
 from mad.simulation.factory import Simulation
 
@@ -49,13 +49,15 @@ class Messages:
 
     INVALID_MODEL = "Error, the model is invalid\n"
 
+    INVALID_SYNTAX = " - Syntax error on line {line:d} (around '... {hint:s} ...')\n"
+
     ERROR = " - {severity:8s} "
 
     ERROR_UNKNOWN_OPERATION = ERROR + "Unknown operation '{service}::{operation}'\n"
 
     ERROR_NEVER_INVOKED_OPERATION = ERROR + "Operation '{service}::{operation}' is never invoked.\n"
 
-    ERROR_DUPLICATE_SERVICE = ERROR + "Service '{service}' is defined multiple times.\n"
+    ERROR_DUPLICATE_IDENTIFIER = ERROR + "Identifier '{identifier}' is defined multiple times.\n"
 
     ERROR_DUPLICATE_OPERATION = ERROR + "Operation '{service}::{operation}' is defined multiple times.\n"
 
@@ -81,8 +83,15 @@ class Controller:
             self._validate(expression)
             return self._simulate(expression, arguments)
 
+        except MADSyntaxError as error:
+            self._report_invalid_syntax(error)
+
         except InvalidModel as error:
             self._report_invalid_model(error)
+
+    def _report_invalid_syntax(self, error):
+        self.display.invalid_model()
+        self.display.invalid_syntax(error)
 
     def _report_invalid_model(self, error):
         self.display.invalid_model()
@@ -156,6 +165,9 @@ class Display:
     def simulation_complete(self, project):
         self._format(Messages.RESULTS_AVAILABLE, location=project._output_directory)
 
+    def invalid_syntax(self, error):
+        self._format(Messages.INVALID_SYNTAX, line=error.line_number, hint=error.hint)
+
     def invalid_model(self):
         self._format(Messages.INVALID_MODEL)
 
@@ -179,10 +191,10 @@ class Display:
             service=error.service,
             operation=error.operation)
 
-    def duplicate_service(self, error):
-        self._format(Messages.ERROR_DUPLICATE_SERVICE,
+    def duplicate_identifier(self, error):
+        self._format(Messages.ERROR_DUPLICATE_IDENTIFIER,
                      severity=self._severity_of(error),
-                     service=error.service)
+                     identifier=error.identifier)
 
     def duplicate_operation(self, error):
         self._format(Messages.ERROR_DUPLICATE_OPERATION,

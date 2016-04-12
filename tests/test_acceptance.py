@@ -56,6 +56,21 @@ class AcceptanceTests(TestCase):
         self._verify_reports_for(["DB"])
         self._verify_log()
 
+    def test_error_empty_service(self):
+        self.file_system.define("test.mad", "service DB: \n"
+                                            "   settings: \n"
+                                            "       queue: LIFO \n"
+                                            "client Browser: \n"
+                                            "   every 5: \n"
+                                            "      query DB/Insert \n")
+
+        self._execute()
+
+        self._verify_opening()
+        self._verify_model_loaded()
+        self._verify_invalid_model()
+        self._verify_syntax_error(line=4, hint="client")
+
     def test_error_unknown_operation(self):
         self.file_system.define("test.mad", "service DB:"
                                             "   operation Select:"
@@ -89,6 +104,40 @@ class AcceptanceTests(TestCase):
         self._verify_model_loaded()
         self._verify_invalid_model()
         self._verify_duplicate_service("DB")
+
+    def test_error_duplicate_client(self):
+        self.file_system.define("test.mad", "service DB:\n"
+                                            "   operation Select:\n"
+                                            "      think 5\n"
+                                            "client Browser:\n"
+                                            "   every 5:\n"
+                                            "      query DB/Select\n"
+                                            "client Browser:\n"
+                                            "   every 10:\n"
+                                            "       invoke DB/Select\n")
+
+        self._execute()
+
+        self._verify_opening()
+        self._verify_model_loaded()
+        self._verify_invalid_model()
+        self._verify_duplicate_client("Browser")
+
+    def test_error_duplicate_entity_name(self):
+        self.file_system.define("test.mad", "service DB:\n"
+                                            "   operation Select:\n"
+                                            "      think 5\n"
+                                            "client DB:\n"
+                                            "   every 5:\n"
+                                            "      query DB/Select\n")
+
+        self._execute()
+
+        self._verify_opening()
+        self._verify_model_loaded()
+        self._verify_invalid_model()
+        self._verify_duplicate_entity_name("DB")
+
 
     def test_error_duplicate_operation(self):
         self.file_system.define("test.mad", "service DB:"
@@ -170,6 +219,9 @@ class AcceptanceTests(TestCase):
     def _verify_no_warnings(self):
         self._verify_output_excludes(Messages.SEVERITY_WARNING)
 
+    def _verify_syntax_error(self, line, hint):
+        self._verify_output(Messages.INVALID_SYNTAX, line=line, hint=hint)
+
     def _verify_invalid_model(self):
         self._verify_output(Messages.INVALID_MODEL)
 
@@ -180,9 +232,19 @@ class AcceptanceTests(TestCase):
                             operation=operation_name)
 
     def _verify_duplicate_service(self, service_name):
-        self._verify_output(Messages.ERROR_DUPLICATE_SERVICE,
+        self._verify_output(Messages.ERROR_DUPLICATE_IDENTIFIER,
                             severity=Messages.SEVERITY_ERROR,
-                            service=service_name)
+                            identifier=service_name)
+
+    def _verify_duplicate_client(self, client_name):
+        self._verify_output(Messages.ERROR_DUPLICATE_IDENTIFIER,
+                            severity=Messages.SEVERITY_ERROR,
+                            identifier=client_name)
+
+    def _verify_duplicate_entity_name(self, name):
+        self._verify_output(Messages.ERROR_DUPLICATE_IDENTIFIER,
+                            severity=Messages.SEVERITY_ERROR,
+                            identifier=name)
 
     def _verify_duplicate_operation(self, service_name, operation_name):
         self._verify_output(Messages.ERROR_DUPLICATE_OPERATION,

@@ -83,7 +83,7 @@ def t_NUMBER(t):
 def t_newline(t):
     # Define a rule so we can track line numbers
     r'\n+'
-    t.lexer.lineno += len(t.value)
+    t.lexer.lineno += 1
 
 
 def t_COMMENT(t):
@@ -305,8 +305,7 @@ def p_invoke(p):
 
 
 def p_error(t):
-    print("Syntax error at '%s'" % t.value)
-    raise MADSyntaxError((t.lineno, 0), "Syntax error near '%s'" % t.value)
+    raise MADSyntaxError((t.lineno, t.lexpos), t.value)
 
 
 def merge_map(map_A, map_B):
@@ -315,17 +314,20 @@ def merge_map(map_A, map_B):
     return tmp
 
 
-class Source:
-
-    def read(self, location):
-        raise NotImplementedError("Source::read is not yet implemented")
-
-
 class MADSyntaxError(BaseException):
 
-    def __init__(self, position, message):
+    def __init__(self, position, hint):
         self.position = position
-        self.message = message
+        self.hint = hint
+
+    @property
+    def line_number(self):
+        return self.position[0]
+
+    def __repr__(self):
+        return "Syntax error at line {line:d}, around '{hint}'.".format(
+            line=self.position[0],
+            hint=self.hint)
 
 
 class Parser:
@@ -335,6 +337,7 @@ class Parser:
         self.file_system = file_system
 
     def parse(self, entry_rule="unit", logger=yacc.NullLogger()):
+        lexer.lineno = 1
         text = self._content()
         parser = yacc.yacc(start=entry_rule, errorlog=logger)
         return parser.parse(lexer=lexer, input=text)

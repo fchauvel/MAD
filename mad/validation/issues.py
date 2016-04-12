@@ -73,6 +73,16 @@ class UnknownService(ServiceIssue):
         visitor.unknown_service(self)
 
 
+class DuplicateIdentifier(SemanticIssue):
+
+    def __init__(self, identifier):
+        super().__init__(self.ERROR)
+        self.identifier = identifier
+
+    def accept(self, visitor):
+        visitor.duplicate_identifier(self)
+
+
 class OperationIssue(ServiceIssue):
 
     def __init__(self, level, service, operation):
@@ -99,15 +109,6 @@ class NeverInvokedOperation(OperationIssue):
 
     def accept(self, visitor):
         visitor.never_invoked_operation(self)
-
-
-class DuplicateService(ServiceIssue):
-
-    def __init__(self, service):
-        super().__init__(self.ERROR, service)
-
-    def accept(self, visitor):
-        visitor.duplicate_service(self)
 
 
 class DuplicateOperation(OperationIssue):

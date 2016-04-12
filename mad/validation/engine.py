@@ -33,37 +33,54 @@ class Operation:
         return self.invocation_count == 0
 
 
-class Service:
+class Entity:
 
     def __init__(self, name):
         self.name = name
+
+
+class Service(Entity):
+
+    def __init__(self, name):
+        super().__init__(name)
         self.operations = {}
 
     def add_operation(self, name):
         self.operations[name] = Operation(name)
 
 
+class Client(Entity):
+
+    def __init__(self, name):
+        super().__init__(name)
+
+
 class SymbolTable:
 
     def __init__(self):
-        self.services = {}
+        self.entities = {}
         self._current_service = None
 
     @property
     def service(self):
         assert self._current_service, "No service currently opened!"
-        return self.services[self._current_service]
+        return self.entities[self._current_service]
 
     def open_service(self, service):
         assert not self._current_service, "Service '%s' currently opened!" % self._current_service
-        if service.name in self.services:
-            raise ValueError("Duplicated Service")
-        self.services[service.name] = Service(service.name)
+        if service.name in self.entities:
+            raise ValueError("Duplicate identifier '" + service.name + "'")
+        self.entities[service.name] = Service(service.name)
         self._current_service = service.name
 
     def close_service(self):
         assert self._current_service, "No service currently opened!"
         self._current_service = None
+
+    def add_client(self, client):
+        if client.name in self.entities:
+            raise ValueError("Duplicate identifier '" + client.name + "'")
+        self.entities[client.name] = Client(client.name)
 
     def add_operation(self, operation):
         if operation.name in self.service.operations:
@@ -71,19 +88,19 @@ class SymbolTable:
         self.service.add_operation(operation.name)
 
     def miss_service(self, service):
-        return service not in self.services
+        return service not in self.entities
 
     def miss_operation(self, service, operation):
-        return not (service in self.services and
-                    operation in self.services[service].operations)
+        return not (service in self.entities and
+                    operation in self.entities[service].operations)
 
     def invoke(self, service, operation):
-        if service in self.services and \
-           operation in self.services[service].operations:
-            self.services[service].operations[operation].invoke()
+        if service in self.entities and \
+           operation in self.entities[service].operations:
+            self.entities[service].operations[operation].invoke()
 
     def never_invoked(self, service, operation):
-        return self.services[service].operations[operation].is_not_invoked()
+        return self.entities[service].operations[operation].is_not_invoked()
 
 
 class InvalidModel(Exception):
@@ -126,7 +143,7 @@ class Validator:
             self._check_has_at_least_one_operation(service)
             self.symbols.close_service()
         except ValueError:
-            error = DuplicateService(service.name)
+            error = DuplicateIdentifier(service.name)
             self._report(error)
 
     def of_operation_definition(self, operation):
@@ -139,7 +156,12 @@ class Validator:
             self._report(error)
 
     def of_client_stub_definition(self, client):
-        client.body.accept(self)
+        try:
+            self.symbols.add_client(client)
+            client.body.accept(self)
+        except ValueError:
+            error = DuplicateIdentifier(client.name)
+            self._report(error)
 
     def of_trigger(self, trigger):
         self.symbols.invoke(trigger.service, trigger.operation)
@@ -170,7 +192,7 @@ class Validator:
 
     def _check_has_at_least_one_operation(self, service):
         def check(symbols):
-            if len(symbols.services[service.name].operations) == 0:
+            if len(symbols.entities[service.name].operations) == 0:
                 error = EmptyService(service.name)
                 self._report(error)
         self.checks.append(check)

@@ -86,7 +86,7 @@ class ValidatorTests(TestCase):
                 DefineService("DB", DefineOperation("Insert", Think(5))),
                 DefineService("DB", DefineOperation("Select", Think(5)))),
             "expected_errors":
-                [DuplicateService("DB")]}
+                [DuplicateIdentifier("DB")]}
 
     def empty_service(self):
         return {"expression":

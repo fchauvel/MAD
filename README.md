@@ -28,9 +28,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
         * Workload patterns
  * Improve error reporting
     * Errors in the parameters passed to the CLI
-    * Semantic and syntactic errors in MAD files
-        * Services without operations
-        * Client and Service that have the same name
  * Examples
     * SensApp example
  * Tests
