@@ -56,6 +56,39 @@ class AcceptanceTests(TestCase):
         self._verify_reports_for(["DB"])
         self._verify_log()
 
+    def test_invalid_simulation_length(self):
+        self.file_system.define("test.mad", "whatever, as it will not be parsed!")
+
+        wrong_length = "wrong length"
+        invalid_command_line = ["test.mad", wrong_length]
+        self._execute(invalid_command_line)
+
+        self._verify_opening()
+        self._verify_invalid_simulation_length(wrong_length)
+        self._verify_usage()
+
+    def test_invalid_simulation_file(self):
+        self.file_system.define("test.mad", "whatever, as it will not be parsed!")
+
+        wrong_file = 1
+        invalid_command_line = [wrong_file, 1000]
+        self._execute(invalid_command_line)
+
+        self._verify_opening()
+        self._verify_invalid_simulation_file(wrong_file)
+        self._verify_usage()
+
+    def test_invalid_parameter_count(self):
+        self.file_system.define("test.mad", "whatever, as it will not be parsed!")
+
+        invalid_command_line = ["test.mad", 1000, "an extra parameter"]
+        self._execute(invalid_command_line)
+
+        self._verify_opening()
+        self._verify_invalid_parameter_count(len(invalid_command_line))
+        self._verify_usage()
+
+
     def test_error_empty_service(self):
         self.file_system.define("test.mad", "service DB: \n"
                                             "   settings: \n"
@@ -138,7 +171,6 @@ class AcceptanceTests(TestCase):
         self._verify_invalid_model()
         self._verify_duplicate_entity_name("DB")
 
-
     def test_error_duplicate_operation(self):
         self.file_system.define("test.mad", "service DB:"
                                             "   operation Select:"
@@ -188,14 +220,28 @@ class AcceptanceTests(TestCase):
         self._verify_invalid_model()
         self._verify_unknown_service("DBBBB")
 
-    def _execute(self):
+    def _execute(self, command_line = None):
+        if not command_line:
+            command_line = [self.LOCATION, 1000]
         mad = Controller(self.display, self.file_system)
-        mad.execute(self.LOCATION, 1000)
+        mad.execute(*command_line)
 
     def _verify_opening(self):
         self._verify_version()
         self._verify_copyright()
         self._verify_disclaimer()
+
+    def _verify_invalid_parameter_count(self, count):
+        self._verify_output(Messages.INVALID_PARAMETER_COUNT, count=count)
+
+    def _verify_invalid_simulation_length(self, wrong_length):
+        self._verify_output(Messages.INVALID_SIMULATION_LENGTH, length=wrong_length)
+
+    def _verify_invalid_simulation_file(self, wrong_file):
+        self._verify_output(Messages.INVALID_SIMULATION_FILE, file=str(wrong_file))
+
+    def _verify_usage(self):
+        self._verify_output(Messages.USAGE)
 
     def _verify_model_loaded(self):
         self._verify_output(Messages.MODEL_LOADED, location=self.LOCATION)

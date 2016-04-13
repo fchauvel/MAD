@@ -24,7 +24,7 @@ from unittest import TestCase
 from mock import MagicMock
 
 from mad import __version__ as MAD_VERSION
-from mad.ui import Display, Arguments
+from mad.ui import Display, Arguments, InvalidSimulationLength, InvalidSimulationModel, WrongNumberOfArguments
 
 
 class DisplayTest(TestCase):
@@ -75,14 +75,14 @@ class ArgumentsTest(TestCase):
         self.assertEqual(25, project._time_limit)
 
     def test_detecting_missing_arguments(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(WrongNumberOfArguments):
             Arguments([25])
 
     def test_detecting_wrong_arguments(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidSimulationModel):
             Arguments([25, "test.mad"])
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidSimulationLength):
             Arguments(["test.mad", "25x"])
 
     def test_output_directory_is_in_the_current_directory(self):

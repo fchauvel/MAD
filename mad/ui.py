@@ -47,6 +47,17 @@ class Messages:
 
     RESULTS_AVAILABLE = "\n\nSee results in directory: ./{location:s}/\n"
 
+    INVALID_PARAMETER_COUNT = "Error: Expected 2 parameters (found {count:d})\.n"
+
+    INVALID_SIMULATION_LENGTH = "\nError: Invalid simulation length '{length:s}'.\n"
+
+    INVALID_SIMULATION_FILE = "\nError: Invalid simulation file '{file:s}'.\n"
+
+    USAGE = "USAGE: python -m mad <mad-file> <length>\n" \
+            "where:\n" \
+            " - <mad-file> is the location of the simulation model (a MAD file);\n" \
+            " - <length> is the maximum length of the simulation.\n"
+
     INVALID_MODEL = "Error, the model is invalid\n"
 
     INVALID_SYNTAX = " - Syntax error on line {line:d} (around '... {hint:s} ...')\n"
@@ -89,6 +100,9 @@ class Controller:
         except InvalidModel as error:
             self._report_invalid_model(error)
 
+        except InvalidCommandLine as error:
+            self._report_invalid_command_line(error)
+
     def _report_invalid_syntax(self, error):
         self.display.invalid_model()
         self.display.invalid_syntax(error)
@@ -97,6 +111,9 @@ class Controller:
         self.display.invalid_model()
         for each_issue in error.issues:
             each_issue.accept(self.display)
+
+    def _report_invalid_command_line(self, error):
+        error.accept(self.display)
 
     def _parse(self, command_line):
         return Arguments(command_line)
@@ -205,6 +222,21 @@ class Display:
     def _severity_of(self, error):
         return Messages.SEVERITY_ERROR if error.is_error() else Messages.SEVERITY_WARNING
 
+    def invalid_simulation_length(self, error):
+        self._format(Messages.INVALID_SIMULATION_LENGTH, length=str(error.length))
+        self._show_usage()
+
+    def invalid_simulation_file(self, error):
+        self._format(Messages.INVALID_SIMULATION_FILE, file=str(error.file_name))
+        self._show_usage()
+
+    def wrong_number_of_arguments(self, error):
+        self._format(Messages.INVALID_PARAMETER_COUNT, count=error.argument_count)
+        self._show_usage()
+
+    def _show_usage(self):
+        self._format(Messages.USAGE)
+
 
 class Arguments:
     """
@@ -219,21 +251,23 @@ class Arguments:
     REPORT = "{directory:s}/{entity:s}.log"
 
     def __init__(self, arguments):
+        if len(arguments) != 2:
+            raise WrongNumberOfArguments(len(arguments))
         self._arguments = arguments
         self._file_name = self._extract_file_name()
         self._time_limit = self._extract_length()
 
     def _extract_file_name(self):
-        result = self._arguments[0]
-        if not isinstance(result, str):
-            raise ValueError("Expecting 'MAD file' as Argument 1, but found '%s'" % self._arguments[0])
-        return result
+        file_name = self._arguments[0]
+        if not isinstance(file_name, str):
+            raise InvalidSimulationModel(file_name)
+        return file_name
 
     def _extract_length(self):
         try:
             return int(self._arguments[1])
         except ValueError:
-            raise ValueError("Expecting simulation length as Argument 2, but found '%s'" % self._arguments[1])
+            raise InvalidSimulationLength(self._arguments[1])
 
     @property
     def log_file(self):
@@ -260,3 +294,36 @@ class Arguments:
             directory=self._output_directory,
             entity=entity
         )
+
+
+class InvalidCommandLine(Exception):
+
+    def accept(self, visitor):
+        raise NotImplementedError("InvalidCommandLine::accept is abstract!")
+
+
+class InvalidSimulationModel(InvalidCommandLine):
+
+    def __init__(self, file_name):
+        self.file_name = file_name
+
+    def accept(self, visitor):
+        visitor.invalid_simulation_file(self)
+
+
+class InvalidSimulationLength(InvalidCommandLine):
+
+    def __init__(self, length):
+        self.length = length
+
+    def accept(self, visitor):
+        visitor.invalid_simulation_length(self)
+
+
+class WrongNumberOfArguments(InvalidCommandLine):
+
+    def __init__(self, argument_count):
+        self.argument_count = argument_count
+
+    def accept(self, visitor):
+        visitor.wrong_number_of_arguments(self)

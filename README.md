@@ -26,8 +26,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Clients
         * Multiple clients
         * Workload patterns
- * Improve error reporting
-    * Errors in the parameters passed to the CLI
  * Examples
     * SensApp example
  * Tests
@@ -38,8 +36,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Extract monitoring into a separate simulated entity, which can be configured throughout the settings
     * Format of the logs should be defined by the service itself, not by the factory
     * A test factory shared among simulation test
-    * Unify the logs and report factory into a DataStore
-    * Remove CSVReportFactory
 
 
     
