@@ -17,7 +17,7 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __copyright_years__ = "2015, 2016"
 
