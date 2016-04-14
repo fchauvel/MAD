@@ -225,7 +225,7 @@ class TestInterpreter(TestCase):
         self.assertEqual(client.on_success.call_count, 4)
 
     def fake_request(self, operation):
-        return Request(self.fake_client(), operation)
+        return Request(self.fake_client(), operation, 1)
 
     def fake_service(self):
         fake_service = MagicMock()

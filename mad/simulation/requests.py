@@ -20,11 +20,12 @@
 
 class Request:
 
-    def __init__(self, sender, operation, on_success=lambda: None, on_error=lambda: None):
+    def __init__(self, sender, operation, priority, on_success=lambda: None, on_error=lambda: None):
         assert sender, "Invalid sender (found %s)" % str(sender)
-        self.identifier = sender.simulation.next_request_id()
+        self.identifier = sender.next_request_id()
         self.sender = sender
         self.operation = operation
+        self.priority = priority
         self.on_success = on_success
         self.on_error = on_error
 

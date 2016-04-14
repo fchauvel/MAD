@@ -55,7 +55,7 @@ class SimulationFactory:
     def create_client_stub(self, environment, definition):
         self._abort(self.create_client_stub.__name__)
 
-    def create_request(self, sender, operation, on_success=lambda: None, on_error=lambda: None):
+    def create_request(self, sender, operation, priority, on_success=lambda: None, on_error=lambda: None):
         self._abort(self.create_request.__name__)
 
     def create_no_throttling(self):
@@ -158,7 +158,7 @@ class Evaluation:
     def of_trigger(self, trigger):
         sender = self._look_up(Symbols.SELF)
         recipient = self._look_up(trigger.service)
-        request = self.factory.create_request(sender, trigger.operation)
+        request = self.factory.create_request(sender, trigger.operation, trigger.priority)
         request.send_to(recipient)
         return self.continuation(Success(None))
 
@@ -187,7 +187,7 @@ class Evaluation:
             task.resume = resume
             sender.activate(task)
 
-        request = self.factory.create_request(sender, query.operation, on_success, on_error)
+        request = self.factory.create_request(sender, query.operation, query.priority, on_success, on_error)
         sender.log("Sending Req. %d to %s::%s", (request.identifier, query.service, query.operation))
         request.send_to(recipient)
 

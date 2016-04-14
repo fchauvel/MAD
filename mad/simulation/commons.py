@@ -46,7 +46,9 @@ class SimulatedEntity:
     def factory(self):
         return self.simulation.factory
 
-
     def create_report(self, format):
         return self.simulation._storage.report_for(self.name, format)
+
+    def next_request_id(self):
+        return self.simulation.next_request_id()
 

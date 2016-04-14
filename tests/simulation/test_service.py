@@ -26,10 +26,20 @@ from mad.ast.actions import Think
 
 from mad.evaluation import Symbols
 
+from mad.simulation.service import Service
 from mad.simulation.factory import Factory
 from mad.simulation.requests import Request
 from mad.simulation.tasks import TaskPool
 from mad.simulation.throttling import ThrottlingPolicy
+
+
+class RequestTests(TestCase):
+
+    def test_setting_priority(self):
+        sender = MagicMock(Service)
+        sender.next_request_is = MagicMock(return_value=3)
+        request = Request(sender, "Select", 4)
+        self.assertEqual(4, request.priority)
 
 
 class ServiceTests(TestCase):
