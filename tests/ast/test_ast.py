@@ -62,6 +62,27 @@ class QueryTests(TestCase):
         self.assertNotEqual(queries[0], queries[3])
         self.assertEqual(queries[0], queries[4])
 
+    def test_setting_priority(self):
+        desired_priority = 17
+        invocation = Query("DB", "Select", desired_priority)
+        self.assertEqual(desired_priority, invocation.priority)
+
+    def test_default_priority(self):
+        invocation = Query("DB", "Select")
+        self.assertEqual(Invocation.DEFAULT_PRIORITY, invocation.priority)
+
+
+class TriggerTests(TestCase):
+
+    def test_setting_priority(self):
+        desired_priority = 17
+        invocation = Trigger("DB", "Select", desired_priority)
+        self.assertEqual(desired_priority, invocation.priority)
+
+    def test_default_priority(self):
+        invocation = Trigger("DB", "Select")
+        self.assertEqual(Invocation.DEFAULT_PRIORITY, invocation.priority)
+
 
 class SequenceTests(TestCase):
 

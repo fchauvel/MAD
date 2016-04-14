@@ -36,11 +36,13 @@ class Invocation(Action):
     """
     Abstract invocation of a remote operation
     """
+    DEFAULT_PRIORITY = 5
 
-    def __init__(self, service, operation):
+    def __init__(self, service, operation, priority):
         super().__init__()
         self.service = service
         self.operation = operation
+        self.priority = priority
 
     def accept(self, evaluation):
         raise NotImplementedError("Invocation::accept(evaluation) is abstract!")
@@ -51,14 +53,14 @@ class Trigger(Invocation):
     An non-blocking invocation of a remote operation
     """
 
-    def __init__(self, service, operation):
-        super().__init__(service, operation)
+    def __init__(self, service, operation, priority=None):
+        super().__init__(service, operation, priority or self.DEFAULT_PRIORITY)
 
     def accept(self, evaluation):
         return evaluation.of_trigger(self)
 
     def __repr__(self):
-        return "Trigger(%s, %s)" % (self.service, self.operation)
+        return "Trigger(%s, %s, %d)" % (self.service, self.operation, self.priority)
 
 
 class Query(Invocation):
@@ -66,14 +68,14 @@ class Query(Invocation):
     A blocking invocation of a remote operation
     """
 
-    def __init__(self, service, operation):
-        super().__init__(service, operation)
+    def __init__(self, service, operation, priority=None):
+        super().__init__(service, operation, priority or self.DEFAULT_PRIORITY)
 
     def accept(self, evaluation):
         return evaluation.of_query(self)
 
     def __repr__(self):
-        return "Query(%s, %s)" % (self.service, self.operation)
+        return "Query(%s, %s, %d)" % (self.service, self.operation, self.priority)
 
 
 class Think(Action):

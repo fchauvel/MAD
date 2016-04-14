@@ -7,7 +7,6 @@
 [![PyPI](https://img.shields.io/pypi/dm/MAD.svg)](http://pypi-ranking.info/module/MAD)
 
 
-
 MAD is a discrete event simulator to study the dynamics of microservices architectures where each service encompasses 
 several defensive mechanisms, such as timeout, autoscaling, throttling, back-off protocols, etc.
 
