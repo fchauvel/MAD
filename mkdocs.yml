@@ -9,4 +9,5 @@ pages:
    - "Queue": queue.md
    - "Autoscaling": autoscaling.md
    - "Throttling": throttling.md
+   - "Service Differentiation": service_differentiation.md
 theme: flatly
