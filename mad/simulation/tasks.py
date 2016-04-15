@@ -21,13 +21,35 @@
 class TaskPool:
 
     def __init__(self):
-        self.requests = []
+        self.tasks = []
+        self.interrupted = []
 
     def put(self, request):
-        self.requests.append(request)
+        self.tasks.append(request)
 
     def take(self):
-        raise NotImplementedError("TaskPool::take is abstract!")
+        if len(self.interrupted) > 0:
+            return self._pick_from(self.interrupted)
+        else:
+            if len(self.tasks) > 0:
+                return self._pick_from(self.tasks)
+            raise ValueError("Unable to take from an empty task pool!")
+
+    def _pick_from(self, candidates):
+        high_priority = self._highest_priority(candidates)
+        return self._next( high_priority)
+
+    @staticmethod
+    def _highest_priority(candidates):
+        highest = max(candidates, key=lambda task: task.priority)
+        return [any_task for any_task in candidates if any_task.priority == highest.priority]
+
+    def _next(self, candidates):
+        raise NotImplementedError("TaskPool::_next is abstract!")
+
+    def _remove(self, task):
+        if task in self.tasks: self.tasks.remove(task)
+        if task in self.interrupted: self.interrupted.remove(task)
 
     @property
     def is_empty(self):
@@ -39,10 +61,10 @@ class TaskPool:
 
     @property
     def size(self):
-        return len(self.requests)
+        return len(self.tasks) + len(self.interrupted)
 
-    def activate(self, request):
-        raise NotImplementedError("TaskPool::activate is abstract!")
+    def activate(self, task):
+        self.interrupted.append(task)
 
 
 class FIFOTaskPool(TaskPool):
@@ -50,13 +72,10 @@ class FIFOTaskPool(TaskPool):
     def __init__(self):
         super().__init__()
 
-    def take(self):
-        if self.is_empty:
-            raise ValueError("Cannot take a request from an empty pool!")
-        return self.requests.pop(0)
-
-    def activate(self, request):
-        self.requests.insert(0, request)
+    def _next(self, candidates):
+        selected = candidates[0]
+        self._remove(selected)
+        return selected
 
 
 class LIFOTaskPool(TaskPool):
@@ -64,13 +83,10 @@ class LIFOTaskPool(TaskPool):
     def __init__(self):
         super().__init__()
 
-    def take(self):
-        if self.is_empty:
-            raise ValueError("Cannot take a request from an empty pool!")
-        return self.requests.pop(-1)
-
-    def activate(self, request):
-        self.requests.append(request)
+    def _next(self, candidates):
+        selected = candidates[-1]
+        self._remove(selected)
+        return selected
 
 
 class Task:
@@ -79,6 +95,10 @@ class Task:
         self.request = request
         self.is_started = False
         self.resume = lambda: None
+
+    @property
+    def priority(self):
+        return self.request.priority
 
     def mark_as_started(self):
         self.is_started = True

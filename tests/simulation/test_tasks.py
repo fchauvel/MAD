@@ -18,77 +18,104 @@
 #
 
 from unittest import TestCase
+from mock import MagicMock, PropertyMock
 
-from mad.simulation.tasks import LIFOTaskPool, FIFOTaskPool
+from mad.simulation.tasks import Task, LIFOTaskPool, FIFOTaskPool
 
 
-class LIFOTaskPoolTests(TestCase):
+DEFAULT_PRIORITY = 0
 
-    def test_take(self):
-        pool = LIFOTaskPool()
 
-        pool.put("request 1")
-        pool.put("request 2")
-        pool.put("request 3")
+class AbstractTaskPoolTests:
 
-        self.assertEqual("request 3", pool.take())
+    @staticmethod
+    def _make_task(priority=DEFAULT_PRIORITY):
+        task = MagicMock(Task)
+        type(task).priority = PropertyMock(return_value=priority)
+        return task
+
+    def _put_a_task(self, priority=DEFAULT_PRIORITY):
+        task = self._make_task(priority)
+        self.pool.put(task)
+        return task
+
+    def _activate_a_task(self, priority=DEFAULT_PRIORITY):
+        task = self._make_task(priority)
+        self.pool.activate(task)
+        return task
 
     def test_take_fails_when_empty(self):
-        pool = LIFOTaskPool()
-        self.assertTrue(pool.is_empty)
+        self.assertTrue(self.pool.is_empty)
 
         with self.assertRaises(ValueError):
-            pool.take()
-
-    def test_reactivated_task_are_taken_first(self):
-        pool = LIFOTaskPool()
-
-        pool.put("request 1")
-        pool.put("request 2")
-        pool.activate("request 3")
-        pool.put("request 4")
-
-        # FIXME: It is not clear which request should come first? The third or the four?
-        self.assertEqual("request 4", pool.take())
-
-
-class TaskPoolTests(TestCase):
+            self.pool.take()
 
     def test_put_increases_size(self):
-        pool = self._create_pool()
-        pool.put("request 1")
-
-        self.assertEqual(pool.size, 1)
-
-    def _create_pool(self):
-        return FIFOTaskPool()
+        self._put_a_task()
+        self.assertEqual(self.pool.size, 1)
 
     def test_take_decreases_size(self):
-        pool = self._create_pool()
-        pool.put("request 1")
-        pool.put("request 2")
+        self._put_a_task()
+        self._put_a_task()
 
-        pool.take()
+        self.pool.take()
 
-        self.assertEqual(pool.size, 1)
-
-    def test_taking_from_empty_pool_fails(self):
-        pool = self._create_pool()
-        with self.assertRaises(ValueError):
-            pool.take()
+        self.assertEqual(self.pool.size, 1)
 
     def test_activate_increases_size(self):
-        pool = self._create_pool()
-        pool.activate("request")
-        self.assertEqual(pool.size, 1)
+        self._activate_a_task()
+        self.assertEqual(self.pool.size, 1)
 
-    def test_activated_requests_come_out_first(self):
-        pool = self._create_pool()
-        pool.put("task 1")
-        pool.activate("task 2")
-        pool.put("task 3")
+    def test_take_return_a_task_with_highest_priority(self):
+        self._put_a_task(priority=1)
+        next_task = self._put_a_task(priority=2)
+        self._put_a_task(priority=1)
 
-        self.assertEqual(pool.take(), "task 2")
+        self.assertIs(next_task, self.pool.take())
+
+    def test_take_returns_paused_tasks_first_regardless_of_priority(self):
+        self._put_a_task(priority=5)
+        self._put_a_task(priority=5)
+        next_task = self._activate_a_task(priority=1)
+        self._put_a_task(priority=5)
+
+        self.assertIs(next_task, self.pool.take())
+
+    def test_take_returns_paused_tasks_by_priority(self):
+        self._activate_a_task(priority=3)
+        next_task = self._activate_a_task(priority=4)
+        self._activate_a_task(priority=1)
+
+        self.assertIs(next_task, self.pool.take())
+
+    def test_breaking_tie(self):
+        raise NotImplementedError("_AbstractTaskPoolTests::test_breaking_tie")
+
+
+class LIFOTaskPoolTests(TestCase, AbstractTaskPoolTests):
+
+    def setUp(self):
+        self.pool = LIFOTaskPool()
+
+    def test_breaking_tie(self):
+        self._put_a_task()
+        self._put_a_task()
+        next_task = self._put_a_task()
+
+        self.assertIs(next_task, self.pool.take())
+
+
+class FIFOTaskPoolTests(TestCase, AbstractTaskPoolTests):
+
+    def setUp(self):
+        self.pool = FIFOTaskPool()
+
+    def test_breaking_tie(self):
+        next_task = self._put_a_task()
+        self._put_a_task()
+        self._put_a_task()
+
+        self.assertIs(next_task, self.pool.take())
 
 
 if __name__ == "__main__":
