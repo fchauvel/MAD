@@ -56,6 +56,27 @@ class AcceptanceTests(TestCase):
         self._verify_reports_for(["DB"])
         self._verify_log()
 
+    def test_priority_scheme(self):
+        self.file_system.define("test.mad", "service DB:"
+                                            "   operation Select:"
+                                            "      think 5"
+                                            "client Browser_A:"
+                                            "   every 2:"
+                                            "      query DB/Select {priority: 10}"
+                                            "client Browser_B:"
+                                            "   every 10:"
+                                            "      query DB/Select {priority: 0}")
+
+        self._execute([self.LOCATION, 20])
+
+        self._verify_opening()
+        self._verify_valid_model()
+        self._verify_no_warnings()
+        self._verify_successful_invocations("Browser_A", 3)
+        self._verify_successful_invocations("Browser_B", 0)
+        self._verify_reports_for(["DB"])
+        self._verify_log()
+
     def test_invalid_simulation_length(self):
         self.file_system.define("test.mad", "whatever, as it will not be parsed!")
 
@@ -87,7 +108,6 @@ class AcceptanceTests(TestCase):
         self._verify_opening()
         self._verify_invalid_parameter_count(len(invalid_command_line))
         self._verify_usage()
-
 
     def test_error_empty_service(self):
         self.file_system.define("test.mad", "service DB: \n"
@@ -224,7 +244,11 @@ class AcceptanceTests(TestCase):
         if not command_line:
             command_line = [self.LOCATION, 1000]
         mad = Controller(self.display, self.file_system)
-        mad.execute(*command_line)
+        self.simulation = mad.execute(*command_line)
+
+    def _verify_successful_invocations(self, entity_name, expected_count):
+        entity = self.simulation.environment.look_up(entity_name)
+        self.assertEqual(expected_count, entity.monitor.success_count)
 
     def _verify_opening(self):
         self._verify_version()

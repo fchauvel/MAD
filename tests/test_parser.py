@@ -57,7 +57,9 @@ class CorrectExpressionTests(ParserTests):
     def _all_expressions(self):
         return [
             ("query DB/Select", Query("DB", "Select"), "query"),
+            ("query DB/Select {priority: 12}", Query("DB", "Select", 12), "query"),
             ("invoke DB/Select", Trigger("DB", "Select"), "invoke"),
+            ("invoke DB/Select {priority: 12}", Trigger("DB", "Select", 12), "invoke"),
             ("think 5", Think(5), "think"),
             ("think 5 invoke DB/Select", Sequence(Think(5), Trigger("DB", "Select")), "action_list"),
 

@@ -36,6 +36,7 @@ reserved = {
     "none": "NONE",
     "operation": "OPERATION",
     "period": "PERIOD",
+    "priority": "PRIORITY",
     "queue": "QUEUE",
     "query": "QUERY",
     "service": "SERVICE",
@@ -293,15 +294,23 @@ def p_think(p):
 def p_query(p):
     """
     query : QUERY IDENTIFIER SLASH IDENTIFIER
+          | QUERY IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET PRIORITY COLON NUMBER CLOSE_CURLY_BRACKET
     """
-    p[0] = Query(p[2], p[4])
+    priority = None
+    if len(p) > 5:
+        priority = int(p[8])
+    p[0] = Query(p[2], p[4], priority)
 
 
 def p_invoke(p):
     """
     invoke : INVOKE IDENTIFIER SLASH IDENTIFIER
+           | INVOKE IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET PRIORITY COLON NUMBER CLOSE_CURLY_BRACKET
     """
-    p[0] = Trigger(p[2], p[4])
+    priority = None
+    if len(p) > 5:
+        priority = int(p[8])
+    p[0] = Trigger(p[2], p[4], priority)
 
 
 def p_error(t):

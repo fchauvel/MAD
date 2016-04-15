@@ -16,7 +16,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
 
  * Features
     * Services
-        * Support for request differentiation
         * Support for timeout
         * Support for backing-off protocols
         * Monitoring

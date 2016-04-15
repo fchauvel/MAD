@@ -22,6 +22,15 @@ from mad.simulation.commons import SimulatedEntity
 from mad.simulation.tasks import Task
 
 
+class Monitor:
+
+    def __init__(self):
+        self.success_count = 0
+
+    def record_success(self):
+        self.success_count += 1
+
+
 class ClientStub(SimulatedEntity):
 
     def __init__(self, name, environment, period, body):
@@ -29,6 +38,7 @@ class ClientStub(SimulatedEntity):
         self.environment.define(Symbols.SELF, self)
         self.period = period
         self.body = body
+        self.monitor = Monitor()
 
     def initialize(self):
         self.schedule.every(self.period, self.invoke)
@@ -51,7 +61,7 @@ class ClientStub(SimulatedEntity):
         pass
 
     def on_success(self):
-        pass
+        self.monitor.record_success()
 
     def on_error(self):
         pass
