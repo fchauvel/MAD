@@ -27,7 +27,7 @@ from mad.ast.definitions import *
 from mad.ast.actions import *
 from mad.simulation.factory import Simulation
 from mad.simulation.service import Service, Operation
-from mad.evaluation import Symbols
+from mad.evaluation import Symbols, Error
 from mad.simulation.requests import Request
 
 
@@ -43,8 +43,8 @@ class TestInterpreter(TestCase):
     def look_up(self, symbol):
         return self.simulation.environment.look_up(symbol)
 
-    def evaluate(self, expression):
-        return self.simulation.evaluate(expression)
+    def evaluate(self, expression, continuation=lambda x:x):
+        return self.simulation.evaluate(expression, continuation)
 
     def verify_definition(self, symbol, kind):
         value = self.look_up(symbol)
@@ -54,6 +54,7 @@ class TestInterpreter(TestCase):
         service = self.look_up(service_name)
         request = self.fake_request(operation_name)
         request.send_to(service)
+        return request
 
     def simulate_until(self, end):
         self.simulation.run_until(end)
@@ -79,6 +80,21 @@ class TestInterpreter(TestCase):
         self.send_request("Front-end", "checkout")
 
         self.assertEqual(db.process.call_count, 1)
+
+    def test_evaluate_timeout_queries(self):
+        db = self.define("DB", self.fake_service())
+        self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("checkout",
+                     Query("DB", "op", timeout=10)
+                )
+            )
+        )
+
+        request = self.send_request("Front-end", "checkout")
+        self.simulate_until(50)
+
+        self.assertEqual(Request.ERROR, request.status)
 
     def test_sequence_evaluation(self):
         db = self.define("DB", self.service_that_always_fails())

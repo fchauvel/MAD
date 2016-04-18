@@ -191,6 +191,20 @@ class Evaluation:
         sender.log("Sending Req. %d to %s::%s", (request.identifier, query.service, query.operation))
         request.send_to(recipient)
 
+        def timeout_check():
+            sender.log("Req. %d timeout!", request.identifier)
+
+            def resume(worker):
+                self.environment.dynamic_scope = worker.environment
+                if request.is_pending:
+                    self.continuation(Error())
+
+            task.resume = resume
+            sender.activate(task)
+
+        if query.has_timeout:
+            sender.schedule.after(query.timeout, timeout_check)
+
         worker = self.environment.dynamic_look_up(Symbols.WORKER)
         sender.release(worker)
         return Success(None)

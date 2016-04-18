@@ -96,8 +96,8 @@ class Simulation:
     def schedule(self):
         return self._scheduler
 
-    def evaluate(self, expression):
-        return Evaluation(self.environment, expression, self.factory).result
+    def evaluate(self, expression, continuation=lambda x: x):
+        return Evaluation(self.environment, expression, self.factory, continuation).result
 
     def next_request_id(self):
         id = self._next_request_id

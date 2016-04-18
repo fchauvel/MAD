@@ -42,7 +42,6 @@ class WorkerPool:
         for index in range(min(len(self.idle_workers), count)):
             self.idle_workers.pop(0)
 
-
     @property
     def utilisation(self):
         return 100 * (1 - (len(self.idle_workers) / self.capacity))

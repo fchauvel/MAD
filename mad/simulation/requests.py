@@ -18,7 +18,11 @@
 #
 
 
+
 class Request:
+    PENDING = 0
+    OK = 1
+    ERROR = 2
 
     def __init__(self, sender, operation, priority, on_success=lambda: None, on_error=lambda: None):
         assert sender, "Invalid sender (found %s)" % str(sender)
@@ -28,12 +32,19 @@ class Request:
         self.priority = priority
         self.on_success = on_success
         self.on_error = on_error
+        self.status = self.PENDING
+
+    @property
+    def is_pending(self):
+        return self.status == self.PENDING
 
     def send_to(self, service):
         service.process(self)
 
     def reply_success(self):
+        self.status = self.OK
         self.on_success()
 
     def reply_error(self):
+        self.status = self.ERROR
         self.on_error()
