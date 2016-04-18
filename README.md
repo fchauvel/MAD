@@ -24,6 +24,10 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
             * current timeout
             * current back-off delay per 'partner'
             * incoming/outgoing rejection rate/count
+        * Priority / Service differentiation
+            * An algorithm that ensures fairness
+        * Actions
+            * Probabilistic case statement
     * Clients
         * Multiple clients
         * Workload patterns
@@ -38,6 +42,8 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Format of the logs should be defined by the service itself, not by the factory
     * A test factory shared among simulation test
 
+## NEXT RELEASE CHANGE LOG (v0.1.1)
 
-    
+ * Support for service differentiation (priority schemes)
+
     

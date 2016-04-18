@@ -68,11 +68,16 @@ class Query(Invocation):
     A blocking invocation of a remote operation
     """
 
-    def __init__(self, service, operation, priority=None):
+    def __init__(self, service, operation, priority=None, timeout=None):
         super().__init__(service, operation, priority or self.DEFAULT_PRIORITY)
+        self.timeout = timeout
 
     def accept(self, evaluation):
         return evaluation.of_query(self)
+
+    @property
+    def has_timeout(self):
+        return self.timeout is not None
 
     def __repr__(self):
         return "Query(%s, %s, %d)" % (self.service, self.operation, self.priority)

@@ -71,6 +71,16 @@ class QueryTests(TestCase):
         invocation = Query("DB", "Select")
         self.assertEqual(Invocation.DEFAULT_PRIORITY, invocation.priority)
 
+    def test_default_timeout(self):
+        invocation = Query("DB", "Select")
+        self.assertFalse(invocation.has_timeout)
+
+    def test_setting_timeout(self):
+        desired_timeout = 25
+        invocation = Query("DB", "Select", timeout=desired_timeout)
+        self.assertTrue(invocation.has_timeout)
+        self.assertEqual(desired_timeout, invocation.timeout)
+
 
 class TriggerTests(TestCase):
 

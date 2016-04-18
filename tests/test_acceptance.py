@@ -19,6 +19,7 @@
 
 
 from io import StringIO
+from unittest.case import skip
 
 from mad.ui import Arguments, Messages, Controller
 
@@ -74,6 +75,24 @@ class AcceptanceTests(TestCase):
         self._verify_no_warnings()
         self._verify_successful_invocations("Browser_A", 3)
         self._verify_successful_invocations("Browser_B", 0)
+        self._verify_reports_for(["DB"])
+        self._verify_log()
+
+    @skip
+    def test_timeouts(self):
+        self.file_system.define("test.mad", "service DB:"
+                                            "   operation Select:"
+                                            "      think 10"
+                                            "client Browser:"
+                                            "   every 20:"
+                                            "      query DB/Select {timeout: 5}")
+
+        self._execute([self.LOCATION, 100])
+
+        self._verify_opening()
+        self._verify_valid_model()
+        self._verify_no_warnings()
+        self._verify_successful_invocations("Browser", 0)
         self._verify_reports_for(["DB"])
         self._verify_log()
 
