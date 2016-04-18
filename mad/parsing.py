@@ -44,6 +44,7 @@ reserved = {
     "tail-drop": "TAIL_DROP",
     "think": "THINK",
     "throttling": "THROTTLING",
+    "timeout": "TIMEOUT"
 }
 
 # List of token names.   This is always required
@@ -294,12 +295,47 @@ def p_think(p):
 def p_query(p):
     """
     query : QUERY IDENTIFIER SLASH IDENTIFIER
-          | QUERY IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET PRIORITY COLON NUMBER CLOSE_CURLY_BRACKET
+          | QUERY IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET query_option_list CLOSE_CURLY_BRACKET
     """
-    priority = None
+    parameters = {"service": p[2], "operation": p[4]}
     if len(p) > 5:
-        priority = int(p[8])
-    p[0] = Query(p[2], p[4], priority)
+        parameters = merge_map(parameters, p[6])
+    p[0] = Query(**parameters)
+
+
+def p_query_option_list(p):
+    """
+    query_option_list : query_option COMMA query_option_list
+                      | query_option
+    """
+    if len(p) == 2:
+        p[0] = p[1]
+    elif len(p) == 4:
+        p[0] = merge_map(p[1], p[3])
+    else:
+        raise RuntimeError("Invalid product rules for 'query_option_list'")
+
+
+def p_query_option(p):
+    """
+    query_option : timeout
+                 | priority
+    """
+    p[0] = p[1]
+
+
+def p_timeout(p):
+    """
+    timeout : TIMEOUT COLON NUMBER
+    """
+    p[0] = {"timeout": int(p[3])}
+
+
+def p_priority(p):
+    """
+    priority : PRIORITY COLON NUMBER
+    """
+    p[0] = {"priority": int(p[3])}
 
 
 def p_invoke(p):
