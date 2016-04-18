@@ -197,6 +197,7 @@ class Evaluation:
             def resume(worker):
                 self.environment.dynamic_scope = worker.environment
                 if request.is_pending:
+                    request.reply_error()
                     self.continuation(Error())
 
             task.resume = resume
@@ -207,13 +208,13 @@ class Evaluation:
 
         worker = self.environment.dynamic_look_up(Symbols.WORKER)
         sender.release(worker)
-        return Success(None)
+        return Paused()
 
     def of_think(self, think):
         def resume():
             self.continuation(Success())
         self.simulation.schedule.after(think.duration, resume)
-        return Success()
+        return Paused()
 
     def of_retry(self, retry):
 
@@ -240,6 +241,7 @@ class Result:
     """
     Represent the result of an evaluation, including the status (pass, failed) and the value if associated value if any
     """
+    PAUSED = 0
     SUCCESS = 1
     ERROR = 2
 
@@ -250,6 +252,14 @@ class Result:
     @property
     def is_successful(self):
         return self.status == Result.SUCCESS
+
+    @property
+    def is_paused(self):
+        return self.status == Result.PAUSED
+
+    @property
+    def is_erroneous(self):
+        return self.status == Result.ERROR
 
     def __repr__(self):
         return "SUCCESS" if self.is_successful else "ERROR"
@@ -267,3 +277,6 @@ class Error(Result):
         super().__init__(Result.ERROR, None)
 
 
+class Paused(Result):
+    def __init__(self):
+        super().__init__(Result.PAUSED, None)

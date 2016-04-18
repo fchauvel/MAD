@@ -18,7 +18,6 @@
 #
 
 
-
 class Request:
     PENDING = 0
     OK = 1
@@ -42,9 +41,11 @@ class Request:
         service.process(self)
 
     def reply_success(self):
-        self.status = self.OK
-        self.on_success()
+        if self.is_pending:
+            self.status = self.OK
+            self.on_success()
 
     def reply_error(self):
-        self.status = self.ERROR
-        self.on_error()
+        if self.is_pending:
+            self.status = self.ERROR
+            self.on_error()

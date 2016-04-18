@@ -19,7 +19,6 @@
 
 
 from io import StringIO
-from unittest.case import skip
 
 from mad.ui import Arguments, Messages, Controller
 
@@ -78,7 +77,6 @@ class AcceptanceTests(TestCase):
         self._verify_reports_for(["DB"])
         self._verify_log()
 
-    @skip
     def test_timeouts(self):
         self.file_system.define("test.mad", "service DB:"
                                             "   operation Select:"

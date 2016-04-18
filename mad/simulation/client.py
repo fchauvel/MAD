@@ -26,9 +26,13 @@ class Monitor:
 
     def __init__(self):
         self.success_count = 0
+        self.error_count = 0
 
     def record_success(self):
         self.success_count += 1
+
+    def record_error(self):
+        self.error_count += 1
 
 
 class ClientStub(SimulatedEntity):
@@ -44,11 +48,13 @@ class ClientStub(SimulatedEntity):
         self.schedule.every(self.period, self.invoke)
 
     def invoke(self):
-        def post_processing(status):
-            if status.is_successful:
+        def post_processing(result):
+            if result.is_successful:
                 self.on_success()
-            else:
+            elif result.is_erroneous:
                 self.on_error()
+            else:
+                pass
         self.environment.define(Symbols.TASK, Task())
         env = self.environment.create_local_environment(self.environment)
         env.define(Symbols.WORKER, self)
@@ -64,4 +70,4 @@ class ClientStub(SimulatedEntity):
         self.monitor.record_success()
 
     def on_error(self):
-        pass
+        self.monitor.record_error()
