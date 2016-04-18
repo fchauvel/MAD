@@ -10,4 +10,5 @@ pages:
    - "Autoscaling": autoscaling.md
    - "Throttling": throttling.md
    - "Service Differentiation": service_differentiation.md
+   - "Invocations": invocations.md
 theme: flatly

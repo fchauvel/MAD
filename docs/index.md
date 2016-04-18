@@ -9,12 +9,18 @@ services offering an operation 'Select' that takes 10 simulation steps to comple
 this operation every 5 unit of steps.
 
     service DB:
+        settings:
+            autoscaling:
+                period: 10
+                limits: [1, 20]
+                policy: rule-based(utilisation, 70, 80)
+    
         operation Select:
             think 10
             
     client Browser:
         every 5:
-            query DB/Select
+            query DB/Select {timeout: 23}
 
 MAD will simulate their behaviour and output traces for both service and clients, including queue length, emission rate, 
 utilisation and many other measures.
