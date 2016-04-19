@@ -47,7 +47,8 @@ class SimulatedEntity:
         return self.simulation.factory
 
     def create_report(self, format):
-        return self.simulation._storage.report_for(self.name, format)
+        name = self.look_up(Symbols.SERVICE).name
+        return self.simulation._storage.report_for(name, format)
 
     def next_request_id(self):
         return self.simulation.next_request_id()

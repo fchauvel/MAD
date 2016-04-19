@@ -22,13 +22,14 @@ from mad.ast.settings import Settings
 
 class Symbols:
     AUTOSCALING = "!autoscaling"
-    SIMULATION = "!simulation"
+    MONITOR = "!monitor"
     SELF = "!self"
-    TASK = "!request"
     SERVICE = "!service"
-    WORKER = "!worker"
-    QUEUE = "!queue"
+    SIMULATION = "!simulation"
+    TASK = "!request"
     THROTTLING = "!throttling"
+    QUEUE = "!queue"
+    WORKER = "!worker"
 
 
 class SimulationFactory:
@@ -39,6 +40,9 @@ class SimulationFactory:
 
     def create_service(self, name, environment):
         self._abort(self.create_service.__name__)
+
+    def create_monitor(self, period):
+        self._abort(self.create_monitor.__name__)
 
     def create_FIFO_task_pool(self):
         self._abort(self.create_FIFO_task_pool.__name__)
@@ -101,6 +105,8 @@ class Evaluation:
         Evaluation(service_environment, service.body, self.factory).result
         service = self.factory.create_service(service.name, service_environment)
         self._define(service.name, service)
+        monitor = self.factory.create_monitor(Symbols.MONITOR, service_environment, None)
+        self._define(Symbols.MONITOR, monitor)
         return self.continuation(Success(service))
 
     def of_settings(self, settings):

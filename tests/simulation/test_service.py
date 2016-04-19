@@ -62,26 +62,6 @@ class ServiceTests(TestCase):
         self.assertEquals(0, request.reply_success.call_count)
         self.assertEquals(1, request.reply_error.call_count)
 
-    def test_monitoring(self):
-        report = self.create_report()
-
-        queue_length = 10
-        rejection_count = 43
-        self.create_service(
-                busy_worker=0,
-                accept_next=True,
-                queue_length=queue_length,
-                rejection_count=rejection_count)
-
-        self.service.monitor()
-
-        report.assert_called_with(
-                time=0,
-                queue_length=queue_length,
-                worker_count=1,
-                utilisation=0.0,
-                rejection_count=rejection_count)
-
     def create_report(self):
         report = MagicMock()
         report.__call__ = MagicMock()
