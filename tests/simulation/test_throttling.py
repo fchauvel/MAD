@@ -30,8 +30,8 @@ DUMMY_TASK = "whatever"
 class NoThrottlingTests(TestCase):
 
     def test_never_rejects(self):
-        throttling = NoThrottling();
-        self.assertTrue(throttling.accepts(DUMMY_TASK))
+        throttling = NoThrottling(MagicMock(TaskPool));
+        self.assertTrue(throttling._accepts(DUMMY_TASK))
 
 
 class TailDropTests(TestCase):
@@ -39,16 +39,16 @@ class TailDropTests(TestCase):
     def setUp(self):
         self.capacity = 50
         self.queue = MagicMock(TaskPool)
-        self.set_pending_tasks(50)
-        self.throttling = TailDrop(self.capacity, self.queue)
+        self.pool_size(50)
+        self.throttling = TailDrop(self.queue, self.capacity)
 
-    def set_pending_tasks(self, length):
+    def pool_size(self, length):
         type(self.queue).size = PropertyMock(return_value=length)
 
     def test_rejects_non_integer_capacity(self):
         try:
             capacity = "not an integer"
-            TailDrop(capacity, self.queue)
+            TailDrop(self.queue, capacity)
             self.fail("AssertionError expected!")
 
         except AssertionError as error:
@@ -57,31 +57,24 @@ class TailDropTests(TestCase):
     def test_rejects_negative_capacity(self):
         try:
             capacity = -5
-            TailDrop(capacity, self.queue)
+            TailDrop(self.queue, capacity)
             self.fail("AssertionError expected!")
 
         except AssertionError as error:
             self.assertEqual(error.args[0], NEGATIVE_CAPACITY.format(capacity=capacity))
 
     def test_reject_at_capacity(self):
-        self.set_pending_tasks(self.capacity)
-        self.assertFalse(self.throttling.accepts(DUMMY_TASK))
+        self.pool_size(self.capacity)
+        self.assertFalse(self.throttling._accepts(DUMMY_TASK))
 
-    def test_reject_at_capacity(self):
-        self.set_pending_tasks(self.capacity + 1)
-        self.assertFalse(self.throttling.accepts(DUMMY_TASK))
+    def test_reject_beyond_capacity(self):
+        self.pool_size(self.capacity + 1)
+        self.assertFalse(self.throttling._accepts(DUMMY_TASK))
 
     def test_accept_before_capacity(self):
-        self.set_pending_tasks(self.capacity - 1)
-        self.assertTrue(self.throttling.accepts(DUMMY_TASK))
+        self.pool_size(self.capacity - 1)
+        self.assertTrue(self.throttling._accepts(DUMMY_TASK))
 
-    def test_expose_rejection_count(self):
-        pending_request = self.capacity - 2
-        self.set_pending_tasks(pending_request);
-        for i in range(1, 11):
-            self.throttling.accepts(DUMMY_TASK)
-            self.set_pending_tasks(pending_request + i);
-        self.assertEqual(8, self.throttling.rejection_count)
 
 
 if __name__ == "__main__":

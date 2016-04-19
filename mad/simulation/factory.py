@@ -68,8 +68,8 @@ class Factory(SimulationFactory):
     def create_request(self, sender, operation, priority, on_success=lambda: None, on_error=lambda: None):
         return Request(sender, operation, priority, on_success, on_error)
 
-    def create_no_throttling(self):
-        return NoThrottling()
+    def create_no_throttling(self, task_pool):
+        return NoThrottling(task_pool)
 
     def create_tail_drop(self, capacity, task_pool):
         return TailDrop(capacity, task_pool)

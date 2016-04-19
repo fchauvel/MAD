@@ -57,8 +57,7 @@ class Monitor(SimulatedEntity):
         Probe("time", 6, "{:d}", lambda self: self.schedule.time_now),
         Probe("queue length", 4, "{:d}", lambda self: self._queue_length()),
         Probe("utilisation", 10, "{:5.2f}", lambda self: self._utilisation()),
-        Probe("worker count", 4, "{:d}", lambda self: self._worker_count()),
-        Probe("rejection count", 10, "{:d}", lambda self: self._rejection_count())
+        Probe("worker count", 4, "{:d}", lambda self: self._worker_count())
     ]
 
     def __init__(self, name, environment, period):
@@ -93,7 +92,3 @@ class Monitor(SimulatedEntity):
     def _worker_count(self):
         service = self.look_up(Symbols.SERVICE)
         return service.worker_count
-
-    def _rejection_count(self):
-        throttling = self.look_up(Symbols.THROTTLING)
-        return throttling.rejection_count

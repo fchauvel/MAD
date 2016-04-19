@@ -59,7 +59,6 @@ class Service(SimulatedEntity):
         self.environment.define(Symbols.SELF, self)
         self.environment.define(Symbols.SERVICE, self)
         self.tasks = self.environment.look_up(Symbols.QUEUE)
-        self.throttling = self.environment.look_up(Symbols.THROTTLING)
         self.workers = WorkerPool([self._new_worker(id) for id in range(1, 2)])
 
     def _new_worker(self, identifier):
@@ -90,11 +89,8 @@ class Service(SimulatedEntity):
             worker = self.workers.acquire_one()
             worker.assign(task)
         else:
-            if self.throttling.accepts(task):
-                self.log("Req. %d enqueued", request.identifier)
-                self.tasks.put(task)
-            else:
-                request.reply_error()
+            self.log("Req. %d enqueued", request.identifier)
+            self.tasks.put(task)
 
     def release(self, worker):
         if self.tasks.are_pending:

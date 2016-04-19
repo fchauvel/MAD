@@ -62,7 +62,7 @@ class SimulationFactory:
     def create_request(self, sender, operation, priority, on_success=lambda: None, on_error=lambda: None):
         self._abort(self.create_request.__name__)
 
-    def create_no_throttling(self):
+    def create_no_throttling(self, task_pool):
         self._abort(self.create_no_throttling.__name__)
 
     def create_tail_drop(self, capacity, task_pool):
@@ -133,12 +133,13 @@ class Evaluation:
     def of_tail_drop(self, definition):
         task_pool = self._look_up(Symbols.QUEUE)
         tail_drop = self.factory.create_tail_drop(definition.capacity, task_pool)
-        self._define(Symbols.THROTTLING, tail_drop)
+        self._define(Symbols.QUEUE, tail_drop)
         return self.continuation(Success(None))
 
     def of_no_throttling(self, no_throttling):
-        no_throttling = self.factory.create_no_throttling()
-        self._define(Symbols.THROTTLING, no_throttling)
+        task_pool = self._look_up(Symbols.QUEUE)
+        no_throttling = self.factory.create_no_throttling(task_pool)
+        self._define(Symbols.QUEUE, no_throttling)
         return self.continuation(Success(None))
 
     def of_operation_definition(self, operation_definition):

@@ -54,8 +54,8 @@ class EvaluationTest(TestCase):
         simulation = Simulation(InMemoryDataStorage(None))
         simulation.evaluate(settings)
 
-        queue = simulation.environment.look_up(Symbols.QUEUE)
-        self.assertIsInstance(queue, LIFOTaskPool)
+        task_pool = simulation.environment.look_up(Symbols.QUEUE)
+        self.assertIsInstance(task_pool.tasks, LIFOTaskPool)
 
     def test_evaluation_of_autoscaling_settings(self):
         PERIOD = 23

@@ -17,15 +17,34 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-
 class TaskPool:
+
+    def put(self, task):
+        raise NotImplementedError("TaskPool::put is abstract")
+
+    def take(self):
+        raise NotImplementedError("TaskPool::take is abstract")
+
+    @property
+    def size(self):
+        raise NotImplementedError("TaskPool::size is abstract")
+
+    @property
+    def are_pending(self):
+        raise NotImplementedError("TaskPool::are_pending is abstract")
+
+    def activate(self, task):
+        raise NotImplementedError("TaskPool::activate is abstract")
+
+
+class AbstractTaskPool(TaskPool):
 
     def __init__(self):
         self.tasks = []
         self.interrupted = []
 
-    def put(self, request):
-        self.tasks.append(request)
+    def put(self, task):
+        self.tasks.append(task)
 
     def take(self):
         if len(self.interrupted) > 0:
@@ -55,11 +74,11 @@ class TaskPool:
     def is_empty(self):
         return self.size == 0
 
-    @property
+    @TaskPool.are_pending.getter
     def are_pending(self):
         return not self.is_empty
 
-    @property
+    @TaskPool.size.getter
     def size(self):
         return len(self.tasks) + len(self.interrupted)
 
@@ -67,7 +86,7 @@ class TaskPool:
         self.interrupted.append(task)
 
 
-class FIFOTaskPool(TaskPool):
+class FIFOTaskPool(AbstractTaskPool):
 
     def __init__(self):
         super().__init__()
@@ -78,7 +97,7 @@ class FIFOTaskPool(TaskPool):
         return selected
 
 
-class LIFOTaskPool(TaskPool):
+class LIFOTaskPool(AbstractTaskPool):
 
     def __init__(self):
         super().__init__()
@@ -95,6 +114,9 @@ class Task:
         self.request = request
         self.is_started = False
         self.resume = lambda: None
+
+    def reject(self):
+        self.request.reply_error()
 
     @property
     def priority(self):
