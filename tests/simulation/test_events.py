@@ -61,10 +61,11 @@ class DispatcherTests(TestCase):
     def _do_test_dispatch_of(self, method_name, *parameters):
         listener = self._fake_listener()
 
-        self.dispatcher.__getattribute__(method_name).__call__(*parameters)
+        method = getattr(self.dispatcher, method_name)
+        method(*parameters)
 
-        method = listener.__getattr__(method_name)
-        method.assert_called_once_with(FAKE_REQUEST)
+        delegate = getattr(listener, method_name)
+        delegate.assert_called_once_with(FAKE_REQUEST)
 
     def _fake_listener(self):
         listener = MagicMock(Listener)

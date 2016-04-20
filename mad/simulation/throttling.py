@@ -17,51 +17,51 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from mad.simulation.tasks import TaskPool
-
-NEGATIVE_CAPACITY = "Capacity must be strictly positive, but found {capacity:d}"
-INVALID_CAPACITY = "Capacity must be an integer, but found '{object.__class__.__name__:s}'"
-INVALID_TASK_POOL = "TaskPool object required, but found '{object.__class__.__name__:s}'"
+from mad.evaluation import Symbols
+from mad.simulation.commons import SimulatedEntity
+from mad.simulation.tasks import TaskPoolDecorator
 
 
-class ThrottlingPolicy(TaskPool):
+class ThrottlingPolicy(TaskPoolDecorator):
     """
     Common interface of all throttling policies
     """
 
-    def __init__(self, tasks):
-        self.tasks = tasks
-
-    def take(self):
-        return self.tasks.take()
+    def __init__(self, task_pool):
+        super().__init__(task_pool)
 
     def put(self, task):
         if self._accepts(task):
-            self.tasks.put(task)
+            self.delegate.put(task)
         else:
-            task.reject()
+            self._reject(task)
 
     def _accepts(self, task):
-        raise NotImplementedError("Throttling:_do_accept is abstract!")
+        raise NotImplementedError("Throttling:_accepts is abstract!")
 
-    @TaskPool.are_pending.getter
-    def are_pending(self):
-        return self.tasks.are_pending
+    def _reject(self, task):
+        task.reject()
 
-    @TaskPool.size.getter
-    def size(self):
-        return self.tasks.size
 
-    def activate(self, task):
-        self.tasks.activate(task)
+class ThrottlingPolicyDecorator(ThrottlingPolicy):
+
+    def __init__(self, delegate):
+        super().__init__(delegate)
+        self.delegate = delegate
+
+    def _accepts(self, task):
+        return self.delegate._accepts(task)
+
+    def _reject(self, task):
+        self.delegate._reject(task)
 
 
 class NoThrottling(ThrottlingPolicy):
     """
     Default policy: Always accept requests.
     """
-    def __init__(self, tasks):
-        super().__init__(tasks)
+    def __init__(self, task_pool):
+        super().__init__(task_pool)
 
     def _accepts(self, task):
         return True;
@@ -72,12 +72,25 @@ class TailDrop(ThrottlingPolicy):
     Reject requests once the given task pool size reaches the
     specified capacity
     """
+    NEGATIVE_CAPACITY = "Capacity must be strictly positive, but found {capacity:d}"
+    INVALID_CAPACITY = "Capacity must be an integer, but found '{object.__class__.__name__:s}'"
 
     def __init__(self, task_pool, capacity):
         super().__init__(task_pool)
-        assert isinstance(capacity, int), INVALID_CAPACITY.format(object=capacity)
-        assert capacity > 0, NEGATIVE_CAPACITY.format(capacity=capacity)
+        assert isinstance(capacity, int), self.INVALID_CAPACITY.format(object=capacity)
+        assert capacity > 0, self.NEGATIVE_CAPACITY.format(capacity=capacity)
         self.capacity = capacity
 
     def _accepts(self, task):
-        return self.tasks.size < self.capacity
+        return self.delegate.size < self.capacity
+
+
+class ThrottlingWrapper(SimulatedEntity, ThrottlingPolicyDecorator):
+
+    def __init__(self, environment, task_pool):
+        SimulatedEntity.__init__(self, Symbols.QUEUE, environment)
+        ThrottlingPolicyDecorator.__init__(self, task_pool)
+
+    def _reject(self, task):
+        super()._reject(task)
+        self.listener.rejection_of(task.request)

@@ -48,10 +48,10 @@ class SimulationFactory:
     def create_monitor(self, period):
         self._abort(self.create_monitor.__name__)
 
-    def create_FIFO_task_pool(self):
+    def create_FIFO_task_pool(self, environment):
         self._abort(self.create_FIFO_task_pool.__name__)
 
-    def create_LIFO_task_pool(self):
+    def create_LIFO_task_pool(self, environment):
         self._abort(self.create_LIFO_task_pool.__name__)
 
     def create_autoscaler(self, environment, strategy):
@@ -66,10 +66,10 @@ class SimulationFactory:
     def create_request(self, sender, operation, priority, on_success=lambda: None, on_error=lambda: None):
         self._abort(self.create_request.__name__)
 
-    def create_no_throttling(self, task_pool):
+    def create_no_throttling(self, environment, task_pool):
         self._abort(self.create_no_throttling.__name__)
 
-    def create_tail_drop(self, capacity, task_pool):
+    def create_tail_drop(self, environment, capacity, task_pool):
         self._abort(self.create_tail_drop.__name__)
 
     def _abort(self, caller_name):
@@ -121,12 +121,12 @@ class Evaluation:
         return self.continuation(Success(None))
 
     def of_fifo(self, fifo):
-        queue = self.factory.create_FIFO_task_pool()
+        queue = self.factory.create_FIFO_task_pool(self.environment)
         self._define(Symbols.QUEUE, queue)
         return self.continuation(Success(None))
 
     def of_lifo(self, lifo):
-        queue = self.factory.create_LIFO_task_pool()
+        queue = self.factory.create_LIFO_task_pool(self.environment)
         self._define(Symbols.QUEUE, queue)
         return self.continuation(Success(None))
 
@@ -137,13 +137,13 @@ class Evaluation:
 
     def of_tail_drop(self, definition):
         task_pool = self._look_up(Symbols.QUEUE)
-        tail_drop = self.factory.create_tail_drop(definition.capacity, task_pool)
+        tail_drop = self.factory.create_tail_drop(self.environment, definition.capacity, task_pool)
         self._define(Symbols.QUEUE, tail_drop)
         return self.continuation(Success(None))
 
     def of_no_throttling(self, no_throttling):
         task_pool = self._look_up(Symbols.QUEUE)
-        no_throttling = self.factory.create_no_throttling(task_pool)
+        no_throttling = self.factory.create_no_throttling(self.environment, task_pool)
         self._define(Symbols.QUEUE, no_throttling)
         return self.continuation(Success(None))
 

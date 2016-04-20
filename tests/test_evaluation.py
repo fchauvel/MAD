@@ -36,7 +36,7 @@ class EvaluationTest(TestCase):
 
         Evaluation(environment, queue, Factory()).result
 
-        queue = environment.look_up(Symbols.QUEUE)
+        queue = environment.look_up(Symbols.QUEUE).delegate
         self.assertIsInstance(queue, FIFOTaskPool)
 
     def test_evaluation_of_lifo(self):
@@ -45,7 +45,7 @@ class EvaluationTest(TestCase):
 
         Evaluation(environment, queue, Factory()).result
 
-        queue = environment.look_up(Symbols.QUEUE)
+        queue = environment.look_up(Symbols.QUEUE).delegate
         self.assertIsInstance(queue, LIFOTaskPool)
 
     def test_evaluation_of_queue_settings(self):
@@ -54,8 +54,8 @@ class EvaluationTest(TestCase):
         simulation = Simulation(InMemoryDataStorage(None))
         simulation.evaluate(settings)
 
-        task_pool = simulation.environment.look_up(Symbols.QUEUE)
-        self.assertIsInstance(task_pool.tasks, LIFOTaskPool)
+        task_pool = simulation.environment.look_up(Symbols.QUEUE).delegate.delegate.delegate
+        self.assertIsInstance(task_pool, LIFOTaskPool)
 
     def test_evaluation_of_autoscaling_settings(self):
         PERIOD = 23

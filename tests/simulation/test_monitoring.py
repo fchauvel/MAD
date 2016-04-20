@@ -27,6 +27,9 @@ from mad.simulation.monitoring import Monitor, Probe, Statistics
 from mad.simulation.events import Dispatcher
 
 
+FAKE_REQUEST = "whatever"
+
+
 class StatisticsTests(TestCase):
 
     def setUp(self):
@@ -35,16 +38,24 @@ class StatisticsTests(TestCase):
     def test_rejection_count(self):
         expected_count = 3
         for i in range(expected_count):
-            self.statistics.rejection_of("whatever")
+            self.statistics.rejection_of(FAKE_REQUEST)
 
         self.assertEqual(expected_count, self.statistics.rejection_count)
 
     def test_request_count(self):
         expected_count = 10
         for i in range(expected_count):
-            self.statistics.arrival_of("whatever")
+            self.statistics.arrival_of(FAKE_REQUEST)
 
         self.assertEqual(expected_count, self.statistics.request_count)
+
+    def test_reset(self):
+        self.statistics.arrival_of(FAKE_REQUEST)
+        self.statistics.rejection_of(FAKE_REQUEST)
+        self.statistics.reset()
+
+        self.assertEqual(0, self.statistics.request_count)
+        self.assertEqual(0, self.statistics.rejection_count)
 
 
 class ProbeTests(TestCase):

@@ -52,5 +52,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * Refactoring
     * Monitoring is now a separate object in the environment
     * Throttling is now a decorator on TaskPool
+    * Logging is now isolated into wrappers
 
     

@@ -25,10 +25,10 @@ from mad.simulation.events import Dispatcher
 from mad.simulation.service import Service, Operation
 from mad.simulation.monitoring import Monitor
 from mad.simulation.client import ClientStub
-from mad.simulation.tasks import FIFOTaskPool, LIFOTaskPool
+from mad.simulation.tasks import FIFOTaskPool, LIFOTaskPool, TaskPoolWrapper
 from mad.simulation.autoscaling import RuleBasedStrategy, AutoScaler
 from mad.simulation.requests import Request
-from mad.simulation.throttling import NoThrottling, TailDrop
+from mad.simulation.throttling import ThrottlingWrapper, NoThrottling, TailDrop
 
 
 class Factory(SimulationFactory):
@@ -49,11 +49,11 @@ class Factory(SimulationFactory):
         strategy = RuleBasedStrategy(70, 80)
         return AutoScaler(environment, autoscaling.period, autoscaling.limits, strategy)
 
-    def create_FIFO_task_pool(self):
-        return FIFOTaskPool()
+    def create_FIFO_task_pool(self, environment):
+        return TaskPoolWrapper(environment, FIFOTaskPool())
 
-    def create_LIFO_task_pool(self):
-        return LIFOTaskPool()
+    def create_LIFO_task_pool(self, environment):
+        return TaskPoolWrapper(environment, LIFOTaskPool())
 
     def create_service(self, name, environment):
         return Service(name, environment)
@@ -72,11 +72,11 @@ class Factory(SimulationFactory):
     def create_request(self, sender, operation, priority, on_success=lambda: None, on_error=lambda: None):
         return Request(sender, operation, priority, on_success, on_error)
 
-    def create_no_throttling(self, task_pool):
-        return NoThrottling(task_pool)
+    def create_no_throttling(self, environment, task_pool):
+        return ThrottlingWrapper(environment, NoThrottling(task_pool))
 
-    def create_tail_drop(self, capacity, task_pool):
-        return TailDrop(capacity, task_pool)
+    def create_tail_drop(self, environment, capacity, task_pool):
+        return ThrottlingWrapper(environment, TailDrop(task_pool, capacity))
 
 
 class Simulation:

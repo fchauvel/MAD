@@ -17,6 +17,10 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from mad.evaluation import Symbols
+from mad.simulation.commons import SimulatedEntity
+
+
 class TaskPool:
 
     def put(self, task):
@@ -37,9 +41,57 @@ class TaskPool:
         raise NotImplementedError("TaskPool::activate is abstract")
 
 
+class TaskPoolDecorator(TaskPool):
+
+    def __init__(self, delegate):
+        assert isinstance(delegate, TaskPool), "Delegate should be a TaskPool (found '{!s}')".format(type(delegate))
+        self.delegate = delegate
+
+    def put(self, task):
+        self.delegate.put(task)
+
+    def take(self):
+        return self.delegate.take()
+
+    @TaskPool.size.getter
+    def size(self):
+        return self.delegate.size
+
+    @TaskPool.are_pending.getter
+    def are_pending(self):
+        return self.delegate.are_pending
+
+    def activate(self, task):
+        self.delegate.activate(task)
+
+
+class TaskPoolWrapper(TaskPoolDecorator, SimulatedEntity):
+    """
+    Wrap a task pool into a simulation entity that that properly log events
+    """
+
+    def __init__(self, environment, delegate):
+        SimulatedEntity.__init__(self, Symbols.QUEUE, environment)
+        TaskPoolDecorator.__init__(self, delegate)
+
+    def put(self, task):
+        super().put(task)
+        #TODO self.listener.storage_of(task.request)
+
+    def take(self):
+        task = super().take()
+        #TODO self.listener.selection_of(task.request)
+        return task
+
+    def activate(self, task):
+        super().activate(task)
+        # TODO self.listener.resuming_of(task.request)
+
+
 class AbstractTaskPool(TaskPool):
 
     def __init__(self):
+        super().__init__()
         self.tasks = []
         self.interrupted = []
 

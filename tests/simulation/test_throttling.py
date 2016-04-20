@@ -21,7 +21,7 @@ from unittest import TestCase
 from mock import MagicMock, PropertyMock
 
 from mad.simulation.tasks import TaskPool
-from mad.simulation.throttling import NoThrottling, TailDrop, INVALID_CAPACITY, NEGATIVE_CAPACITY
+from mad.simulation.throttling import NoThrottling, TailDrop
 
 
 DUMMY_TASK = "whatever"
@@ -52,7 +52,7 @@ class TailDropTests(TestCase):
             self.fail("AssertionError expected!")
 
         except AssertionError as error:
-            self.assertEqual(error.args[0], INVALID_CAPACITY.format(object=capacity))
+            self.assertEqual(error.args[0], TailDrop.INVALID_CAPACITY.format(object=capacity))
 
     def test_rejects_negative_capacity(self):
         try:
@@ -61,7 +61,7 @@ class TailDropTests(TestCase):
             self.fail("AssertionError expected!")
 
         except AssertionError as error:
-            self.assertEqual(error.args[0], NEGATIVE_CAPACITY.format(capacity=capacity))
+            self.assertEqual(error.args[0], TailDrop.NEGATIVE_CAPACITY.format(capacity=capacity))
 
     def test_reject_at_capacity(self):
         self.pool_size(self.capacity)

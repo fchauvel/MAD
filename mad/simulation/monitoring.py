@@ -21,6 +21,7 @@ from mad.evaluation import Symbols
 from mad.simulation.commons import SimulatedEntity
 from mad.simulation.events import Listener
 
+
 MISSING_VALUE = "NA"
 
 
@@ -30,6 +31,10 @@ class Statistics(Listener):
         super().__init__()
         self.request_count = 0
         self.rejection_count = 0
+
+    def reset(self):
+        self.rejection_count = 0
+        self.request_count = 0
 
     def arrival_of(self, request):
         self.request_count += 1
@@ -44,6 +49,9 @@ class Statistics(Listener):
         pass
 
     def timeout_of(self, request):
+        pass
+
+    def posting_of(self, request):
         pass
 
 
@@ -80,7 +88,9 @@ class Monitor(SimulatedEntity):
         Probe("time", 6, "{:d}", lambda self: self.schedule.time_now),
         Probe("queue length", 4, "{:d}", lambda self: self._queue_length()),
         Probe("utilisation", 10, "{:5.2f}", lambda self: self._utilisation()),
-        Probe("worker count", 4, "{:d}", lambda self: self._worker_count())
+        Probe("worker count", 4, "{:d}", lambda self: self._worker_count()),
+        Probe("arrival rate", 10, "{:5.2f}", lambda self: self._arrival_rate()),
+        Probe("rejection rate", 10, "{:5.2f}", lambda self: self._rejection_rate())
     ]
 
     def __init__(self, name, environment, period):
@@ -105,6 +115,7 @@ class Monitor(SimulatedEntity):
         for each_probe in self.probes:
             observations[each_probe.name] = each_probe.formatted(self)
         self.report(**observations)
+        self.statistics.reset()
 
     def _queue_length(self):
         task_pool = self.look_up(Symbols.QUEUE)
@@ -117,3 +128,9 @@ class Monitor(SimulatedEntity):
     def _worker_count(self):
         service = self.look_up(Symbols.SERVICE)
         return service.worker_count
+
+    def _arrival_rate(self):
+        return self.statistics.request_count / self.period
+
+    def _rejection_rate(self):
+        return self.statistics.rejection_count / self.period
