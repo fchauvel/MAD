@@ -123,7 +123,7 @@ class Monitor(SimulatedEntity):
         super().__init__(name, environment)
         self.period = period or self.DEFAULT_PERIOD
         self.probes = self.DEFAULT_PROBES
-        self.report = self.create_report(self._header_format())
+        self.report = self._create_report(self._header_format())
         self.statistics = Statistics()
         self.listener.register(self.statistics)
         self.schedule.every(self.period, self.monitor)
@@ -131,7 +131,11 @@ class Monitor(SimulatedEntity):
     def set_probes(self, probes):
         assert len(probes) > 0, "Invalid monitoring: No probes given!"
         self.probes = probes
-        self.report = self.create_report(self._header_format())
+        self.report = self._create_report(self._header_format())
+
+    def _create_report(self, format):
+        name = self.look_up(Symbols.SERVICE).name
+        return self.simulation._storage.report_for(name, format)
 
     def _header_format(self):
         return [(each_probe.name, "%s") for each_probe in self.probes]
@@ -172,6 +176,8 @@ class Logger(SimulatedEntity, Listener):
     REQUEST_SUCCESS = "Req. %d complete"
     REQUEST_SENT = "Sending Req. %d to %s::%s"
     REQUEST_TIMEOUT = "Req. %d timeout!"
+    ERROR_REPLIED = "Reply to Req. %d (ERROR)"
+    SUCCESS_REPLIED = "Reply to Req. %d (SUCCESS)"
 
     def __init__(self, environment):
         SimulatedEntity.__init__(self, Symbols.LOGGER, environment)
@@ -182,32 +188,36 @@ class Logger(SimulatedEntity, Listener):
         pass
 
     def error_replied_to(self, request):
-        pass
+        self._log(self.ERROR_REPLIED, request.identifier)
 
     def rejection_of(self, request):
         pass
 
     def arrival_of(self, request):
-        self.log(self.REQUEST_ARRIVAL, request.identifier)
+        self._log(self.REQUEST_ARRIVAL, request.identifier)
 
     def selection_of(self, request):
         pass
 
     def failure_of(self, request):
-        self.log(self.REQUEST_FAILURE, request.identifier)
+        self._log(self.REQUEST_FAILURE, request.identifier)
 
     def success_of(self, request):
-        self.log(self.REQUEST_SUCCESS, request.identifier)
+        self._log(self.REQUEST_SUCCESS, request.identifier)
 
     def posting_of(self, service, request):
-        self.log(self.REQUEST_SENT, (request.identifier, service, request.operation))
+        self._log(self.REQUEST_SENT, (request.identifier, service, request.operation))
 
     def success_replied_to(self, request):
-        pass
+        self._log(self.SUCCESS_REPLIED, request.identifier)
 
     def timeout_of(self, request):
-        self.log(self.REQUEST_TIMEOUT, request.identifier)
+        self._log(self.REQUEST_TIMEOUT, request.identifier)
 
     def storage_of(self, request):
-        self.log(self.REQUEST_STORED, request.identifier)
+        self._log(self.REQUEST_STORED, request.identifier)
 
+    def _log(self, message, values):
+        now = self.schedule.time_now
+        caller = self.look_up(Symbols.SELF)
+        self.simulation.log.record(now, caller.name, message % values)

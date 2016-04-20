@@ -34,12 +34,6 @@ class SimulatedEntity:
     def schedule(self):
         return self.simulation.schedule
 
-    def log(self, message, values):
-        # TODO should be moved down to logger, as it is the only one using it
-        now = self.schedule.time_now
-        caller = self.look_up(Symbols.SELF)
-        self.simulation.log.record(now, caller.name, message % values)
-
     @property
     def listener(self):
         # TODO null-check should be part of the environment
@@ -53,11 +47,6 @@ class SimulatedEntity:
     @property
     def factory(self):
         return self.simulation.factory
-
-    def create_report(self, format):
-        # TODO Check whether this cannot be moved to the Monitor class
-        name = self.look_up(Symbols.SERVICE).name
-        return self.simulation._storage.report_for(name, format)
 
     def next_request_id(self):
         return self.simulation.next_request_id()

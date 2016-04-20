@@ -42,13 +42,12 @@ class Operation(SimulatedEntity):
         environment.define_each(self.parameters, arguments)
 
         def send_response(status):
-            self.log("Reply to Req. %d (%s)", (task.request.identifier, str(status)))
             if status.is_successful:
-                task.request.reply_success()
                 self.listener.success_replied_to(task.request)
+                task.request.reply_success()
             else:
-                task.request.reply_error()
                 self.listener.error_replied_to(task.request)
+                task.request.reply_error()
             continuation(status)
 
         Evaluation(environment, self.body, self.factory, send_response).result
@@ -85,9 +84,9 @@ class Service(SimulatedEntity):
         return self.workers.utilisation
 
     def process(self, request):
+        self.listener.arrival_of(request)
         task = Task(request)
         if self.workers.are_available:
-            self.listener.arrival_of(request) # TODO should be the first statement of the method
             worker = self.workers.acquire_one()
             worker.assign(task)
         else:

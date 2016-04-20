@@ -42,7 +42,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * A test factory shared among simulation test
     * Move the creation of workers from Service to the autoscalling strategy
 
-
 ## NEXT RELEASE CHANGE LOG (v0.1.1)
 
  * Support for service differentiation (i.e, unfair priority schemes)

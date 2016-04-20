@@ -92,6 +92,7 @@ class TestMain(TestCase):
                  Event(10,  "Client",       "Sending Req. 3 to Server::op"),
                  Event(10,  "Server",       "Req. 3 accepted"),
                  Event(10,  "Server",       "Sending Req. 4 to Database::op"),
+                 Event(10,  "Database",     "Req. 4 accepted"),
                  Event(10,  "Database",     "Req. 4 enqueued"),
                  Event(13,  "Database",     "Reply to Req. 2 (SUCCESS)"),
                  Event(13,  "Server",       "Req. 2 complete"),
@@ -159,13 +160,13 @@ class TestMain(TestCase):
                 actual.time,
                 "Time mismatch (expected time is %d)\n%s" % (expected.time, str(actual)))
         self.assertEqual(
-                expected.context,
-                actual.context,
-                "Context mismatch (expected context is %s)\n%s" % (expected.context, str(actual)))
-        self.assertEqual(
                 expected.message,
                 actual.message,
                 "Message mismatch (expected message is '%s')\n%s" % (expected.message, str(actual)))
+        self.assertEqual(
+                expected.context,
+                actual.context,
+                "Context mismatch (expected context is %s)\n%s" % (expected.context, str(actual)))
 
 
 if __name__ == "__main__":

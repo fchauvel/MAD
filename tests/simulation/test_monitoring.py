@@ -187,6 +187,14 @@ class LoggerTest(TestCase):
         self.logger.timeout_of(self._fake_request())
         self.verify_log_call(Logger.REQUEST_TIMEOUT % self.REQUEST_ID)
 
+    def test_logging_error_replied(self):
+        self.logger.error_replied_to(self._fake_request())
+        self.verify_log_call(Logger.ERROR_REPLIED % self.REQUEST_ID)
+
+    def test_logging_success_replied(self):
+        self.logger.success_replied_to(self._fake_request())
+        self.verify_log_call(Logger.SUCCESS_REPLIED % self.REQUEST_ID)
+
     def verify_log_call(self, message):
         self.simulation.log.record.assert_called_once_with(0, self.CALLER, message)
 
