@@ -22,6 +22,7 @@ from mad.ast.settings import Settings
 
 class Symbols:
     AUTOSCALING = "!autoscaling"
+    LISTENER = "!listener"
     MONITOR = "!monitor"
     SELF = "!self"
     SERVICE = "!service"
@@ -40,6 +41,9 @@ class SimulationFactory:
 
     def create_service(self, name, environment):
         self._abort(self.create_service.__name__)
+
+    def create_listener(self):
+        self._abort(self.create_listener.__name__)
 
     def create_monitor(self, period):
         self._abort(self.create_monitor.__name__)
@@ -101,6 +105,7 @@ class Evaluation:
 
     def of_service_definition(self, service):
         service_environment = self.environment.create_local_environment()
+        service_environment.define(Symbols.LISTENER, self.factory.create_listener())
         Evaluation(service_environment, Settings(), self.factory).result
         Evaluation(service_environment, service.body, self.factory).result
         service = self.factory.create_service(service.name, service_environment)
@@ -149,6 +154,7 @@ class Evaluation:
 
     def of_client_stub_definition(self, definition):
         client_environment = self.environment.create_local_environment()
+        client_environment.define(Symbols.LISTENER, self.factory.create_listener())
         client = self.factory.create_client_stub(client_environment, definition)
         self._define(definition.name, client)
         client.initialize()
@@ -175,7 +181,8 @@ class Evaluation:
         recipient = self._look_up(query.service)
 
         def on_success():
-            sender.log("Req. %d complete", request.identifier)
+            sender.log("Req. %d complete", request.identifier) # TODO remove
+            sender.listener.success_of(request)
 
             def resume(worker):
                 self.environment.dynamic_scope = worker.environment
@@ -185,7 +192,8 @@ class Evaluation:
             sender.activate(task)
 
         def on_error():
-            sender.log("Req. %d failed", request.identifier)
+            sender.log("Req. %d failed", request.identifier) # TODO remove
+            sender.listener.failure_of(request)
 
             def resume(worker):
                 self.environment.dynamic_scope = worker.environment
@@ -199,7 +207,8 @@ class Evaluation:
         request.send_to(recipient)
 
         def timeout_check():
-            sender.log("Req. %d timeout!", request.identifier)
+            sender.log("Req. %d timeout!", request.identifier) # TODO remove
+            sender.listener.timeout_of(request)
 
             def resume(worker):
                 self.environment.dynamic_scope = worker.environment

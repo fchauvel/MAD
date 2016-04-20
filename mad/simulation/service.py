@@ -83,6 +83,7 @@ class Service(SimulatedEntity):
         return self.workers.utilisation
 
     def process(self, request):
+        self.listener.arrival_of(request)
         task = Task(request)
         if self.workers.are_available:
             self.log("Req. %d accepted", request.identifier)

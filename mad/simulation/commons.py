@@ -39,6 +39,13 @@ class SimulatedEntity:
         caller = self.look_up(Symbols.SELF)
         self.simulation.log.record(now, caller.name, message % values)
 
+    @property
+    def listener(self):
+        # TODO null-check should be part of the environment
+        listener = self.environment.look_up(Symbols.LISTENER)
+        assert listener is not None, "Error: Simulated entity '{0}' has no listener".format(self.name)
+        return listener
+
     def look_up(self, symbol):
         return self.environment.look_up(symbol)
 

@@ -50,6 +50,7 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * Bugs fixes
     * Adding support for "missing values"
  * Refactoring
+    * Monitoring is now a separate object in the environment
     * Throttling is now a decorator on TaskPool
 
     

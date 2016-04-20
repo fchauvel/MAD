@@ -23,7 +23,28 @@ from mock import MagicMock, patch
 from tests.fakes import InMemoryDataStorage
 from mad.evaluation import Symbols
 from mad.simulation.factory import Factory
-from mad.simulation.monitoring import Monitor, Probe
+from mad.simulation.monitoring import Monitor, Probe, Statistics
+from mad.simulation.events import Dispatcher
+
+
+class StatisticsTests(TestCase):
+
+    def setUp(self):
+        self.statistics = Statistics()
+
+    def test_rejection_count(self):
+        expected_count = 3
+        for i in range(expected_count):
+            self.statistics.rejection_of("whatever")
+
+        self.assertEqual(expected_count, self.statistics.rejection_count)
+
+    def test_request_count(self):
+        expected_count = 10
+        for i in range(expected_count):
+            self.statistics.arrival_of("whatever")
+
+        self.assertEqual(expected_count, self.statistics.request_count)
 
 
 class ProbeTests(TestCase):
@@ -81,6 +102,7 @@ class MonitorTests(TestCase):
 
     def _create_monitor(self, period=50):
         environment = self.simulation.environment.create_local_environment()
+        environment.define(Symbols.LISTENER, Dispatcher())
         self._create_fake_service(environment)
         monitor = Monitor(Symbols.MONITOR, environment, period)
         self.simulation.environment.define(Symbols.MONITOR, monitor)

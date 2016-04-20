@@ -19,9 +19,32 @@
 
 from mad.evaluation import Symbols
 from mad.simulation.commons import SimulatedEntity
-
+from mad.simulation.events import Listener
 
 MISSING_VALUE = "NA"
+
+
+class Statistics(Listener):
+
+    def __init__(self):
+        super().__init__()
+        self.request_count = 0
+        self.rejection_count = 0
+
+    def arrival_of(self, request):
+        self.request_count += 1
+
+    def rejection_of(self, request):
+        self.rejection_count += 1
+
+    def success_of(self, request):
+        pass
+
+    def failure_of(self, request):
+        pass
+
+    def timeout_of(self, request):
+        pass
 
 
 class Probe:
@@ -65,6 +88,8 @@ class Monitor(SimulatedEntity):
         self.period = period or self.DEFAULT_PERIOD
         self.probes = self.DEFAULT_PROBES
         self.report = self.create_report(self._header_format())
+        self.statistics = Statistics()
+        self.listener.register(self.statistics)
         self.schedule.every(self.period, self.monitor)
 
     def set_probes(self, probes):

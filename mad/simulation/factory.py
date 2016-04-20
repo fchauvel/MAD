@@ -21,6 +21,7 @@ from mad.scheduling import Scheduler
 from mad.environment import Environment
 from mad.evaluation import Symbols, Evaluation, SimulationFactory
 
+from mad.simulation.events import Dispatcher
 from mad.simulation.service import Service, Operation
 from mad.simulation.monitoring import Monitor
 from mad.simulation.client import ClientStub
@@ -40,6 +41,9 @@ class Factory(SimulationFactory):
 
     def create_monitor(self, name, environment, period):
         return Monitor(name, environment, period)
+
+    def create_listener(self):
+        return Dispatcher()
 
     def create_autoscaler(self, environment, autoscaling):
         strategy = RuleBasedStrategy(70, 80)
