@@ -45,10 +45,14 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
 
 ## NEXT RELEASE CHANGE LOG (v0.1.1)
 
- * Support for service differentiation (priority schemes)
+ * Support for service differentiation (i.e, unfair priority schemes)
  * Support for timeouts
+ * More monitoring:
+    * reliability
+    * arrival rate
+    * rejection rate, instead of rejection count
  * Bugs fixes
-    * Adding support for "missing values"
+    * Adding support for "missing values" in monitoring
  * Refactoring
     * Monitoring is now a separate object in the environment
     * Throttling is now a decorator on TaskPool

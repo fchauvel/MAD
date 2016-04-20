@@ -23,7 +23,7 @@ from mad.evaluation import Symbols, Evaluation, SimulationFactory
 
 from mad.simulation.events import Dispatcher
 from mad.simulation.service import Service, Operation
-from mad.simulation.monitoring import Monitor
+from mad.simulation.monitoring import Monitor, Logger
 from mad.simulation.client import ClientStub
 from mad.simulation.tasks import FIFOTaskPool, LIFOTaskPool, TaskPoolWrapper
 from mad.simulation.autoscaling import RuleBasedStrategy, AutoScaler
@@ -41,6 +41,9 @@ class Factory(SimulationFactory):
 
     def create_monitor(self, name, environment, period):
         return Monitor(name, environment, period)
+
+    def create_logger(self, environment):
+        return Logger(environment)
 
     def create_listener(self):
         return Dispatcher()

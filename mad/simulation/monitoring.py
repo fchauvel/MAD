@@ -61,7 +61,7 @@ class Statistics(Listener):
     def timeout_of(self, request):
         pass
 
-    def posting_of(self, request):
+    def posting_of(self, service, request):
         pass
 
     def selection_of(self, request):
@@ -78,6 +78,7 @@ class Statistics(Listener):
 
     def success_replied_to(self, request):
         pass
+
 
 class Probe:
 
@@ -162,3 +163,51 @@ class Monitor(SimulatedEntity):
 
     def _reliability(self):
         return self.statistics.reliability
+
+
+class Logger(SimulatedEntity, Listener):
+    REQUEST_ARRIVAL = "Req. %d accepted"
+    REQUEST_STORED = "Req. %d enqueued"
+    REQUEST_FAILURE = "Req. %d failed"
+    REQUEST_SUCCESS = "Req. %d complete"
+    REQUEST_SENT = "Sending Req. %d to %s::%s"
+    REQUEST_TIMEOUT = "Req. %d timeout!"
+
+    def __init__(self, environment):
+        SimulatedEntity.__init__(self, Symbols.LOGGER, environment)
+        Listener.__init__(self)
+        self.listener.register(self)
+
+    def resuming(self, request):
+        pass
+
+    def error_replied_to(self, request):
+        pass
+
+    def rejection_of(self, request):
+        pass
+
+    def arrival_of(self, request):
+        self.log(self.REQUEST_ARRIVAL, request.identifier)
+
+    def selection_of(self, request):
+        pass
+
+    def failure_of(self, request):
+        self.log(self.REQUEST_FAILURE, request.identifier)
+
+    def success_of(self, request):
+        self.log(self.REQUEST_SUCCESS, request.identifier)
+
+    def posting_of(self, service, request):
+        self.log(self.REQUEST_SENT, (request.identifier, service, request.operation))
+
+    def success_replied_to(self, request):
+        pass
+
+    def timeout_of(self, request):
+        self.log(self.REQUEST_TIMEOUT, request.identifier)
+
+    def storage_of(self, request):
+        self.log(self.REQUEST_STORED, request.identifier)
+

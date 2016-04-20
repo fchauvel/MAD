@@ -25,6 +25,7 @@ from mad.simulation.events import Listener, Dispatcher
 
 
 FAKE_REQUEST = "whatever"
+FAKE_SERVICE = "service"
 
 
 class DispatcherTests(TestCase):
@@ -49,7 +50,7 @@ class DispatcherTests(TestCase):
         invocations = [
             ("arrival_of", [FAKE_REQUEST]),
             ("rejection_of", [FAKE_REQUEST]),
-            ("posting_of", [FAKE_REQUEST]),
+            ("posting_of", [FAKE_SERVICE, FAKE_REQUEST]),
             ("success_of", [FAKE_REQUEST]),
             ("failure_of", [FAKE_REQUEST]),
             ("timeout_of", [FAKE_REQUEST]),
@@ -70,7 +71,7 @@ class DispatcherTests(TestCase):
         method(*parameters)
 
         delegate = getattr(listener, method_name)
-        delegate.assert_called_once_with(FAKE_REQUEST)
+        delegate.assert_called_once_with(*parameters)
 
     def _fake_listener(self):
         listener = MagicMock(Listener)

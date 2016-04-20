@@ -21,11 +21,13 @@ from unittest import TestCase
 from mock import MagicMock, patch
 
 from tests.fakes import InMemoryDataStorage
+
+from mad.log import Log
 from mad.evaluation import Symbols
 from mad.simulation.factory import Factory
-from mad.simulation.monitoring import Monitor, Probe, Statistics
+from mad.simulation.monitoring import Monitor, Probe, Statistics, Logger
 from mad.simulation.events import Dispatcher
-
+from mad.simulation.requests import Request
 
 FAKE_REQUEST = "whatever"
 
@@ -143,3 +145,53 @@ class MonitorTests(TestCase):
         fake_service.name = "Bidon"
         environment.define(Symbols.SERVICE, fake_service)
 
+
+class LoggerTest(TestCase):
+    CALLER = "Client"
+    CALLEE = "DB"
+    OPERATION = "Select"
+    REQUEST_ID = 123
+
+    def setUp(self):
+        self.factory = Factory()
+        self.storage = InMemoryDataStorage(None)
+        self.storage._log = MagicMock(Log)
+        self.simulation = self.factory.create_simulation(self.storage)
+        service = MagicMock()
+        service.name = self.CALLER
+        self.simulation.environment.define(Symbols.SELF, service)
+        self.simulation.environment.define(Symbols.LISTENER, MagicMock(Dispatcher))
+        self.logger = Logger(self.simulation.environment)
+
+    def test_logging_request_arrival(self):
+        self.logger.arrival_of(self._fake_request())
+        self.verify_log_call(Logger.REQUEST_ARRIVAL % self.REQUEST_ID)
+
+    def test_logging_request_stored(self):
+        self.logger.storage_of(self._fake_request())
+        self.verify_log_call(Logger.REQUEST_STORED % self.REQUEST_ID)
+
+    def test_logging_failure_of(self):
+        self.logger.failure_of(self._fake_request())
+        self.verify_log_call(Logger.REQUEST_FAILURE % self.REQUEST_ID)
+
+    def test_logging_success_of(self):
+        self.logger.success_of(self._fake_request())
+        self.verify_log_call(Logger.REQUEST_SUCCESS % self.REQUEST_ID)
+
+    def test_logging_posting_of(self):
+        self.logger.posting_of(self.CALLEE, self._fake_request())
+        self.verify_log_call(Logger.REQUEST_SENT % (self.REQUEST_ID, self.CALLEE, self.OPERATION))
+
+    def test_logging_timeout_of(self):
+        self.logger.timeout_of(self._fake_request())
+        self.verify_log_call(Logger.REQUEST_TIMEOUT % self.REQUEST_ID)
+
+    def verify_log_call(self, message):
+        self.simulation.log.record.assert_called_once_with(0, self.CALLER, message)
+
+    def _fake_request(self):
+        request = MagicMock(Request)
+        request.identifier = self.REQUEST_ID
+        request.operation = self.OPERATION
+        return request

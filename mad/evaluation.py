@@ -23,6 +23,7 @@ from mad.ast.settings import Settings
 class Symbols:
     AUTOSCALING = "!autoscaling"
     LISTENER = "!listener"
+    LOGGER = "!logger"
     MONITOR = "!monitor"
     SELF = "!self"
     SERVICE = "!service"
@@ -47,6 +48,9 @@ class SimulationFactory:
 
     def create_monitor(self, period):
         self._abort(self.create_monitor.__name__)
+
+    def create_logger(self, environment):
+        self._abort(self.create_logger.__name__)
 
     def create_FIFO_task_pool(self, environment):
         self._abort(self.create_FIFO_task_pool.__name__)
@@ -112,6 +116,8 @@ class Evaluation:
         self._define(service.name, service)
         monitor = self.factory.create_monitor(Symbols.MONITOR, service_environment, None)
         self._define(Symbols.MONITOR, monitor)
+        logger = self.factory.create_logger(service_environment)
+        self._define(Symbols.LOGGER, logger)
         return self.continuation(Success(service))
 
     def of_settings(self, settings):
@@ -158,6 +164,8 @@ class Evaluation:
         client = self.factory.create_client_stub(client_environment, definition)
         self._define(definition.name, client)
         client.initialize()
+        logger = self.factory.create_logger(client_environment)
+        self._define(Symbols.LOGGER, logger)
         return self.continuation(Success(client))
 
     def of_sequence(self, sequence):
@@ -181,7 +189,6 @@ class Evaluation:
         recipient = self._look_up(query.service)
 
         def on_success():
-            sender.log("Req. %d complete", request.identifier) # TODO remove
             sender.listener.success_of(request)
 
             def resume(worker):
@@ -192,7 +199,6 @@ class Evaluation:
             sender.activate(task)
 
         def on_error():
-            sender.log("Req. %d failed", request.identifier) # TODO remove
             sender.listener.failure_of(request)
 
             def resume(worker):
@@ -203,11 +209,10 @@ class Evaluation:
             sender.activate(task)
 
         request = self.factory.create_request(sender, query.operation, query.priority, on_success, on_error)
-        sender.log("Sending Req. %d to %s::%s", (request.identifier, query.service, query.operation))
+        sender.listener.posting_of(query.service, request)
         request.send_to(recipient)
 
         def timeout_check():
-            sender.log("Req. %d timeout!", request.identifier) # TODO remove
             sender.listener.timeout_of(request)
 
             def resume(worker):

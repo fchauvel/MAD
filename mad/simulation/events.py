@@ -96,8 +96,8 @@ class Dispatcher(Listener):
     def resuming(self, request):
         self._dispatch(self.resuming.__name__, request)
 
-    def posting_of(self, request):
-        self._dispatch(self.posting_of.__name__, request)
+    def posting_of(self, service, request):
+        self._dispatch(self.posting_of.__name__, service, request)
 
     def success_of(self, request):
         self._dispatch(self.success_of.__name__, request)

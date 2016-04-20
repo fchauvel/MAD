@@ -85,14 +85,12 @@ class Service(SimulatedEntity):
         return self.workers.utilisation
 
     def process(self, request):
-        self.listener.arrival_of(request)
         task = Task(request)
         if self.workers.are_available:
-            self.log("Req. %d accepted", request.identifier)
+            self.listener.arrival_of(request) # TODO should be the first statement of the method
             worker = self.workers.acquire_one()
             worker.assign(task)
         else:
-            self.log("Req. %d enqueued", request.identifier)
             self.tasks.put(task)
 
     def release(self, worker):
