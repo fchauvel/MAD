@@ -45,8 +45,10 @@ class Operation(SimulatedEntity):
             self.log("Reply to Req. %d (%s)", (task.request.identifier, str(status)))
             if status.is_successful:
                 task.request.reply_success()
+                self.listener.success_replied_to(task.request)
             else:
                 task.request.reply_error()
+                self.listener.error_replied_to(task.request)
             continuation(status)
 
         Evaluation(environment, self.body, self.factory, send_response).result

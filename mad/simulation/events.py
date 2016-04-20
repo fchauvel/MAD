@@ -25,11 +25,30 @@ class Listener:
     Events emitted by a service during the the simulation
     """
 
+    # Incoming request
+
     def arrival_of(self, request):
         raise NotImplementedError("Listener::arrival_of is abstract")
 
     def rejection_of(self, request):
         raise NotImplementedError("Listener::rejection_of is abstract")
+
+    def storage_of(self, request):
+        raise NotImplementedError("Listener::timeout_of is abstract")
+
+    def selection_of(self, request):
+        raise NotImplementedError("Listener::timeout_of is abstract")
+
+    def resuming(self, request):
+        raise NotImplementedError("Listener::timeout_of is abstract")
+
+    def error_replied_to(self, request):
+        raise NotImplementedError("Listener::error_replied_to is abstract")
+
+    def success_replied_to(self, request):
+        raise NotImplementedError("Listener::success_replied_to is abstract")
+
+    # Outgoing requests
 
     def posting_of(self, request):
         raise NotImplementedError("Listener::posting_of is abstract")
@@ -57,22 +76,37 @@ class Dispatcher(Listener):
         self._listeners.add(listener)
 
     def arrival_of(self, request):
-        self._dispatch("arrival_of", request)
+        self._dispatch(self.arrival_of.__name__, request)
 
     def rejection_of(self, request):
-        self._dispatch("rejection_of", request)
+        self._dispatch(self.rejection_of.__name__, request)
+
+    def error_replied_to(self, request):
+        self._dispatch(self.error_replied_to.__name__, request)
+
+    def success_replied_to(self, request):
+        self._dispatch(self.success_replied_to.__name__, request)
+
+    def storage_of(self, request):
+        self._dispatch(self.storage_of.__name__, request)
+
+    def selection_of(self, request):
+        self._dispatch(self.selection_of.__name__, request)
+
+    def resuming(self, request):
+        self._dispatch(self.resuming.__name__, request)
 
     def posting_of(self, request):
-        self._dispatch("posting_of", request)
+        self._dispatch(self.posting_of.__name__, request)
 
     def success_of(self, request):
-        self._dispatch("success_of", request)
+        self._dispatch(self.success_of.__name__, request)
 
     def failure_of(self, request):
-        self._dispatch("failure_of", request)
+        self._dispatch(self.failure_of.__name__, request)
 
     def timeout_of(self, request):
-        self._dispatch("timeout_of", request)
+        self._dispatch(self.timeout_of.__name__, request)
 
     def _dispatch(self, method, *parameters):
         for each_listener in self._listeners:

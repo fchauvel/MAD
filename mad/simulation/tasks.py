@@ -76,16 +76,16 @@ class TaskPoolWrapper(TaskPoolDecorator, SimulatedEntity):
 
     def put(self, task):
         super().put(task)
-        #TODO self.listener.storage_of(task.request)
+        self.listener.storage_of(task.request)
 
     def take(self):
         task = super().take()
-        #TODO self.listener.selection_of(task.request)
+        self.listener.selection_of(task.request)
         return task
 
     def activate(self, task):
         super().activate(task)
-        # TODO self.listener.resuming_of(task.request)
+        self.listener.resuming(task.request)
 
 
 class AbstractTaskPool(TaskPool):

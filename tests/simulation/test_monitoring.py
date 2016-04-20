@@ -52,10 +52,29 @@ class StatisticsTests(TestCase):
     def test_reset(self):
         self.statistics.arrival_of(FAKE_REQUEST)
         self.statistics.rejection_of(FAKE_REQUEST)
+        self.statistics.error_replied_to(FAKE_REQUEST)
         self.statistics.reset()
 
         self.assertEqual(0, self.statistics.request_count)
         self.assertEqual(0, self.statistics.rejection_count)
+        self.assertEqual(0, self.statistics.error_response_count)
+
+    def test_error_response(self):
+        self.statistics.error_replied_to(FAKE_REQUEST)
+
+        self.assertEqual(1, self.statistics.error_response_count)
+
+    def test_reliability(self):
+        self.statistics.arrival_of(FAKE_REQUEST)
+        self.statistics.arrival_of(FAKE_REQUEST)
+        self.statistics.arrival_of(FAKE_REQUEST)
+        self.statistics.arrival_of(FAKE_REQUEST)
+        self.statistics.rejection_of(FAKE_REQUEST)
+        self.statistics.error_replied_to(FAKE_REQUEST)
+
+        expected = (4 - 1 - 1) / 4
+
+        self.assertEqual(expected, self.statistics.reliability)
 
 
 class ProbeTests(TestCase):

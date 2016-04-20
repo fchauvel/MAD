@@ -52,7 +52,12 @@ class DispatcherTests(TestCase):
             ("posting_of", [FAKE_REQUEST]),
             ("success_of", [FAKE_REQUEST]),
             ("failure_of", [FAKE_REQUEST]),
-            ("timeout_of", [FAKE_REQUEST])
+            ("timeout_of", [FAKE_REQUEST]),
+            ("storage_of", [FAKE_REQUEST]),
+            ("selection_of", [FAKE_REQUEST]),
+            ("resuming", [FAKE_REQUEST]),
+            ("error_replied_to", [FAKE_REQUEST]),
+            ("success_replied_to", [FAKE_REQUEST])
         ]
 
         for (method_name, parameters) in invocations:

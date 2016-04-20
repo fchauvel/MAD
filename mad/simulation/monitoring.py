@@ -31,10 +31,20 @@ class Statistics(Listener):
         super().__init__()
         self.request_count = 0
         self.rejection_count = 0
+        self.error_response_count = 0
 
     def reset(self):
         self.rejection_count = 0
         self.request_count = 0
+        self.error_response_count = 0
+
+    @property
+    def reliability(self):
+        total = self.request_count
+        if total == 0:
+            return None
+        error = self.rejection_count + self.error_response_count
+        return 1.0 - (error / total)
 
     def arrival_of(self, request):
         self.request_count += 1
@@ -54,6 +64,20 @@ class Statistics(Listener):
     def posting_of(self, request):
         pass
 
+    def selection_of(self, request):
+        pass
+
+    def storage_of(self, request):
+        pass
+
+    def resuming(self, request):
+        pass
+
+    def error_replied_to(self, request):
+        self.error_response_count += 1
+
+    def success_replied_to(self, request):
+        pass
 
 class Probe:
 
@@ -90,7 +114,8 @@ class Monitor(SimulatedEntity):
         Probe("utilisation", 10, "{:5.2f}", lambda self: self._utilisation()),
         Probe("worker count", 4, "{:d}", lambda self: self._worker_count()),
         Probe("arrival rate", 10, "{:5.2f}", lambda self: self._arrival_rate()),
-        Probe("rejection rate", 10, "{:5.2f}", lambda self: self._rejection_rate())
+        Probe("rejection rate", 10, "{:5.2f}", lambda self: self._rejection_rate()),
+        Probe("reliability", 10, "{:5.2f}", lambda self: self._reliability())
     ]
 
     def __init__(self, name, environment, period):
@@ -134,3 +159,6 @@ class Monitor(SimulatedEntity):
 
     def _rejection_rate(self):
         return self.statistics.rejection_count / self.period
+
+    def _reliability(self):
+        return self.statistics.reliability
