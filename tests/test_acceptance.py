@@ -41,12 +41,16 @@ class AcceptanceTests(TestCase):
         self.file_system = InMemoryFileSystem()
 
     def test_client_server(self):
-        self.file_system.define("test.mad", "service DB:"
-                                            "   operation Select:"
+        self.file_system.define("test.mad", "service DB {"
+                                            "   operation Select {"
                                             "      think 5"
-                                            "client Browser:"
-                                            "   every 5:"
-                                            "      query DB/Select")
+                                            "   }"
+                                            "}"
+                                            "client Browser {"
+                                            "   every 5 {"
+                                            "      query DB/Select"
+                                            "   }"
+                                            "}")
 
         self._execute()
 
@@ -57,15 +61,23 @@ class AcceptanceTests(TestCase):
         self._verify_log()
 
     def test_priority_scheme(self):
-        self.file_system.define("test.mad", "service DB:"
-                                            "   operation Select:"
+        self.file_system.define("test.mad", "service DB {"
+                                            "   operation Select {"
                                             "      think 5"
-                                            "client Browser_A:"
-                                            "   every 2:"
+                                            "   }"
+                                            "}"
+                                            ""
+                                            "client Browser_A {"
+                                            "   every 2 {"
                                             "      query DB/Select {priority: 10}"
-                                            "client Browser_B:"
-                                            "   every 10:"
-                                            "      query DB/Select {priority: 0}")
+                                            "   }"
+                                            "}"
+                                            ""
+                                            "client Browser_B {"
+                                            "   every 10 {"
+                                            "      query DB/Select {priority: 0}"
+                                            "   }"
+                                            "}")
 
         self._execute([self.LOCATION, 20])
 
@@ -78,12 +90,16 @@ class AcceptanceTests(TestCase):
         self._verify_log()
 
     def test_timeouts(self):
-        self.file_system.define("test.mad", "service DB:"
-                                            "   operation Select:"
+        self.file_system.define("test.mad", "service DB {"
+                                            "   operation Select {"
                                             "      think 10"
-                                            "client Browser:"
-                                            "   every 20:"
-                                            "      query DB/Select {timeout: 5}")
+                                            "   }"
+                                            "}"
+                                            "client Browser {"
+                                            "   every 20 {"
+                                            "      query DB/Select {timeout: 5}"
+                                            "   }"
+                                            "}")
 
         self._execute([self.LOCATION, 100])
 
@@ -127,27 +143,35 @@ class AcceptanceTests(TestCase):
         self._verify_usage()
 
     def test_error_empty_service(self):
-        self.file_system.define("test.mad", "service DB: \n"
-                                            "   settings: \n"
+        self.file_system.define("test.mad", "service DB { \n"
+                                            "   settings { \n"
                                             "       queue: LIFO \n"
-                                            "client Browser: \n"
-                                            "   every 5: \n"
-                                            "      query DB/Insert \n")
+                                            "   } \n"
+                                            "} \n"
+                                            "client Browser { \n"
+                                            "   every 5 { \n"
+                                            "      query DB/Insert \n"
+                                            "   } \n"
+                                            "} \n")
 
         self._execute()
 
         self._verify_opening()
         self._verify_model_loaded()
         self._verify_invalid_model()
-        self._verify_syntax_error(line=4, hint="client")
+        self._verify_syntax_error(line=5, hint="}")
 
     def test_error_unknown_operation(self):
-        self.file_system.define("test.mad", "service DB:"
-                                            "   operation Select:"
+        self.file_system.define("test.mad", "service DB {"
+                                            "   operation Select {"
                                             "      think 5"
-                                            "client Browser:"
-                                            "   every 5:"
-                                            "      query DB/Insert")
+                                            "   }"
+                                            "}"
+                                            "client Browser {"
+                                            "   every 5 {"
+                                            "      query DB/Insert"
+                                            "   }"
+                                            "}")
 
         self._execute()
 
@@ -158,15 +182,21 @@ class AcceptanceTests(TestCase):
         self._verify_operation_never_invoked("DB", "Select")
 
     def test_error_duplicate_service(self):
-        self.file_system.define("test.mad", "service DB:"
-                                            "   operation Select:"
+        self.file_system.define("test.mad", "service DB {"
+                                            "   operation Select {"
                                             "      think 5"
-                                            "service DB:"
-                                            "   operation Insert:"
+                                            "   }"
+                                            "}"
+                                            "service DB {"
+                                            "   operation Insert {"
                                             "      think 17"
-                                            "client Browser:"
-                                            "   every 5:"
-                                            "      query DB/Select")
+                                            "   }"
+                                            "}"
+                                            "client Browser {"
+                                            "   every 5 {"
+                                            "      query DB/Select"
+                                            "   }"
+                                            "}")
 
         self._execute()
 
@@ -176,15 +206,21 @@ class AcceptanceTests(TestCase):
         self._verify_duplicate_service("DB")
 
     def test_error_duplicate_client(self):
-        self.file_system.define("test.mad", "service DB:\n"
-                                            "   operation Select:\n"
-                                            "      think 5\n"
-                                            "client Browser:\n"
-                                            "   every 5:\n"
-                                            "      query DB/Select\n"
-                                            "client Browser:\n"
-                                            "   every 10:\n"
-                                            "       invoke DB/Select\n")
+        self.file_system.define("test.mad", "service DB {"
+                                            "   operation Select {"
+                                            "      think 5 "
+                                            "   }"
+                                            "}"
+                                            "client Browser {"
+                                            "   every 5 {"
+                                            "      query DB/Select"
+                                            "   }"
+                                            "}"
+                                            "client Browser { "
+                                            "   every 10 {"
+                                            "       invoke DB/Select"
+                                            "   }"
+                                            "}")
 
         self._execute()
 
@@ -194,12 +230,16 @@ class AcceptanceTests(TestCase):
         self._verify_duplicate_client("Browser")
 
     def test_error_duplicate_entity_name(self):
-        self.file_system.define("test.mad", "service DB:\n"
-                                            "   operation Select:\n"
-                                            "      think 5\n"
-                                            "client DB:\n"
-                                            "   every 5:\n"
-                                            "      query DB/Select\n")
+        self.file_system.define("test.mad", "service DB {"
+                                            "   operation Select {"
+                                            "      think 5"
+                                            "   }"
+                                            "}"
+                                            "client DB {"
+                                            "   every 5 {"
+                                            "      query DB/Select"
+                                            "   }"
+                                            "}")
 
         self._execute()
 
@@ -209,14 +249,19 @@ class AcceptanceTests(TestCase):
         self._verify_duplicate_entity_name("DB")
 
     def test_error_duplicate_operation(self):
-        self.file_system.define("test.mad", "service DB:"
-                                            "   operation Select:"
+        self.file_system.define("test.mad", "service DB {"
+                                            "   operation Select {"
                                             "      think 5"
-                                            "   operation Select:"
+                                            "   }"
+                                            "   operation Select  {"
                                             "      think 17"
-                                            "client Browser:"
-                                            "   every 5:"
-                                            "      query DB/Select")
+                                            "   }"
+                                            "}"
+                                            "client Browser {"
+                                            "   every 5 {"
+                                            "      query DB/Select"
+                                            "   }"
+                                            "}")
 
         self._execute()
 
@@ -226,14 +271,19 @@ class AcceptanceTests(TestCase):
         self._verify_duplicate_operation("DB", "Select")
 
     def test_warning_operation_never_invoked(self):
-        self.file_system.define("test.mad", "service DB:"
-                                            "   operation Select:"
+        self.file_system.define("test.mad", "service DB {"
+                                            "   operation Select {"
                                             "      think 5"
-                                            "   operation Insert:"
+                                            "   }"
+                                            "   operation Insert {"
                                             "      think 17"
-                                            "client Browser:"
-                                            "   every 5:"
-                                            "      query DB/Select")
+                                            "   }"
+                                            "}"
+                                            "client Browser {"
+                                            "   every 5 {"
+                                            "      query DB/Select"
+                                            "   }"
+                                            "}")
 
         self._execute()
 
@@ -243,12 +293,16 @@ class AcceptanceTests(TestCase):
         self._verify_operation_never_invoked("DB", "Insert")
 
     def test_error_unknown_service(self):
-        self.file_system.define("test.mad", "service DB:"
-                                            "   operation Select:"
+        self.file_system.define("test.mad", "service DB {"
+                                            "   operation Select {"
                                             "      think 5"
-                                            "client Browser:"
-                                            "   every 5:"
-                                            "      query DBBBB/Select")
+                                            "   }"
+                                            "}"
+                                            "client Browser {"
+                                            "   every 5 {"
+                                            "      query DBBBB/Select"
+                                            "   }"
+                                            "}")
 
         self._execute()
 

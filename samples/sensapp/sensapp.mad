@@ -2,57 +2,71 @@
 # SensApp architecture
 #
 
-service Dispatcher:
+service Dispatcher {
 
-    operation dispatch:
+    operation dispatch {
         query Registry/check
         invoke Storage/store
         invoke Notifier/notify
+    }
 
+}
 
-service Registry:
+service Registry {
 
-    operation check:
+    operation check {
         think 5
+    }
+
+}
 
 
-service Storage:
+service Storage {
 
-    operation store:
+    operation store {
         query DB/insert
+    }
 
-    operation search:
+    operation search {
         query DB/select
+    }
+}
 
+service Notifier {
 
-service Notifier:
-
-    operation notify:
+    operation notify {
         invoke Followers/found
+    }
 
+}
 
 # Stubs to close the architecture
 
-service DB:
+service DB {
 
-    operation insert:
+    operation insert {
         think 5
+    }
 
-    operation select:
+    operation select {
         think 5
+    }
+}
 
-
-client WebUI:
-
-    every 20:
+client WebUI {
+    every 20 {
         query Storage/search
+    }
+}
 
-service Followers:
-
-    operation found:
+service Followers {
+    operation found {
         think 5
+    }
+}
 
-client Sensors:
-
-    every 2:
+client Sensors {
+    every 2 {
         invoke Dispatcher/dispatch
+    }
+}

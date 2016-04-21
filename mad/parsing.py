@@ -138,10 +138,10 @@ def p_definition(p):
 
 def p_define_service(p):
     """
-    define_service : SERVICE IDENTIFIER COLON settings operation_list
-                   | SERVICE IDENTIFIER COLON operation_list
+    define_service : SERVICE IDENTIFIER OPEN_CURLY_BRACKET settings operation_list CLOSE_CURLY_BRACKET
+                   | SERVICE IDENTIFIER OPEN_CURLY_BRACKET operation_list CLOSE_CURLY_BRACKET
     """
-    if len(p) == 6:
+    if len(p) == 7:
         body = p[4] + p[5]
     else:
         body = p[4]
@@ -150,7 +150,7 @@ def p_define_service(p):
 
 def p_settings(p):
     """
-    settings : SETTINGS COLON setting_list
+    settings : SETTINGS OPEN_CURLY_BRACKET setting_list CLOSE_CURLY_BRACKET
     """
     p[0] = Settings(**p[3])
 
@@ -205,7 +205,7 @@ def p_throttling(p):
 
 def p_autoscaling(p):
     """
-    autoscaling : AUTOSCALING COLON autoscaling_setting_list
+    autoscaling : AUTOSCALING OPEN_CURLY_BRACKET autoscaling_setting_list CLOSE_CURLY_BRACKET
     """
     p[0] = {"autoscaling": Autoscaling(**p[3])}
 
@@ -251,14 +251,14 @@ def p_operation_list(p):
 
 def p_define_client(p):
     """
-    define_client : CLIENT IDENTIFIER COLON EVERY NUMBER COLON action_list
+    define_client : CLIENT IDENTIFIER OPEN_CURLY_BRACKET EVERY NUMBER OPEN_CURLY_BRACKET action_list CLOSE_CURLY_BRACKET CLOSE_CURLY_BRACKET
     """
     p[0] = DefineClientStub(p[2], int(p[5]), p[7])
 
 
 def p_define_operation(p):
     """
-    define_operation : OPERATION IDENTIFIER COLON action_list
+    define_operation : OPERATION IDENTIFIER OPEN_CURLY_BRACKET action_list CLOSE_CURLY_BRACKET
     """
     p[0] = DefineOperation(p[2], p[4])
 

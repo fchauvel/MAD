@@ -24,20 +24,24 @@ In practice, we do not want to wait forever for the response and we consider tha
 for a given time. The request has **timed out**. MAD lets you specify timeouts on (synchronous invocations only) as shown
 in the following example, where we limit the waiting time to 10 simulation steps.
 
-    client Browser:
-        every 5:
+    client Browser {
+        every 5 {
             query DB/Select {timeout: 10}
             think 5
+        }
+    }
 
 
 ### Asynchronous Invocations
 Asynchronous invocations do not pause the caller, as opposed to synchronous ones (see above). They represent signals or 
 messages where no response is expected. The caller therefore send the message and proceeds with the remaining actions.
 
-    client Browser:
-        every 10:
+    client Browser {
+        every 10 {
             invoke DB/Select
             think 5
+        }
+    }
 
 In this example for instance, every 10 simulation steps, the `Browser` sends a request to the `DB/Select` operations and 
 immediately starts thinking for 5 simulation steps, without waiting for any response.

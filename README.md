@@ -28,6 +28,7 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
         * Autoscaling
             * Delay before workers gets active
         * Actions
+            * Probabilistic failure
             * Probabilistic switch statement, a la 'choice'
     * Clients
         * Multiple clients

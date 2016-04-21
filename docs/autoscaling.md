@@ -5,16 +5,18 @@ instances share the same unique queue. Two main parameters govern autoscaling, n
 set the minimum and maximum number of replicas, whereas the policy defines how the number of replicas is calculated 
 according to the state of the service.
 
-    service DB:
+    service DB {
     
-        settings:
-            autoscaling:
+        settings {
+            autoscaling {
                 period: 10
                 limits: [1, 20]
                 policy: rule-based(utilisation, 70, 80)
+            }
+        }
         
-        operation select:
-            think 5
+        operation select { think 5 }
+    }
                 
 In this example, the autoscaling runs every 10 units of time and computes a number of instances between 1 and 20. This 
 number results from two rules: 

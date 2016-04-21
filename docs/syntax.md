@@ -9,9 +9,11 @@ In MAD each service is uniquely identified by its name, a string composed letter
 '_' for instance. Below is the simplest one we can write: A so called 'DB' service, exposing one operation named 
 'select' that takes 5 unit of time to complete.
 
-    service DB:
-        operation select:
+    service DB {
+        operation select {
             think 5
+        }
+    }
 
 We could add other operations, but we will that this as a starting point.
 

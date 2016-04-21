@@ -5,17 +5,21 @@ MAD, Each invocation may specify a priority level (as an integer value), which g
 requests. By default, the priority level is 1. 
 
 
-    service DB:            
-        operation Select:
-            think 5
+    service DB {            
+        operation Select { think 5 }
+    }
             
-    client Browser_A:
-        every 5:
+    client Browser_A {
+        every 5 {
             query DB/Select {priority: 10}
+        }
+    }
             
-    client Browser_B:
-        every 5:
+    client Browser_B {
+        every 5 {
             query DB/Select {priority: 5}
+        }
+    }
     
 
 In this example, we define two clients that query the same operation `DB/Select` but with different priorities. The first one,  

@@ -39,12 +39,16 @@ class MonitoringTests(TestCase):
 
         self.file_system.define(
             self.MAD_FILE,
-            "service DB:"
-            "  operation Select:"
+            "service DB {"
+            "  operation Select {"
             "      think 5"
-            "client Browser:"
-            "  every 10:"
-            "      query DB/Select")
+            "   }"
+            "}"
+            "client Browser {"
+            "  every 10 {"
+            "      query DB/Select"
+            "   }"
+            "}")
 
         controller = Controller(StringIO(), self.file_system)
 

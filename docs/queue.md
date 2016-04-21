@@ -8,11 +8,11 @@ LIFO, where the next request it the 'youngest' one, that is the last one that ar
 Queue discipline appears in the `settings` section, after the keyword `queue`. It can take either value `FIFO` or value 
 `LIFO`, as in the following example. By default, services use a FIFO queue.
 
-    service DB:
-    
-        settings:
-            queue: LIFO
+    service DB {
+        settings { queue: LIFO }
             
-        operation select:
+        operation select {
             think 5
+        }
+    }
 

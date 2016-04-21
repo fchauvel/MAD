@@ -39,18 +39,23 @@ class TestXXX(TestCase):
 
     def test_client_server_with_autoscaling(self):
         self.file_system.define(
-            "test.mad", "service DB:"
-            "  settings:"
-            "      autoscaling:"
+            "test.mad",
+            "service DB {"
+            "   settings {"
+            "      autoscaling {"
             "          period: 15"
             "          limits: [2, 4]"
-            ""
-            "  operation Select:"
+            "      }"
+            "   }"
+            "   operation Select {"
             "      think 10"
-            ""
-            "client Browser:"
-            "  every 2:"
-            "      query DB/Select")
+            "   }"
+            "}"
+            "client Browser {"
+            "  every 2 {"
+            "      query DB/Select"
+            "  }"
+            "}")
 
         controller = Controller(StringIO(), self.file_system)
         simulation = controller.execute("test.mad", "500")

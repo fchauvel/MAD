@@ -8,19 +8,22 @@ The simple possible architecture you can describe, say in the file 'sample.mad' 
 services offering an operation 'Select' that takes 10 simulation steps to complete. A client, here called 'Browser', query
 this operation every 5 unit of steps.
 
-    service DB:
-        settings:
-            autoscaling:
+    service DB {
+    
+        settings {
+            autoscaling {
                 period: 10
                 limits: [1, 20]
                 policy: rule-based(utilisation, 70, 80)
+            }
+        }
     
-        operation Select:
-            think 10
-            
-    client Browser:
-        every 5:
-            query DB/Select {timeout: 23}
+        operation Select { think 10 }
+    }
+    
+    client Browser {
+        every 5 { query DB/Select {timeout: 23} }
+    }
 
 MAD will simulate their behaviour and output traces for both service and clients, including queue length, emission rate, 
 utilisation and many other measures.

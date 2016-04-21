@@ -65,29 +65,36 @@ class CorrectExpressionTests(ParserTests):
             ("think 5", Think(5), "think"),
             ("think 5 invoke DB/Select", Sequence(Think(5), Trigger("DB", "Select")), "action_list"),
 
-            ("operation Select: think 5",
+            ("operation Select { think 5 }",
              DefineOperation("Select", Think(5)),
              "define_operation"),
 
-            ("service DB: operation Select: think 4", DefineService("DB", DefineOperation("Select", Think(4))), "define_service"),
+            ("service DB { operation Select { think 4 } }",
+             DefineService("DB", DefineOperation("Select", Think(4))),
+             "define_service"),
 
-            ("client Browser: every 5: query DB/Select", DefineClientStub("Browser", 5, Query("DB", "Select")), "define_client"),
+            ("client Browser { every 5 { query DB/Select } }", DefineClientStub("Browser", 5, Query("DB", "Select")), "define_client"),
 
-            ("service DB: "
-             "  operation Select: "
+            ("service DB { "
+             "  operation Select { "
              "      think 4 "
-             "client Browser: "
-             "  every 5: "
-             "      query DB/Select",
+             "  }"
+             "}"
+             "client Browser { "
+             "  every 5 { "
+             "      query DB/Select"
+             "  }"
+             "}",
              Sequence(DefineService("DB", DefineOperation("Select", Think(4))),
                       DefineClientStub("Browser", 5, Query("DB", "Select"))),
              "unit"),
 
-            ("settings: queue: LIFO", Settings(queue=LIFO()), "settings"),
+            ("settings { queue: LIFO }", Settings(queue=LIFO()), "settings"),
 
-            ("autoscaling:"
+            ("autoscaling {"
              "  period: 10"
-             "  limits: [1, 5]",
+             "  limits: [1, 5]"
+             "}",
              {"autoscaling": Autoscaling(period=10, limits=(1, 5))},
              "autoscaling"),
 
@@ -99,25 +106,32 @@ class CorrectExpressionTests(ParserTests):
              {"throttling": TailDropSettings(capacity=50)},
              "throttling"),
 
-            ("settings:"
+            ("settings {"
              "  queue: FIFO"
-             "  autoscaling:"
+             "  autoscaling {"
              "      limits: [1, 5]"
-             "  throttling: tail-drop(50)",
+             "  }"
+             "  throttling: tail-drop(50)"
+             "}",
              Settings(
                      queue=FIFO(),
                      autoscaling=Autoscaling(limits=(1, 5)),
                      throttling=TailDropSettings(50)),
              "settings"),
 
-            ("service DB: "
-             "  settings:"
+            ("service DB { "
+             "  settings {"
              "      queue: LIFO"
-             "  operation Select: "
+             "  }"
+             "  operation Select { "
              "      think 4 "
-             "client Browser: "
-             "  every 5: "
-             "      query DB/Select",
+             "  }"
+             "}"
+             "client Browser { "
+             "  every 5 { "
+             "      query DB/Select"
+             "  }"
+             "}",
              Sequence(DefineService("DB", Sequence(Settings(queue=LIFO()), DefineOperation("Select", Think(4)))),
                       DefineClientStub("Browser", 5, Query("DB", "Select"))),
              "unit")

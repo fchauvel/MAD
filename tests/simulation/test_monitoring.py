@@ -147,7 +147,7 @@ class MonitorTests(TestCase):
             self.simulation.run_until(test_duration)
 
             expected_call_count = int(test_duration / period)
-            self.assertEqual(expected_call_count, trigger.monitor.call_count)
+            self.assertEqual(expected_call_count, trigger.call_count)
 
     def test_setting_probes(self):
         fake_report = MagicMock()
