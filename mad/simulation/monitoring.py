@@ -43,8 +43,12 @@ class Statistics(Listener):
         total = self.request_count
         if total == 0:
             return None
-        error = self.rejection_count + self.error_response_count
-        return 1.0 - (error / total)
+        return self.success_count / total
+
+    @property
+    def success_count(self):
+        error_count = (self.rejection_count + self.error_response_count)
+        return self.request_count - error_count
 
     def arrival_of(self, request):
         self.request_count += 1
@@ -116,7 +120,8 @@ class Monitor(SimulatedEntity):
         Probe("worker count", 4, "{:d}", lambda self: self._worker_count()),
         Probe("arrival rate", 10, "{:5.2f}", lambda self: self._arrival_rate()),
         Probe("rejection rate", 10, "{:5.2f}", lambda self: self._rejection_rate()),
-        Probe("reliability", 10, "{:5.2f}", lambda self: self._reliability())
+        Probe("reliability", 10, "{:5.2f}", lambda self: self._reliability()),
+        Probe("throughput", 10, "{:5.2f}", lambda self: self._throughput())
     ]
 
     def __init__(self, name, environment, period):
@@ -168,6 +173,8 @@ class Monitor(SimulatedEntity):
     def _reliability(self):
         return self.statistics.reliability
 
+    def _throughput(self):
+        return self.statistics.success_count / self.period
 
 class Logger(SimulatedEntity, Listener):
     REQUEST_ARRIVAL = "Req. %d accepted"

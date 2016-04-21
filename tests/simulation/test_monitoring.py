@@ -66,6 +66,16 @@ class StatisticsTests(TestCase):
 
         self.assertEqual(1, self.statistics.error_response_count)
 
+    def test_success_count(self):
+        self.statistics.arrival_of(FAKE_REQUEST)
+        self.statistics.arrival_of(FAKE_REQUEST)
+        self.statistics.arrival_of(FAKE_REQUEST)
+        self.statistics.arrival_of(FAKE_REQUEST)
+        self.statistics.rejection_of(FAKE_REQUEST)
+        self.statistics.error_replied_to(FAKE_REQUEST)
+
+        self.assertEqual(2, self.statistics.success_count)
+
     def test_reliability(self):
         self.statistics.arrival_of(FAKE_REQUEST)
         self.statistics.arrival_of(FAKE_REQUEST)
@@ -110,16 +120,35 @@ class MonitorTests(TestCase):
         self.storage = InMemoryDataStorage(None)
         self.simulation = self.factory.create_simulation(self.storage)
 
+    def test_throughput_calculation(self):
+        period = 10
+        self.monitor = self._create_monitor(period)
+
+        (total, rejection, error) = (10, 3, 4)
+        self._run_scenario(total, rejection, error)
+
+        expected = (10 - (3+4)) / period
+        self.assertEqual(expected, self.monitor._throughput())
+
+    def _run_scenario(self, total, rejected, errors):
+        for i in range(total):
+            self.monitor.statistics.arrival_of(FAKE_REQUEST)
+        for i in range(rejected):
+            self.monitor.statistics.rejection_of(FAKE_REQUEST)
+        for i in range(errors):
+            self.monitor.statistics.error_replied_to(FAKE_REQUEST)
+
+
     def test_runs_with_the_proper_period(self):
-        with patch.object(Monitor, 'monitor') as monitor:
+        with patch.object(Monitor, 'monitor') as trigger:
             period = 50
-            monitor = self._create_monitor(period)
+            self._create_monitor(period)
 
             test_duration = 200
             self.simulation.run_until(test_duration)
 
             expected_call_count = int(test_duration / period)
-            self.assertEqual(expected_call_count, monitor.monitor.call_count)
+            self.assertEqual(expected_call_count, trigger.monitor.call_count)
 
     def test_setting_probes(self):
         fake_report = MagicMock()
