@@ -24,12 +24,15 @@ VIEW_NAME = "%s_view.pdf";
 service_overview <- function(service) {
   data <- read.csv(file=file_name_for(service), header=TRUE);
   
-  layout(matrix(c(1,2,3,4), 2, 2, byrow = TRUE));
+  layout(matrix(1:8, 4, 2, byrow = TRUE));
   
   show_queue_length(service, data);
   show_utilisation(service, data);
   show_worker_count(service, data);
-  show_rejection_count(service, data);
+  show_arrival_rate(service, data);
+  show_rejection_rate(service, data);
+  show_reliability(service, data);
+  show_throughput(service, data);
 }
 
 # Compute the name of the log file associated with the given service
@@ -47,7 +50,6 @@ show_utilisation <- function(service, data) {
        xlab="simulation time",
        ylab="service utilisation (%)");  
 }
-
 
 # Plot the queue length over time
 show_queue_length <- function(service, data) {
@@ -69,14 +71,44 @@ show_worker_count <- function(service, data) {
        ylab="worker count");    
 }
 
-# Plot the number of request rejected over time
-show_rejection_count <- function(service, data) {
-  plot(data$rejection.count ~ data$time,
+# Plot the number of request received per monitoring interval
+show_arrival_rate <- function(service, data) {
+  plot(data$arrival.rate ~ data$time,
        type="s",
        col="darkred",
        lty=1,
        xlab="simulation time",
-       ylab="rejection count");
+       ylab="arrival rate");
+}
+
+# Plot the rate at which requests are rejected
+show_rejection_rate <- function(service, data) {
+  plot(data$rejection.rate ~ data$time,
+       type="s",
+       col="darkred",
+       lty=1,
+       xlab="simulation time",
+       ylab="rejection rate");
+}
+
+# Plot the reliability, i.e., the fraction of successful requests
+show_reliability <- function(service, data) {
+  plot(data$reliability ~ data$time,
+       type="s",
+       col="darkred",
+       lty=1,
+       xlab="simulation time",
+       ylab="reliability");
+}
+
+# Plot the throughput, i.e., the rate of successfully processing requests
+show_throughput <- function(service, data) {
+  plot(data$throughput ~ data$time,
+       type="s",
+       col="darkred",
+       lty=1,
+       xlab="simulation time",
+       ylab="throughput");
 }
 
 service_name <- function(file_name) {
@@ -95,8 +127,8 @@ for (each.file in list.files(pattern=MAD_OUTPUTS)) {
     service <- service_name(each.file);
     pdf(
       file=view_name(service), 
-      width=12,
-      height=8);
+      width=15,
+      height=10);
     service_overview(service);
     dev.off();
   }

@@ -138,7 +138,6 @@ class MonitorTests(TestCase):
         for i in range(errors):
             self.monitor.statistics.error_replied_to(FAKE_REQUEST)
 
-
     def test_runs_with_the_proper_period(self):
         with patch.object(Monitor, 'monitor') as trigger:
             period = 50

@@ -49,6 +49,7 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * More monitoring:
     * reliability
     * arrival rate
+    * throughput
     * rejection rate, instead of rejection count
  * Bugs fixes
     * Adding support for "missing values" in monitoring
