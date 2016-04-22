@@ -68,6 +68,22 @@ class CorrectExpressionTests(ParserTests):
 
             ("think 5 invoke DB/Select", Sequence(Think(5), Trigger("DB", "Select")), "action_list"),
 
+            ("retry { think 5 }",
+             Retry(Think(5)),
+             "retry"),
+
+            ("retry (limit: 5) { think 5 }",
+             Retry(Think(5), limit=5),
+             "retry"),
+
+            ("retry (delay: constant(10)) { think 5 }",
+             Retry(Think(5), delay=Delay(10, "constant")),
+             "retry"),
+
+            ("retry (limit: 23, delay: exponential(135)) { think 5 }",
+             Retry(Think(5), limit=23, delay=Delay(135, "exponential")),
+             "retry"),
+
             ("operation Select { think 5 }",
              DefineOperation("Select", Think(5)),
              "define_operation"),

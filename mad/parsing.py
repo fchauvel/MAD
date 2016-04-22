@@ -28,11 +28,13 @@ from mad.ast.actions import *
 reserved = {
     "autoscaling": "AUTOSCALING",
     "client": "CLIENT",
+    "delay": "DELAY",
     "every": "EVERY",
     "fail": "FAIL",
     "FIFO":  "FIFO",
     "invoke": "INVOKE",
     "LIFO": "LIFO",
+    "limit": "LIMIT",
     "limits": "LIMITS",
     "none": "NONE",
     "operation": "OPERATION",
@@ -40,6 +42,7 @@ reserved = {
     "priority": "PRIORITY",
     "queue": "QUEUE",
     "query": "QUERY",
+    "retry": "RETRY",
     "service": "SERVICE",
     "settings": "SETTINGS",
     "tail-drop": "TAIL_DROP",
@@ -358,6 +361,45 @@ def p_invoke(p):
     if len(p) > 5:
         priority = int(p[8])
     p[0] = Trigger(p[2], p[4], priority)
+
+
+def p_retry(p):
+    """
+    retry : RETRY OPEN_CURLY_BRACKET action_list CLOSE_CURLY_BRACKET
+          | RETRY OPEN_BRACKET retry_option_list CLOSE_BRACKET OPEN_CURLY_BRACKET action_list CLOSE_CURLY_BRACKET
+    """
+    if len(p) == 5:
+        p[0] = Retry(p[3])
+    elif len(p) == 8:
+        p[0] = Retry(p[6], **p[3])
+    else:
+        raise RuntimeError("Invalid product rules for 'retry_option_list'")
+
+
+def p_retry_option_list(p):
+    """
+    retry_option_list : retry_option COMMA retry_option_list
+                      | retry_option
+    """
+    if len(p) == 4:
+        p[0] = merge_map(p[1], p[3])
+    elif len(p) == 2:
+        p[0] = p[1]
+    else:
+        raise RuntimeError("Invalid production in 'retry_option_list'")
+
+
+def p_retry_option(p):
+    """
+    retry_option : LIMIT COLON NUMBER
+                 | DELAY COLON IDENTIFIER OPEN_BRACKET NUMBER CLOSE_BRACKET
+    """
+    if len(p) == 4:
+        p[0] = {"limit": int(p[3]) }
+    elif len(p) == 7:
+        p[0] = {"delay": Delay(int(p[5]), p[3])}
+    else:
+        raise RuntimeError("Invalid production in 'retry_option'")
 
 
 def p_error(t):

@@ -117,20 +117,22 @@ class Fail(Action):
         return "Fail(%d)" % self.probability
 
 
-class Delay:
+class Delay(Expression):
 
     def __init__(self, base_delay=10, strategy="constant"):
+        super().__init__()
         self.base_delay = base_delay
         self.strategy = strategy
 
 
-class Retry:
+class Retry(Expression):
     """
     Retry an action a given number of time
     """
     DEFAULT_DELAY = Delay()
 
     def __init__(self, expression, limit=None, delay=None):
+        super().__init__()
         self.expression = expression
         assert not limit or limit > 0, "Retry limit must be strictly positive (found %d)" % limit
         self.limit = limit
