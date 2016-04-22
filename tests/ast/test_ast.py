@@ -35,7 +35,27 @@ class ExpressionTest(TestCase):
         self.assertEqual(Sequence(Think(1), Think(2), Think(3)), actual)
 
 
-class FailTest(TestCase):
+class RetryTests(TestCase):
+
+    def test_defaults(self):
+        retry = Retry(Think(5))
+
+        self.assertIsNone(retry.limit)
+        self.assertIs(Retry.DEFAULT_DELAY, retry.delay)
+
+    def test_expose_limit(self):
+        limit = 10
+        retry = Retry(Think(5), limit=limit)
+        self.assertEqual(limit, retry.limit)
+
+    def test_expose_delay(self):
+        delay = Delay(10, "exponential")
+        retry = Retry(Think(5), delay=delay)
+
+        self.assertIs(delay, retry.delay)
+
+
+class FailTests(TestCase):
 
     def test_default_probability(self):
         fail = Fail()
