@@ -99,6 +99,24 @@ class Think(Action):
         return "Think(%d)" % self.duration
 
 
+class Fail(Action):
+    """
+    Fail with a given probability
+    """
+    NEGATIVE_PROBABILITY = "Negative probability (found {0:5.2f})"
+
+    def __init__(self, probability=1.0):
+        super().__init__()
+        assert probability >= 0., self.NEGATIVE_PROBABILITY.format(probability)
+        self.probability = probability
+
+    def accept(self, evaluation):
+        return evaluation.of_fail(self)
+
+    def __repr__(self):
+        return "Fail(%d)" % self.probability
+
+
 class Retry:
     """
     Retry an action a given number of time

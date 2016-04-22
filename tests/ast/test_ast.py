@@ -21,9 +21,7 @@ from unittest import TestCase
 from mock import MagicMock
 
 from mad.ast.commons import *
-from mad.ast.settings import *
 from mad.ast.actions import *
-from mad.evaluation import Evaluation
 
 
 class ExpressionTest(TestCase):
@@ -35,6 +33,25 @@ class ExpressionTest(TestCase):
     def test_concatenation_with_sequence(self):
         actual = Think(1) + Sequence(Think(2), Think(3))
         self.assertEqual(Sequence(Think(1), Think(2), Think(3)), actual)
+
+
+class FailTest(TestCase):
+
+    def test_default_probability(self):
+        fail = Fail()
+        self.assertEqual(1., fail.probability)
+
+    def test_rejects_negative_probability(self):
+        with self.assertRaises(AssertionError):
+            Fail(-23)
+
+    def test_evaluation(self):
+        evaluation = MagicMock()
+        evaluation.of_fail = MagicMock()
+        fail = Fail(0.5)
+        fail.accept(evaluation)
+
+        evaluation.of_fail.assert_called_once_with(fail)
 
 
 class ThinkTest(TestCase):

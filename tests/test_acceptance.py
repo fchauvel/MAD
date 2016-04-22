@@ -23,7 +23,7 @@ from io import StringIO
 from mad.ui import Arguments, Messages, Controller
 
 
-from unittest import TestCase
+from unittest import TestCase, skip
 from mock import MagicMock
 
 from tests.fakes import InMemoryFileSystem
@@ -86,6 +86,32 @@ class AcceptanceTests(TestCase):
         self._verify_no_warnings()
         self._verify_successful_invocations("Browser_A", 3)
         self._verify_successful_invocations("Browser_B", 0)
+        self._verify_reports_for(["DB"])
+        self._verify_log()
+
+    @skip("Under implementation")
+    def test_priority_scheme(self):
+        self.file_system.define("test.mad", "service DB {"
+                                            "   operation Select {"
+                                            "      fail"
+                                            "   }"
+                                            "}"
+                                            ""
+                                            "client Browser {"
+                                            "   every 100 {"
+                                            "       retry-on-error(delay:constant(2), retries:10) {"
+                                            "           query DB/Select"
+                                            "       }"
+                                            "   }"
+                                            "}")
+
+        self._execute([self.LOCATION, 100])
+
+        self._verify_opening()
+        self._verify_valid_model()
+        self._verify_no_warnings()
+        self._verify_successful_invocations("Browser", 0)
+        self._verify_request_count("DB", 10)
         self._verify_reports_for(["DB"])
         self._verify_log()
 
