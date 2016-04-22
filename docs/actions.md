@@ -47,6 +47,34 @@ messages where no response is expected. The caller therefore send the message an
 In this example for instance, every 10 simulation steps, the `Browser` sends a request to the `DB/Select` operations and 
 immediately starts thinking for 5 simulation steps, without waiting for any response.
 
+### Retry
+Invocations be they synchronous or asynchronous may fail. By default, such a failure will abort the current task and 
+propagates to the caller if this happens during the execution of an operation. It is possible however to 'wait and retry'
+using alternative back-off policies.
+
+    client Browser {
+        every 10 {
+            retry(limit=10) {
+               query DB/Select
+            }
+        }
+    }
+
+In this example, the Browser will try to query to 'Select' operation of the 'DB' service, retry 10 if necessary. If all these
+ten attempts fails, the Browser will record a failure. By default, the Browser waits a constant time (10 simulation steps)
+before to retry, but we may also specify back-off policies (exponential of fibonnacci) as follows:
+
+    client Browser {
+        every 10 {
+            retry(limit=10, delay:exponential(5)) {
+               query DB/Select
+            }
+        }
+    }
+Here, we specify an [exponential backoff](https://en.wikipedia.org/wiki/Exponential_backoff) policy. The browser will first
+wait for 5 minutes and then increases the waiting time exponentially. 
+
+
 ### Thinking
 Thinking is a blocking "No-op" operation. It emulate compute-intensive internal tasks. It accepts a fixed duration during
 which the underlying worker will be blocked. 
