@@ -29,6 +29,7 @@ reserved = {
     "autoscaling": "AUTOSCALING",
     "client": "CLIENT",
     "every": "EVERY",
+    "fail": "FAIL",
     "FIFO":  "FIFO",
     "invoke": "INVOKE",
     "LIFO": "LIFO",
@@ -58,6 +59,7 @@ tokens = [  "CLOSE_BRACKET",
             "OPEN_CURLY_BRACKET",
             "OPEN_SQUARE_BRACKET",
             "NUMBER",
+            "REAL",
             "SLASH"] + list(reserved.values())
 
 t_CLOSE_BRACKET = r"\)"
@@ -76,11 +78,9 @@ def t_IDENTIFIER(t):
     t.type = reserved.get(t.value,'IDENTIFIER')    # Check for reserved words
     return t
 
-
 def t_NUMBER(t):
     r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?'
     return t
-
 
 def t_newline(t):
     # Define a rule so we can track line numbers
@@ -281,6 +281,7 @@ def p_action(p):
     action : invoke
            | query
            | think
+           | fail
     """
     p[0] = p[1]
 
@@ -291,6 +292,16 @@ def p_think(p):
     """
     p[0] = Think(int(p[2]))
 
+
+def p_fail(p):
+    """
+    fail : FAIL NUMBER
+         | FAIL
+    """
+    if len(p) > 2:
+        p[0] = Fail(float(p[2]))
+    else:
+        p[0] = Fail()
 
 def p_query(p):
     """

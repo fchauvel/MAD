@@ -42,6 +42,7 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * Refactorings
     * A test factory shared among simulation test
     * Move the creation of workers from Service to the autoscalling strategy
+    * Split acceptance tests into several files (commons, nominals, errors)
 
 ## NEXT RELEASE CHANGE LOG (v0.1.1)
 
