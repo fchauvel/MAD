@@ -21,7 +21,10 @@ from unittest import TestCase
 from tests.fakes import InMemoryDataStorage
 
 from mad.environment import Environment
+
+from mad.ast.actions import *
 from mad.ast.settings import *
+
 from mad.evaluation import Evaluation, Symbols
 from mad.simulation.factory import Simulation, Factory
 from mad.simulation.tasks import LIFOTaskPool, FIFOTaskPool
@@ -29,6 +32,13 @@ from mad.simulation.autoscaling import AutoScaler
 
 
 class EvaluationTest(TestCase):
+
+    def test_evaluation_of_fail(self):
+        environment = Environment()
+
+        result = Evaluation(environment, Fail(), Factory()).result
+
+        self.assertTrue(result.is_erroneous)
 
     def test_evaluation_of_fifo(self):
         environment = Environment()

@@ -17,6 +17,8 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from random import random
+
 from mad.ast.settings import Settings
 
 
@@ -236,6 +238,12 @@ class Evaluation:
             self.continuation(Success())
         self.simulation.schedule.after(think.duration, resume)
         return Paused()
+
+    def of_fail(self, fail):
+        if random() < fail.probability:
+            return Error()
+        else:
+            return Success(None)
 
     def of_retry(self, retry):
 
