@@ -1,7 +1,8 @@
-## Service Invocations
+## Actions and Service Invocations
 
-Services and clients can invoke other services operations either synchronously or asynchronously. The main difference is
-that synchronous invocations will paused the task until a response is received. 
+Services and clients can perform simple actions, including invoking other services. Services and clients can invoke 
+other services operations either synchronously or asynchronously. The main difference is that synchronous invocations 
+will paused the task until a response is received. 
 
 ### Synchronous Invocations
 Synchronous invocations&mdash;or "queries" in MAD&mdash; will wait for a response before to proceed. Note that
@@ -45,3 +46,26 @@ messages where no response is expected. The caller therefore send the message an
 
 In this example for instance, every 10 simulation steps, the `Browser` sends a request to the `DB/Select` operations and 
 immediately starts thinking for 5 simulation steps, without waiting for any response.
+
+### Thinking
+Thinking is a blocking "No-op" operation. It emulate compute-intensive internal tasks. It accepts a fixed duration during
+which the underlying worker will be blocked. 
+
+    service DB {
+        operation Select {
+            think 55
+        }
+    }
+  
+ This example specifies that the `select` operation will take 55 simulation steps.
+ 
+### Failing
+ 
+Service may also fail, either systematically or with a given probability.
+    
+    service DB {
+        operation Select {
+            fail 0.25
+        }
+    }
+This example specifies that the `select` operation may fail with 0.25 probability.

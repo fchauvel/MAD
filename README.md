@@ -28,7 +28,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
         * Autoscaling
             * Delay before workers gets active
         * Actions
-            * Probabilistic failure
             * Probabilistic switch statement, a la 'choice'
     * Clients
         * Multiple clients
@@ -48,13 +47,14 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
 
  * Support for service differentiation (i.e, unfair priority schemes)
  * Support for timeouts
- * More monitoring:
+ * Support for Probabilistic failure
+ * Reporting:
     * reliability
     * arrival rate
     * throughput
     * rejection rate, instead of rejection count
  * Syntax:
-    *  **IMPORTANT**: Using curly bracket to delimit blocks 
+    *  **IMPORTANT**: Using curly brackets to delimit blocks 
  * Bugs fixes
     * Adding support for "missing values" in monitoring
  * Refactoring
