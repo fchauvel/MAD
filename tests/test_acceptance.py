@@ -89,7 +89,7 @@ class AcceptanceTests(TestCase):
         self._verify_reports_for(["DB"])
         self._verify_log()
 
-    def test_fail_scheme(self):
+    def test_fail(self):
         self.file_system.define("test.mad", "service DB {"
                                             "   operation Select {"
                                             "      fail"

@@ -176,6 +176,9 @@ class Validator:
     def of_think(self, think):
         pass
 
+    def of_fail(self, fail):
+        pass
+
     def of_sequence(self, sequence):
         for each_expression in sequence.body:
             each_expression.accept(self)
