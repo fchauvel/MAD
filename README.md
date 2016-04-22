@@ -52,6 +52,8 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * arrival rate
     * throughput
     * rejection rate, instead of rejection count
+ * Syntax:
+    *  **IMPORTANT**: Using curly bracket to delimit blocks 
  * Bugs fixes
     * Adding support for "missing values" in monitoring
  * Refactoring
