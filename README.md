@@ -38,14 +38,19 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Test shutting down workers, they shall first complete there current task
     * Test that rejection count is not cumulative
     * Test that the simulation call back the display
+    * Test for retry in an action list in the parser
+    * Test timeouts that are activated after the call to send request (what happen if the request is assign to a worker
+    right away?)
  * Refactorings
     * A test factory shared among simulation test
     * Move the creation of workers from Service to the autoscalling strategy
     * Split acceptance tests into several files (commons, nominals, errors)
+    * Merge test_evaluation and test_interpreter
 
 ## NEXT RELEASE CHANGE LOG (v0.1.1)
 
- * Support for service differentiation (i.e, unfair priority schemes)
+ * Support for transmission latency
+ * Support for service differentiation (unfair priority schemes)
  * Support for timeouts
  * Support for Probabilistic failure
  * Reporting:

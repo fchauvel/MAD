@@ -29,6 +29,7 @@ class Statistics(Listener):
 
     def __init__(self):
         super().__init__()
+        self.total_request_count = 0
         self.request_count = 0
         self.rejection_count = 0
         self.error_response_count = 0
@@ -52,6 +53,7 @@ class Statistics(Listener):
 
     def arrival_of(self, request):
         self.request_count += 1
+        self.total_request_count += 1
 
     def rejection_of(self, request):
         self.rejection_count += 1

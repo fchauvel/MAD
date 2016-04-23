@@ -50,9 +50,9 @@ class TestInterpreter(TestCase):
         value = self.look_up(symbol)
         self.assertTrue(isinstance(value, kind))
 
-    def send_request(self, service_name, operation_name):
+    def send_request(self, service_name, operation_name, on_success=lambda:None, on_error=lambda:None):
         service = self.look_up(service_name)
-        request = self.fake_request(operation_name)
+        request = self.fake_request(operation_name, on_success=on_success, on_error=on_error)
         request.send_to(service)
         return request
 
@@ -64,6 +64,7 @@ class TestInterpreter(TestCase):
 
         self.define(Symbols.SELF, self.fake_client())
         self.evaluate(Trigger("serviceX", "op"))
+        self.simulate_until(10)
 
         self.assertEqual(fake_service.process.call_count, 1)
 
@@ -78,6 +79,7 @@ class TestInterpreter(TestCase):
         )
 
         self.send_request("Front-end", "checkout")
+        self.simulate_until(10)
 
         self.assertEqual(db.process.call_count, 1)
 
@@ -149,20 +151,54 @@ class TestInterpreter(TestCase):
         self.simulate_until(10)
         self.assertEqual(db.process.call_count, 1)
 
-    def test_retry_on_error(self):
-        db = self.define("DB", self.service_that_always_fails())
+    def test_retry_and_succeed(self):
+        db = self.define("DB", self.service_that_succeeds_at_attempt(2))
         self.evaluate(
             DefineService("Front-end",
                 DefineOperation("checkout",
-                    Retry(Query("DB", "insert"), 4)
+                    Retry(Query("DB", "insert"), limit=5, delay=Delay(10, "constant"))
                 )
             )
         )
 
-        self.send_request("Front-end", "checkout")
-        self.simulate_until(20)
+        def test_fail():
+            self.fail("Expected failed request")
 
-        self.assertEqual(db.process.call_count, 4)
+        self.send_request("Front-end", "checkout", on_error=test_fail)
+        self.simulate_until(200)
+
+        self.assertEqual(db.process.call_count, 2)
+
+    def test_retry_and_fail(self):
+        db = self.define("DB", self.service_that_succeeds_at_attempt(15))
+        self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("checkout",
+                    Retry(Query("DB", "insert"), limit=5, delay=Delay(10, "constant"))
+                )
+            )
+        )
+
+        def test_fail():
+            self.fail("Expected successful request")
+
+        self.send_request("Front-end", "checkout", on_success=test_fail)
+        self.simulate_until(200)
+
+        self.assertEqual(db.process.call_count, 5)
+
+    def test_fail(self):
+        self.evaluate(
+            DefineService("DB",
+                DefineOperation("Select", Fail())
+            )
+        )
+
+        def test_failed():
+            self.fail("Expected successful request")
+
+        self.send_request("DB", "Select", on_success=test_failed)
+        self.simulate_until(20)
 
     def test_ignore_error(self):
         db1 = self.define("DB1", self.service_that_always_fails())
@@ -202,6 +238,7 @@ class TestInterpreter(TestCase):
 
         request = self.fake_request("op")
         request.send_to(service)
+        self.simulate_until(10)
 
         self.assertEqual(fake_service.process.call_count, 1)
 
@@ -219,6 +256,7 @@ class TestInterpreter(TestCase):
 
         request = self.fake_request("op")
         request.send_to(service)
+        self.simulate_until(10)
 
         self.assertEqual(fake_service.process.call_count, 1)
 
@@ -236,20 +274,22 @@ class TestInterpreter(TestCase):
         ).value
         client.on_success = MagicMock()
 
-        self.simulate_until(20 + 2)
+        self.simulate_until(24)
 
         self.assertEqual(client.on_success.call_count, 4)
 
-    def fake_request(self, operation):
-        return Request(self.fake_client(), operation, 1)
+    def fake_request(self, operation, on_success=lambda: None, on_error=lambda: None):
+        return Request(self.fake_client(), operation, 1, on_success=on_success, on_error=on_error)
 
     def fake_service(self):
         fake_service = MagicMock()
         fake_service.process = MagicMock()
+        fake_service.schedule = self.simulation.schedule
         return fake_service
 
     def fake_client(self):
         fake_client = MagicMock()
+        fake_client.schedule = self.simulation.schedule
         return fake_client
 
     def service_that_always_fails(self):
@@ -260,6 +300,21 @@ class TestInterpreter(TestCase):
         service.process.side_effect = always_fail
         return service
 
+    def service_that_succeeds_at_attempt(self, successful_attempt):
+        attempt = 0
+
+        def respond(request):
+            nonlocal attempt
+            attempt += 1
+            if attempt == successful_attempt:
+                request.reply_success()
+            else:
+                request.reply_error()
+
+        service = self.fake_service()
+        service.process.side_effect = respond
+        service.schedule = self.simulation.schedule
+        return service
 
 
 

@@ -9,10 +9,12 @@ Synchronous invocations&mdash;or "queries" in MAD&mdash; will wait for a respons
 MAD assumes non-blocking I/O, so the worker will be released but the execution of the code snippet will only continues
 once a reply has been received. See the example below:
 
-    client Browser:
-        every 10:
+    client Browser {
+        every 10 {
             query DB/Select
             think 5
+        }
+    }
             
 In this example, we define a client that synchronously invokes the operation `DB/Select` and then thinks for 5 simulation
 steps. In this case, the Browser will starts thinking only once it has received a reply (possibly an error) from the `DB`

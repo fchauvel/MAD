@@ -19,6 +19,7 @@
 
 
 class Request:
+    TRANSMISSION_DELAY = 1
     PENDING = 0
     OK = 1
     ERROR = 2
@@ -38,14 +39,17 @@ class Request:
         return self.status == self.PENDING
 
     def send_to(self, service):
-        service.process(self)
+        # Used to be: service.process(self)
+        service.schedule.after(self.TRANSMISSION_DELAY, lambda: service.process(self))
 
     def reply_success(self):
         if self.is_pending:
             self.status = self.OK
-            self.on_success()
+            #self.on_success()
+            self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_success)
 
     def reply_error(self):
         if self.is_pending:
             self.status = self.ERROR
-            self.on_error()
+            #self.on_error()
+            self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_error)

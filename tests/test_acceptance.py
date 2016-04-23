@@ -21,7 +21,7 @@
 from io import StringIO
 
 from mad.ui import Arguments, Messages, Controller
-
+from mad.evaluation import Symbols
 
 from unittest import TestCase, skip
 from mock import MagicMock
@@ -111,7 +111,6 @@ class AcceptanceTests(TestCase):
         self._verify_reports_for(["DB"])
         self._verify_log()
 
-    @skip("Under implementation")
     def test_priority_scheme(self):
         self.file_system.define("test.mad", "service DB {"
                                             "   operation Select {"
@@ -121,13 +120,13 @@ class AcceptanceTests(TestCase):
                                             ""
                                             "client Browser {"
                                             "   every 100 {"
-                                            "       retry-on-error(delay:constant(2), retries:10) {"
+                                            "       retry(delay:constant(2), limit:10) {"
                                             "           query DB/Select"
                                             "       }"
                                             "   }"
                                             "}")
 
-        self._execute([self.LOCATION, 100])
+        self._execute([self.LOCATION, 200])
 
         self._verify_opening()
         self._verify_valid_model()
@@ -368,6 +367,11 @@ class AcceptanceTests(TestCase):
     def _verify_successful_invocations(self, entity_name, expected_count):
         entity = self.simulation.environment.look_up(entity_name)
         self.assertEqual(expected_count, entity.monitor.success_count)
+
+    def _verify_request_count(self, entity_name, expected_count):
+        entity = self.simulation.environment.look_up(entity_name)
+        monitor = entity.look_up(Symbols.MONITOR)
+        self.assertEqual(expected_count, monitor.statistics.total_request_count)
 
     def _verify_opening(self):
         self._verify_version()

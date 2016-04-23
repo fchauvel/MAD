@@ -66,7 +66,9 @@ class CorrectExpressionTests(ParserTests):
             ("fail", Fail(), "fail"),
             ("fail 0.5", Fail(probability=0.5), "fail"),
 
-            ("think 5 invoke DB/Select", Sequence(Think(5), Trigger("DB", "Select")), "action_list"),
+            ("think 5 invoke DB/Select",
+             Sequence(Think(5), Trigger("DB", "Select")),
+             "action_list"),
 
             ("retry { think 5 }",
              Retry(Think(5)),

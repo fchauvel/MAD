@@ -285,6 +285,7 @@ def p_action(p):
            | query
            | think
            | fail
+           | retry
     """
     p[0] = p[1]
 

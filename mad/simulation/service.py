@@ -45,9 +45,11 @@ class Operation(SimulatedEntity):
             if status.is_successful:
                 self.listener.success_replied_to(task.request)
                 task.request.reply_success()
-            else:
+            elif status.is_erroneous:
                 self.listener.error_replied_to(task.request)
                 task.request.reply_error()
+            else:
+                pass
             continuation(status)
 
         Evaluation(environment, self.body, self.factory, send_response).result

@@ -86,23 +86,28 @@ class TestMain(TestCase):
         )
 
         simulation = self.evaluate(expression)
-        self.run_until(simulation, 13)
+        self.run_until(simulation, 19)
 
         self.verify_trace(
                 simulation,
                 [Event(5,   "Client",       "Sending Req. 1 to Server::op"),
-                 Event(5,   "Server",       "Req. 1 accepted"),
-                 Event(5,   "Server",       "Sending Req. 2 to Database::op"),
-                 Event(5,   "Database",     "Req. 2 accepted"),
+                 Event(6,   "Server",       "Req. 1 accepted"),
+                 Event(6,   "Server",       "Sending Req. 2 to Database::op"),
+                 Event(7,   "Database",     "Req. 2 accepted"),
                  Event(10,  "Client",       "Sending Req. 3 to Server::op"),
-                 Event(10,  "Server",       "Req. 3 accepted"),
-                 Event(10,  "Server",       "Sending Req. 4 to Database::op"),
-                 Event(10,  "Database",     "Req. 4 accepted"),
-                 Event(10,  "Database",     "Req. 4 enqueued"),
-                 Event(13,  "Database",     "Reply to Req. 2 (SUCCESS)"),
-                 Event(13,  "Server",       "Req. 2 complete"),
-                 Event(13,  "Server",       "Reply to Req. 1 (SUCCESS)"),
-                 Event(13,  "Client",       "Req. 1 complete"),]
+                 Event(11,  "Server",       "Req. 3 accepted"),
+                 Event(11,  "Server",       "Sending Req. 4 to Database::op"),
+                 Event(12,  "Database",     "Req. 4 accepted"),
+                 Event(12,  "Database",     "Req. 4 enqueued"),
+                 Event(15,  "Database",     "Reply to Req. 2 (SUCCESS)"),
+                 Event(15,  "Client",       "Sending Req. 5 to Server::op"),
+                 Event(16,  "Server",       "Req. 2 complete"),
+                 Event(16,  "Server",       "Reply to Req. 1 (SUCCESS)"),
+                 Event(16,  "Server",       "Req. 5 accepted"),
+                 Event(16,  "Server",       "Sending Req. 6 to Database::op"),
+                 Event(17,  "Client",       "Req. 1 complete"),
+                 Event(17,  "Database",     "Req. 6 accepted"),
+                 Event(17,  "Database",     "Req. 6 enqueued")]
         )
 
 
@@ -128,18 +133,18 @@ class TestMain(TestCase):
             )
         )
         simulation = self.evaluate(expression)
-        self.run_until(simulation, 25)
+        self.run_until(simulation, 27)
 
         self.verify_trace(
                 simulation,
                 [Event(10, "C1", "Sending Req. 1 to S1::op"),
-                 Event(10, "S1", "Req. 1 accepted"),
-                 Event(15, "S1", "Reply to Req. 1 (SUCCESS)"),
-                 Event(15, "C1", "Req. 1 complete"),
+                 Event(11, "S1", "Req. 1 accepted"),
+                 Event(16, "S1", "Reply to Req. 1 (SUCCESS)"),
+                 Event(17, "C1", "Req. 1 complete"),
                  Event(20, "C1", "Sending Req. 2 to S1::op"),
-                 Event(20, "S1", "Req. 2 accepted"),
-                 Event(25, "S1", "Reply to Req. 2 (SUCCESS)"),
-                 Event(25, "C1", "Req. 2 complete")]
+                 Event(21, "S1", "Req. 2 accepted"),
+                 Event(26, "S1", "Reply to Req. 2 (SUCCESS)"),
+                 Event(27, "C1", "Req. 2 complete")]
         )
 
     def evaluate(self, expression):

@@ -119,10 +119,13 @@ class Fail(Action):
 
 class Delay(Expression):
 
-    def __init__(self, base_delay=10, strategy="constant"):
+    CONSTANT = "constant"
+    EXPONENTIAL = "exponential"
+
+    def __init__(self, base_delay=10, strategy= None):
         super().__init__()
         self.base_delay = base_delay
-        self.strategy = strategy
+        self.strategy = strategy or self.CONSTANT
 
 
 class Retry(Expression):

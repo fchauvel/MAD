@@ -63,6 +63,9 @@ class SimulationFactory:
     def create_autoscaler(self, environment, strategy):
         self._abort(self.create_autoscaler.__name__)
 
+    def create_backoff(self, delay):
+        self._abort(self.create_backoff.__name__)
+
     def create_operation(self, environment, definition):
         self._abort(self.create_operation.__name__)
 
@@ -241,24 +244,40 @@ class Evaluation:
 
     def of_fail(self, fail):
         if random() < fail.probability:
-            return Error()
+            return self.continuation(Error())
         else:
-            return Success(None)
+            return self.continuation(Success(None))
 
     def of_retry(self, retry):
+        task = self._look_up(Symbols.TASK)
+        sender = self._look_up(Symbols.SELF)
+        backoff = self.factory.create_backoff(retry.delay)
 
-        def do_retry(remaining_tries):
+        def retry_on_error(remaining_tries):
             if remaining_tries == 0:
                 return lambda status: Error()
             else:
                 def continuation(status):
                     if status.is_successful:
                         return self.continuation(status)
-                    else:
-                        return self._evaluation_of(retry.expression, do_retry(remaining_tries-1))
-            return continuation
+                    else: # Failed Attempt
+                        def reactivate_task():
+                            sender.activate(task)
 
-        return self._evaluation_of(retry.expression, do_retry(retry.limit-1))
+                        def try_again(worker):
+                            self.environment.dynamic_scope = worker.environment
+                            self._evaluation_of(retry.expression, retry_on_error(remaining_tries-1))
+
+                        task.resume = try_again
+                        delay = backoff.delay(retry.limit - remaining_tries)
+                        sender.schedule.after(delay, reactivate_task)
+                        worker = self.environment.dynamic_look_up(Symbols.WORKER)
+                        sender.release(worker)
+                        return Paused()
+
+                return continuation
+
+        return self._evaluation_of(retry.expression, retry_on_error(retry.limit-1))
 
     def of_ignore_error(self, ignore_error):
         def ignore_status(status):

@@ -179,6 +179,9 @@ class Validator:
     def of_fail(self, fail):
         pass
 
+    def of_retry(self, retry):
+        retry.expression.accept(self)
+
     def of_sequence(self, sequence):
         for each_expression in sequence.body:
             each_expression.accept(self)

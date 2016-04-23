@@ -29,6 +29,7 @@ from mad.simulation.tasks import FIFOTaskPool, LIFOTaskPool, TaskPoolWrapper
 from mad.simulation.autoscaling import RuleBasedStrategy, AutoScaler
 from mad.simulation.requests import Request
 from mad.simulation.throttling import ThrottlingWrapper, NoThrottling, TailDrop
+from mad.simulation.backoff import ConstantBackoff, ExponentialBackoff
 
 
 class Factory(SimulationFactory):
@@ -81,6 +82,13 @@ class Factory(SimulationFactory):
     def create_tail_drop(self, environment, capacity, task_pool):
         return ThrottlingWrapper(environment, TailDrop(task_pool, capacity))
 
+    def create_backoff(self, delay):
+        if delay.strategy == delay.CONSTANT:
+            return ConstantBackoff(delay.base_delay)
+        elif delay.strategy == delay.EXPONENTIAL:
+            return ExponentialBackoff(delay.base_delay)
+        else:
+            raise ValueError("Unknown backoff strategy '{0:s}' (options are 'constant' and 'exponential')")
 
 class Simulation:
     """

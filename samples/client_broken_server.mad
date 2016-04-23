@@ -1,0 +1,21 @@
+#
+# Sample client server architecture
+#
+
+service DB {
+
+    operation Select {
+        fail 0.25
+    }
+
+}
+
+client Browser {
+   every 5 {
+        retry (limit:4, delay:constant(5)) {
+          query DB/Select
+        }
+   }
+
+}
+    
