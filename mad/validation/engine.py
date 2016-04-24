@@ -189,6 +189,9 @@ class Validator:
     def of_settings(self, settings):
         pass
 
+    def of_ignore_error(self, ignore_error):
+        ignore_error.expression.accept(self)
+
     def _check_is_defined(self, service):
         def check(symbols):
             if symbols.miss_service(service):

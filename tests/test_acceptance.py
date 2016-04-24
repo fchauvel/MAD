@@ -111,7 +111,7 @@ class AcceptanceTests(TestCase):
         self._verify_reports_for(["DB"])
         self._verify_log()
 
-    def test_priority_scheme(self):
+    def test_retry(self):
         self.file_system.define("test.mad", "service DB {"
                                             "   operation Select {"
                                             "      fail"
@@ -135,6 +135,31 @@ class AcceptanceTests(TestCase):
         self._verify_request_count("DB", 10)
         self._verify_reports_for(["DB"])
         self._verify_log()
+
+    def test_ignore_error(self):
+        self.file_system.define("test.mad", "service DB {"
+                                            "   operation Select {"
+                                            "      fail"
+                                            "   }"
+                                            "}"
+                                            ""
+                                            "client Browser {"
+                                            "   every 20 {"
+                                            "       ignore {"
+                                            "           query DB/Select"
+                                            "       }"
+                                            "   }"
+                                            "}")
+
+        self._execute([self.LOCATION, 40])
+
+        self._verify_opening()
+        self._verify_valid_model()
+        self._verify_no_warnings()
+        self._verify_successful_invocations("Browser", 1)
+        self._verify_reports_for(["DB"])
+        self._verify_log()
+
 
     def test_timeouts(self):
         self.file_system.define("test.mad", "service DB {"

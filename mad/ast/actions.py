@@ -148,12 +148,13 @@ class Retry(Expression):
         return "Retry(%s, %d)" % (str(self.expression), self.limit)
 
 
-class IgnoreError:
+class IgnoreError(Expression):
     """
     Ignore error occuring during the evaluation of the given expression
     """
 
     def __init__(self, expression):
+        super().__init__()
         self.expression = expression
 
     def accept(self, evaluation):

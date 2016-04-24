@@ -32,6 +32,7 @@ reserved = {
     "every": "EVERY",
     "fail": "FAIL",
     "FIFO":  "FIFO",
+    "ignore": "IGNORE",
     "invoke": "INVOKE",
     "LIFO": "LIFO",
     "limit": "LIMIT",
@@ -286,6 +287,7 @@ def p_action(p):
            | think
            | fail
            | retry
+           | ignore
     """
     p[0] = p[1]
 
@@ -401,6 +403,13 @@ def p_retry_option(p):
         p[0] = {"delay": Delay(int(p[5]), p[3])}
     else:
         raise RuntimeError("Invalid production in 'retry_option'")
+
+
+def p_ignore(p):
+    """
+    ignore : IGNORE OPEN_CURLY_BRACKET action_list CLOSE_CURLY_BRACKET
+    """
+    p[0] = IgnoreError(p[3])
 
 
 def p_error(t):

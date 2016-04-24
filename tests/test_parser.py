@@ -66,8 +66,17 @@ class CorrectExpressionTests(ParserTests):
             ("fail", Fail(), "fail"),
             ("fail 0.5", Fail(probability=0.5), "fail"),
 
-            ("think 5 invoke DB/Select",
-             Sequence(Think(5), Trigger("DB", "Select")),
+            ("think 5 "
+             "invoke DB/Select "
+             "query DB/Insert "
+             "ignore {"
+             "  fail "
+             "}",
+             Sequence(
+                Think(5),
+                Trigger("DB", "Select"),
+                Query("DB", "Insert"),
+                IgnoreError(Fail())),
              "action_list"),
 
             ("retry { think 5 }",
@@ -85,6 +94,11 @@ class CorrectExpressionTests(ParserTests):
             ("retry (limit: 23, delay: exponential(135)) { think 5 }",
              Retry(Think(5), limit=23, delay=Delay(135, "exponential")),
              "retry"),
+
+            ("ignore { think 5 }",
+             IgnoreError(Think(5)),
+             "ignore"
+             ),
 
             ("operation Select { think 5 }",
              DefineOperation("Select", Think(5)),

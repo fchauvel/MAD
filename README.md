@@ -16,7 +16,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
 
  * Features
     * Services
-        * Support for backing-off protocols
         * Monitoring
             * response time
             * incoming request count
@@ -47,24 +46,10 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Split acceptance tests into several files (commons, nominals, errors)
     * Merge test_evaluation and test_interpreter
 
-## NEXT RELEASE CHANGE LOG (v0.1.1)
+## NEXT RELEASE CHANGE LOG (v0.2.1)
 
- * Support for transmission latency
- * Support for service differentiation (unfair priority schemes)
- * Support for timeouts
- * Support for Probabilistic failure
- * Reporting:
-    * reliability
-    * arrival rate
-    * throughput
-    * rejection rate, instead of rejection count
- * Syntax:
-    *  **IMPORTANT**: Using curly brackets to delimit blocks 
- * Bugs fixes
-    * Adding support for "missing values" in monitoring
- * Refactoring
-    * Monitoring is now a separate object in the environment
-    * Throttling is now a decorator on TaskPool
-    * Logging is now isolated into wrappers
+ * Support of an 'ignore-error' primitive
+
+
 
     
