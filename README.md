@@ -46,7 +46,7 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Split acceptance tests into several files (commons, nominals, errors)
     * Merge test_evaluation and test_interpreter
 
-## NEXT RELEASE CHANGE LOG (v0.2.1)
+## NEXT RELEASE CHANGE LOG
 
  * Support of an 'ignore-error' primitive
 

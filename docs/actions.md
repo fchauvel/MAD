@@ -77,6 +77,22 @@ Here, we specify an [exponential backoff](https://en.wikipedia.org/wiki/Exponent
 wait for 5 minutes and then increases the waiting time exponentially. 
 
 
+### Ignoring Errors
+It may be acceptable to simply ignore errors, because the actions are optional or because their completion do not matter.
+MAD offers the `ignore` primitive to delimit a block of actions where error will be ignored and the following instructions
+will be executed.
+
+    client Browser {
+        every 5 do {
+            ignore {
+                invoke Logger/log_query
+            }
+            query DB/Select
+        }
+    }
+In this example, when the asynchronous invocation `invoke Logger/log_query` fails, MAD will just ignore the error and
+ proceed with the synchronous invocation `query DB/Select`. 
+
 ### Thinking
 Thinking is a blocking "No-op" operation. It emulate compute-intensive internal tasks. It accepts a fixed duration during
 which the underlying worker will be blocked. 
@@ -99,3 +115,4 @@ Service may also fail, either systematically or with a given probability.
         }
     }
 This example specifies that the `select` operation may fail with 0.25 probability.
+
