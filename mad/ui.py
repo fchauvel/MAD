@@ -256,6 +256,7 @@ class Arguments:
         self._arguments = arguments
         self._file_name = self._extract_file_name()
         self._time_limit = self._extract_length()
+        self.__output_directory = None
 
     def _extract_file_name(self):
         file_name = self._arguments[0]
@@ -277,9 +278,9 @@ class Arguments:
 
     @property
     def _output_directory(self):
-        return self.OUTPUT_DIRECTORY.format(
-            name=self._model_name,
-            identifier=self._identifier())
+        if self.__output_directory is None:
+            self.__output_directory = self.OUTPUT_DIRECTORY.format(name=self._model_name, identifier=self._identifier())
+        return self.__output_directory
 
     @property
     def _model_name(self):

@@ -21,7 +21,7 @@ from io import StringIO
 from re import search, escape, IGNORECASE
 from unittest import TestCase
 
-from mock import MagicMock
+from mock import MagicMock, patch
 
 from mad import __version__ as MAD_VERSION
 from mad.ui import Display, Arguments, InvalidSimulationLength, InvalidSimulationModel, WrongNumberOfArguments
@@ -102,3 +102,11 @@ class ArgumentsTest(TestCase):
             arguments = Arguments([each_path, "25"])
             self.assertEquals(each_expected_output, arguments._output_directory)
 
+    def test_all_output_directory_stays_the_same(self):
+        arguments = None
+        with patch.object(Arguments, "_identifier", return_value="2"):
+            arguments = Arguments(["foo/test.mad", "23"])
+            self.assertEqual(arguments._output_directory, "test_2")
+
+        with patch.object(Arguments, "_identifier", return_value="3"):
+            self.assertEqual(arguments._output_directory, "test_2")
