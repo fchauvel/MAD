@@ -30,7 +30,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
         * Multiple clients
         * Workload patterns
  * Bug fixes
-    * Fix the validation that detects false 'never invoked operation'    
  * Examples
     * SensApp example
  * Tests
@@ -55,7 +54,8 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * Bug Fixes:
     * Fix R script to render 'missing values' (i.e., "NA") properly
     * Fix multiple folders created when the simulation takes a long time
-
+    * Fix the validation so that it does not detect false 'never invoked operation' (on forward references)   
+ 
 
 
     

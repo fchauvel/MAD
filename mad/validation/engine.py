@@ -114,11 +114,14 @@ class Validator:
 
     def __init__(self):
         self.checks = []
+        self.invocations = []
         self.errors = []
         self.symbols = SymbolTable()
 
     def validate(self, expression):
         expression.accept(self)
+        for each_invocation in self.invocations:
+            each_invocation()
         for each_check in self.checks:
             each_check(self.symbols)
         if self._has_any_error():
@@ -164,11 +167,12 @@ class Validator:
             self._report(error)
 
     def of_trigger(self, trigger):
-        self.symbols.invoke(trigger.service, trigger.operation)
+        self.invocations.append(lambda: self.symbols.invoke(trigger.service, trigger.operation))
         self._check_is_defined(trigger.service)
         self._check_has_operation(trigger.service, trigger.operation)
 
     def of_query(self, query):
+        self.invocations.append(lambda: self.symbols.invoke(query.service, query.operation))
         self.symbols.invoke(query.service, query.operation)
         self._check_is_defined(query.service)
         self._check_has_operation(query.service, query.operation)

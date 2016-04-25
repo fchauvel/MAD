@@ -41,14 +41,28 @@ class AcceptanceTests(TestCase):
         self.file_system = InMemoryFileSystem()
 
     def test_client_server(self):
-        self.file_system.define("test.mad", "service DB {"
+        self.file_system.define("test.mad", ""
+                                            "service DB {"
+                                            "   operation Insert {"
+                                            "      think 5"
+                                            "      query Mirror/Insert"
+                                            "      fail 0.5"
+                                            "   }"
                                             "   operation Select {"
+                                            "      think 5"
+                                            "   }"
+                                            "}"
+                                            "service Mirror {"
+                                            "   operation Insert {"
                                             "      think 5"
                                             "   }"
                                             "}"
                                             "client Browser {"
                                             "   every 5 {"
                                             "      query DB/Select"
+                                            "      retry (limit: 5, delay:exponential(5)) {"
+                                            "           invoke DB/Insert"
+                                            "      }"
                                             "   }"
                                             "}")
 
