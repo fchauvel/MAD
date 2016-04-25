@@ -55,7 +55,7 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Fix R script to render 'missing values' (i.e., "NA") properly
     * Fix multiple folders created when the simulation takes a long time
     * Fix the validation so that it does not detect false 'never invoked operation' (on forward references)   
- 
+    * Fix R script to avoid plotting measures when all are NA (possible on edge cases)
 
 
     

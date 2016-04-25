@@ -30,14 +30,21 @@ service_overview <- function(service) {
   
   layout(matrix(1:8, 4, 2, byrow = TRUE));
   
-  show_queue_length(service, data);
-  show_utilisation(service, data);
-  show_worker_count(service, data);
-  show_arrival_rate(service, data);
-  show_rejection_rate(service, data);
-  show_reliability(service, data);
-  show_throughput(service, data);
-  show_response_time(service, data);
+  columns <- c(
+    "queue length",
+    "utilisation",
+    "worker count",
+    "arrival rate",
+    "rejection rate",
+    "reliability",
+    "throughput",
+    "response time"
+  );
+  
+  for (each.column in columns) {
+    show_evolution(service, data, each.column);    
+  }
+    
 }
 
 # Compute the name of the log file associated with the given service
@@ -46,84 +53,23 @@ file_name_for <- function(service) {
   
 }
 
-# Plot the utilisation over time
-show_utilisation <- function(service, data) {
-  plot(data$utilisation ~ data$time,
-       type="s",
-       col="darkred",
-       lty=1,
-       xlab="simulation time",
-       ylab="service utilisation (%)");  
-}
-
-# Plot the queue length over time
-show_queue_length <- function(service, data) {
-  plot(data$queue.length ~ data$time,
-       type="s",
-       col="darkred",
-       lty=1,
-       xlab="simulation time",
-       ylab="queue length");  
-}
-
-# Plot the number of worker over time
-show_worker_count <- function(service, data) {
-  plot(data$worker.count ~ data$time,
-       type="s",
-       col="darkred",
-       lty=1,
-       xlab="simulation time",
-       ylab="worker count");    
-}
-
-# Plot the number of request received per monitoring interval
-show_arrival_rate <- function(service, data) {
-  plot(data$arrival.rate ~ data$time,
-       type="s",
-       col="darkred",
-       lty=1,
-       xlab="simulation time",
-       ylab="arrival rate");
-}
-
-# Plot the rate at which requests are rejected
-show_rejection_rate <- function(service, data) {
-  plot(data$rejection.rate ~ data$time,
-       type="s",
-       col="darkred",
-       lty=1,
-       xlab="simulation time",
-       ylab="rejection rate");
-}
-
-# Plot the reliability, i.e., the fraction of successful requests
-show_reliability <- function(service, data) {
-  plot(data$reliability ~ data$time,
-       type="s",
-       col="darkred",
-       lty=1,
-       xlab="simulation time",
-       ylab="reliability");
-}
-
-# Plot the throughput, i.e., the rate of successfully processing requests
-show_throughput <- function(service, data) {
-  plot(data$throughput ~ data$time,
-       type="s",
-       col="darkred",
-       lty=1,
-       xlab="simulation time",
-       ylab="throughput");
-}
-
-# Plot the throughput, i.e., the rate of successfully processing requests
-show_response_time <- function(service, data) {
-  plot(data$response.time ~ data$time,
-       type="s",
-       col="darkred",
-       lty=1,
-       xlab="simulation time",
-       ylab="response time");
+show_evolution <- function(service, data, name) {
+    column_name = sub("\\s+", ".", name);
+    if (!all(is.na(data[, column_name]))) {
+      plot(data[,column_name] ~ data$time,
+           type="s",
+           col="darkred",
+           lty=1,
+           xlab="simulation time",
+           ylab=name);
+    } else {
+      error_message = sprintf("Error: '%s' is not available is the logs!", name)
+      plot(c(0,1), (c(0, 1)),
+           type="n",
+           xlab="simulation time",
+           ylab=name);
+      text(0.5, 0.5, labels=error_message, cex=2);
+    }
 }
 
 service_name <- function(file_name) {
