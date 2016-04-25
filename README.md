@@ -15,8 +15,15 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
 ## TODO
 
  * Features
+    * UI
+        * Should place a copy of the simulated file in the output folder
     * Services
         * Monitoring
+            * Client status (not only service)
+            * Per operation
+                * arrival rate
+                * reliability
+                * emission rate
             * current timeout
             * current back-off delay per 'partner'
             * incoming/outgoing rejection rate/count
@@ -50,7 +57,9 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * MAD language:
     * Support of an 'ignore-error' primitive
  * Monitoring:
-    * response time
+    * overall response time
+    * per operation
+        * response time 
  * Bug Fixes:
     * Fix R script to render 'missing values' (i.e., "NA") properly
     * Fix multiple folders created when the simulation takes a long time

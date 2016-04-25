@@ -18,11 +18,47 @@
 #
 
 from mad.evaluation import Symbols
+from mad.simulation.service import Operation
 from mad.simulation.commons import SimulatedEntity
 from mad.simulation.events import Listener
 
 
 MISSING_VALUE = "NA"
+
+
+class ResponseTime:
+
+    def __init__(self):
+        self._by_operation = {}
+
+    def success_replied_to(self, request):
+        entries = self._by_operation.get(request.operation, None)
+        if entries is None:
+            entries = []
+            self._by_operation[request.operation] = entries
+        entries.append(request.response_time)
+
+    def of(self, operation):
+        response_times = self._by_operation.get(operation, None)
+        if response_times is None or len(response_times) == 0:
+            return None
+        else:
+            return sum(response_times) / len(response_times)
+
+    @property
+    def overall(self):
+        count = 0
+        total = 0
+        for (operation, response_times) in self._by_operation.items():
+            total += sum(response_times)
+            count += len(response_times)
+        if count == 0:
+            return None
+        else:
+            return total / count
+
+    def reset(self):
+        self._by_operation.clear()
 
 
 class Statistics(Listener):
@@ -33,13 +69,13 @@ class Statistics(Listener):
         self.request_count = 0
         self.rejection_count = 0
         self.error_response_count = 0
-        self._response_times = []
+        self._response_times = ResponseTime()
 
     def reset(self):
         self.rejection_count = 0
         self.request_count = 0
         self.error_response_count = 0
-        self._response_times.clear()
+        self._response_times.reset()
 
     @property
     def reliability(self):
@@ -55,9 +91,10 @@ class Statistics(Listener):
 
     @property
     def response_time(self):
-        if len(self._response_times) == 0:
-            return None
-        return sum(self._response_times) / len(self._response_times)
+        return self._response_times.overall
+
+    def response_time_for(self, operation):
+        return self._response_times.of(operation)
 
     def arrival_of(self, request):
         self.request_count += 1
@@ -91,7 +128,7 @@ class Statistics(Listener):
         self.error_response_count += 1
 
     def success_replied_to(self, request):
-        self._response_times.append(request.response_time)
+        self._response_times.success_replied_to(request)
 
 
 class Probe:
@@ -138,11 +175,25 @@ class Monitor(SimulatedEntity):
     def __init__(self, name, environment, period):
         super().__init__(name, environment)
         self.period = period or self.DEFAULT_PERIOD
-        self.probes = self.DEFAULT_PROBES
+        self.probes = list(self.DEFAULT_PROBES)
+        self._add_custom_probes()
         self.report = self._create_report(self._header_format())
         self.statistics = Statistics()
         self.listener.register(self.statistics)
         self.schedule.every(self.period, self.monitor)
+
+    def _add_custom_probes(self):
+        for each_operation in self._all_operations():
+            new_probe = Probe("response time " + each_operation.name,
+                              10,
+                              "{:5.2f}",
+                              lambda self: self.statistics.response_time_for(each_operation.name))
+            self.probes.append(new_probe)
+
+    def _all_operations(self):
+        for (symbol, entity) in self.environment.bindings.items():
+            if isinstance(entity, Operation):
+                yield entity
 
     def set_probes(self, probes):
         assert len(probes) > 0, "Invalid monitoring: No probes given!"

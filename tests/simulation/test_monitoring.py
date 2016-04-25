@@ -97,13 +97,29 @@ class StatisticsTests(TestCase):
         expectation = sum(response_times) / len(response_times)
         self.assertEqual(expectation, self.statistics.response_time)
 
-    def _success_of_requests(self, response_times=[3,4,5,6]):
-        for each_response_time in response_times:
-            request = self._a_fake_request(each_response_time)
+    def test_response_time_per_operation(self):
+        requests = [{"operation": "foo", "response_time": 12},
+                    {"operation": "foo", "response_time": 14},
+                    {"operation": "bar", "response_time": 5},
+                    {"operation": "bar", "response_time": 3},
+                    {"operation": "quz", "response_time": 10}]
+
+        for each_request in requests:
+            request = self._a_fake_request(**each_request)
             self.statistics.success_replied_to(request)
 
-    def _a_fake_request(self, response_time=5):
+        self.assertEqual(13.0, self.statistics.response_time_for("foo"))
+        self.assertEqual(4.0, self.statistics.response_time_for("bar"))
+        self.assertEqual(10, self.statistics.response_time_for("quz"))
+
+    def _success_of_requests(self, response_times=[3,4,5,6]):
+        for each_response_time in response_times:
+            request = self._a_fake_request(response_time=each_response_time)
+            self.statistics.success_replied_to(request)
+
+    def _a_fake_request(self, operation="foo", response_time=5):
         request = MagicMock()
+        type(request).operation = operation
         type(request).response_time = response_time
         return request
 

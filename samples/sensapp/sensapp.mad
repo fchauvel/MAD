@@ -15,7 +15,7 @@ service Dispatcher {
     operation dispatch {
         retry (delay: exponential(5), limit: 10) {
             query Registry/check
-            query Storage/store
+            invoke Storage/store
         }
         ignore {
             invoke Notifier/notify
@@ -43,7 +43,9 @@ service Storage {
     }
 
     operation store {
-        query DB/insert {priority: 10}
+        retry(limit: 20, delay:exponential(5)) {
+            query DB/insert {timeout:10, priority: 10}
+        }
     }
 
     operation search {
@@ -90,7 +92,11 @@ service DB {
 
     settings {
         queue: LIFO
-        throttling: tail-drop(200)
+        throttling: tail-drop(100)
+        autoscaling {
+            period: 20
+            limits: [4, 5]
+        }
     }
 
     operation insert {
