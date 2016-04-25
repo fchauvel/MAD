@@ -4,10 +4,22 @@
 
 service Dispatcher {
 
+    settings {
+        queue: FIFO
+        autoscaling {
+            period: 10
+            limits: [1, 20]
+        }
+    }
+
     operation dispatch {
-        query Registry/check
-        invoke Storage/store
-        invoke Notifier/notify
+        retry (delay: exponential(5), limit: 10) {
+            query Registry/check
+            query Storage/store
+        }
+        ignore {
+            invoke Notifier/notify
+        }
     }
 
 }
@@ -15,26 +27,38 @@ service Dispatcher {
 service Registry {
 
     operation check {
-        think 5
+        think 2
     }
 
 }
 
-
 service Storage {
 
+    settings {
+        queue: FIFO
+        autoscaling {
+            period: 10
+            limits: [1, 20]
+        }
+    }
+
     operation store {
-        query DB/insert
+        query DB/insert {priority: 10}
     }
 
     operation search {
-        query DB/select
+        query DB/select {priority: 5}
     }
 }
 
 service Notifier {
 
+    settings {
+        queue: FIFO
+    }
+
     operation notify {
+        query Storage/search
         invoke Followers/found
     }
 
@@ -42,20 +66,17 @@ service Notifier {
 
 # Stubs to close the architecture
 
-service DB {
-
-    operation insert {
-        think 5
-    }
-
-    operation select {
-        think 5
+client Sensors {
+    every 1 {
+        invoke Dispatcher/dispatch
     }
 }
 
 client WebUI {
     every 20 {
-        query Storage/search
+        query Storage/search {priority: 5}
+        query Storage/search {priority: 5}
+        query Storage/search {priority: 5}
     }
 }
 
@@ -65,8 +86,19 @@ service Followers {
     }
 }
 
-client Sensors {
-    every 2 {
-        invoke Dispatcher/dispatch
+service DB {
+
+    settings {
+        queue: LIFO
+        throttling: tail-drop(200)
     }
+
+    operation insert {
+        think 4
+    }
+
+    operation select {
+        think 20
+    }
+
 }
