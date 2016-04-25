@@ -43,11 +43,16 @@ class Operation(SimulatedEntity):
 
         def send_response(status):
             if status.is_successful:
-                self.listener.success_replied_to(task.request)
-                task.request.reply_success()
+                if task.request.is_pending: # Could have timedout
+                    task.request.reply_success()
+                    self.listener.success_replied_to(task.request)
+                else:
+                    self.listener.error_replied_to(task.request)
+
             elif status.is_erroneous:
-                self.listener.error_replied_to(task.request)
                 task.request.reply_error()
+                self.listener.error_replied_to(task.request)
+
             else:
                 pass
             continuation(status)

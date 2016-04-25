@@ -55,11 +55,13 @@ class StatisticsTests(TestCase):
         self.statistics.arrival_of(FAKE_REQUEST)
         self.statistics.rejection_of(FAKE_REQUEST)
         self.statistics.error_replied_to(FAKE_REQUEST)
+        self.statistics.success_replied_to(self._a_fake_request(10))
         self.statistics.reset()
 
         self.assertEqual(0, self.statistics.request_count)
         self.assertEqual(0, self.statistics.rejection_count)
         self.assertEqual(0, self.statistics.error_response_count)
+        self.assertIsNone(self.statistics.response_time)
 
     def test_error_response(self):
         self.statistics.error_replied_to(FAKE_REQUEST)
@@ -87,6 +89,23 @@ class StatisticsTests(TestCase):
         expected = (4 - 1 - 1) / 4
 
         self.assertEqual(expected, self.statistics.reliability)
+
+    def test_response_time(self):
+        response_times = [10, 6, 7, 9, 8]
+        self._success_of_requests(response_times)
+
+        expectation = sum(response_times) / len(response_times)
+        self.assertEqual(expectation, self.statistics.response_time)
+
+    def _success_of_requests(self, response_times=[3,4,5,6]):
+        for each_response_time in response_times:
+            request = self._a_fake_request(each_response_time)
+            self.statistics.success_replied_to(request)
+
+    def _a_fake_request(self, response_time=5):
+        request = MagicMock()
+        type(request).response_time = response_time
+        return request
 
 
 class ProbeTests(TestCase):

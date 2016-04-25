@@ -37,6 +37,7 @@ service_overview <- function(service) {
   show_rejection_rate(service, data);
   show_reliability(service, data);
   show_throughput(service, data);
+  show_response_time(service, data);
 }
 
 # Compute the name of the log file associated with the given service
@@ -113,6 +114,16 @@ show_throughput <- function(service, data) {
        lty=1,
        xlab="simulation time",
        ylab="throughput");
+}
+
+# Plot the throughput, i.e., the rate of successfully processing requests
+show_response_time <- function(service, data) {
+  plot(data$response.time ~ data$time,
+       type="s",
+       col="darkred",
+       lty=1,
+       xlab="simulation time",
+       ylab="response time");
 }
 
 service_name <- function(file_name) {

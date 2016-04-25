@@ -33,19 +33,27 @@ class Request:
         self.on_success = on_success
         self.on_error = on_error
         self.status = self.PENDING
+        self._response_time = None
+        self._emission_time = None
+
+    @property
+    def response_time(self):
+        assert self.status == self.OK, "Only successful requests expose a 'response time'"
+        return self._response_time
 
     @property
     def is_pending(self):
         return self.status == self.PENDING
 
     def send_to(self, service):
-        # Used to be: service.process(self)
+        self._emission_time = self.sender.schedule.time_now
         service.schedule.after(self.TRANSMISSION_DELAY, lambda: service.process(self))
 
     def reply_success(self):
         if self.is_pending:
             self.status = self.OK
-            #self.on_success()
+            assert self._response_time is None, "Response time are updated multiple times!"
+            self._response_time = self.sender.schedule.time_now - self._emission_time
             self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_success)
 
     def reply_error(self):

@@ -33,11 +33,13 @@ class Statistics(Listener):
         self.request_count = 0
         self.rejection_count = 0
         self.error_response_count = 0
+        self._response_times = []
 
     def reset(self):
         self.rejection_count = 0
         self.request_count = 0
         self.error_response_count = 0
+        self._response_times.clear()
 
     @property
     def reliability(self):
@@ -50,6 +52,12 @@ class Statistics(Listener):
     def success_count(self):
         error_count = (self.rejection_count + self.error_response_count)
         return self.request_count - error_count
+
+    @property
+    def response_time(self):
+        if len(self._response_times) == 0:
+            return None
+        return sum(self._response_times) / len(self._response_times)
 
     def arrival_of(self, request):
         self.request_count += 1
@@ -83,7 +91,7 @@ class Statistics(Listener):
         self.error_response_count += 1
 
     def success_replied_to(self, request):
-        pass
+        self._response_times.append(request.response_time)
 
 
 class Probe:
@@ -123,7 +131,8 @@ class Monitor(SimulatedEntity):
         Probe("arrival rate", 10, "{:5.2f}", lambda self: self._arrival_rate()),
         Probe("rejection rate", 10, "{:5.2f}", lambda self: self._rejection_rate()),
         Probe("reliability", 10, "{:5.2f}", lambda self: self._reliability()),
-        Probe("throughput", 10, "{:5.2f}", lambda self: self._throughput())
+        Probe("throughput", 10, "{:5.2f}", lambda self: self._throughput()),
+        Probe("response time", 10, "{:5.2f}", lambda self: self._response_time())
     ]
 
     def __init__(self, name, environment, period):
@@ -177,6 +186,10 @@ class Monitor(SimulatedEntity):
 
     def _throughput(self):
         return self.statistics.success_count / self.period
+
+    def _response_time(self):
+        return self.statistics.response_time
+
 
 class Logger(SimulatedEntity, Listener):
     REQUEST_ARRIVAL = "Req. %d accepted"
