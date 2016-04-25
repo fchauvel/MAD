@@ -17,6 +17,8 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from functools import reduce
+
 from mad.evaluation import Symbols
 from mad.simulation.service import Operation
 from mad.simulation.commons import SimulatedEntity
@@ -26,39 +28,50 @@ from mad.simulation.events import Listener
 MISSING_VALUE = "NA"
 
 
-class ResponseTime:
+class OperationStatistics:
 
     def __init__(self):
-        self._by_operation = {}
-
-    def success_replied_to(self, request):
-        entries = self._by_operation.get(request.operation, None)
-        if entries is None:
-            entries = []
-            self._by_operation[request.operation] = entries
-        entries.append(request.response_time)
-
-    def of(self, operation):
-        response_times = self._by_operation.get(operation, None)
-        if response_times is None or len(response_times) == 0:
-            return None
-        else:
-            return sum(response_times) / len(response_times)
-
-    @property
-    def overall(self):
-        count = 0
-        total = 0
-        for (operation, response_times) in self._by_operation.items():
-            total += sum(response_times)
-            count += len(response_times)
-        if count == 0:
-            return None
-        else:
-            return total / count
+        self.call_count = 0
+        self.error_count = 0
+        self.rejection_count = 0
+        self.response_times = []
 
     def reset(self):
-        self._by_operation.clear()
+        self.__init__()
+
+    def call(self):
+        self.call_count += 1
+
+    @property
+    def success_count(self):
+        return self.call_count - self.failure_count
+
+    @property
+    def failure_count(self):
+        return self.rejection_count + self.error_count
+
+    def call_rejected(self):
+        self.rejection_count += 1
+
+    def call_failed(self):
+        self.error_count += 1
+
+    def call_succeed(self, duration):
+        self.response_times.append(duration)
+
+    @property
+    def reliability(self):
+        if self.call_count == 0:
+            return None
+        else:
+            return self.success_count / self.call_count
+
+    @property
+    def response_time(self):
+        if len(self.response_times) == 0:
+            return None
+        else:
+            return sum(self.response_times) / len(self.response_times)
 
 
 class Statistics(Listener):
@@ -66,16 +79,17 @@ class Statistics(Listener):
     def __init__(self):
         super().__init__()
         self.total_request_count = 0
-        self.request_count = 0
-        self.rejection_count = 0
-        self.error_response_count = 0
-        self._response_times = ResponseTime()
+        self._operations = {}
 
     def reset(self):
-        self.rejection_count = 0
-        self.request_count = 0
-        self.error_response_count = 0
-        self._response_times.reset()
+        self._operations.clear()
+
+    def _get(self, operation_name):
+        operation = self._operations.get(operation_name)
+        if operation is None:
+            operation = OperationStatistics()
+            self._operations[operation_name] = operation
+        return operation
 
     @property
     def reliability(self):
@@ -85,23 +99,51 @@ class Statistics(Listener):
         return self.success_count / total
 
     @property
+    def request_count(self):
+        counts = (each_operation.call_count for each_operation in self._operations.values())
+        return reduce(lambda x,y: x+y, counts, 0)
+
+    @property
+    def rejection_count(self):
+        counts = (each_operation.rejection_count for each_operation in self._operations.values())
+        return reduce(lambda x,y: x+y, counts, 0)
+
+    @property
     def success_count(self):
-        error_count = (self.rejection_count + self.error_response_count)
-        return self.request_count - error_count
+        counts = (each_operation.success_count for each_operation in self._operations.values())
+        return reduce(lambda x,y: x+y, counts, 0)
+
+    @property
+    def failure_count(self):
+        counts = (each_operation.failure_count for each_operation in self._operations.values())
+        return reduce(lambda x,y: x+y, counts, 0)
 
     @property
     def response_time(self):
-        return self._response_times.overall
+        (total, count) = (0, 0)
+        for (operation, statistics) in self._operations.items():
+            total += sum(statistics.response_times)
+            count += len(statistics.response_times)
+        if count <= 0:
+            return None
+        else:
+            return total / count
 
     def response_time_for(self, operation):
-        return self._response_times.of(operation)
+        return self._get(operation).response_time
+
+    def reliability_for(self, operation):
+        return self._get(operation).reliability
+
+    def request_count_for(self, operation):
+        return self._get(operation).call_count
 
     def arrival_of(self, request):
-        self.request_count += 1
         self.total_request_count += 1
+        self._get(request.operation).call()
 
     def rejection_of(self, request):
-        self.rejection_count += 1
+        self._get(request.operation).call_rejected()
 
     def success_of(self, request):
         pass
@@ -125,10 +167,10 @@ class Statistics(Listener):
         pass
 
     def error_replied_to(self, request):
-        self.error_response_count += 1
+        self._get(request.operation).call_failed()
 
     def success_replied_to(self, request):
-        self._response_times.success_replied_to(request)
+        self._get(request.operation).call_succeed(request.response_time)
 
 
 class Probe:
@@ -184,11 +226,30 @@ class Monitor(SimulatedEntity):
 
     def _add_custom_probes(self):
         for each_operation in self._all_operations():
-            new_probe = Probe("response time " + each_operation.name,
-                              10,
-                              "{:5.2f}",
-                              lambda self: self.statistics.response_time_for(each_operation.name))
-            self.probes.append(new_probe)
+            self._add_response_time(each_operation)
+            self._add_reliability(each_operation)
+            self._add_arrival_rate(each_operation)
+
+    def _add_response_time(self, operation):
+        response_time = Probe("response time " + operation.name,
+                          10,
+                          "{:5.2f}",
+                          lambda self: self.statistics.response_time_for(operation.name))
+        self.probes.append(response_time)
+
+    def _add_reliability(self, operation):
+        response_time = Probe("reliability " + operation.name,
+                          10,
+                          "{:5.2f}",
+                          lambda self: self.statistics.reliability_for(operation.name))
+        self.probes.append(response_time)
+
+    def _add_arrival_rate(self, operation):
+        response_time = Probe("arrival rate " + operation.name,
+                          10,
+                          "{:5.2f}",
+                          lambda self: self.statistics.request_count_for(operation.name) / self.period)
+        self.probes.append(response_time)
 
     def _all_operations(self):
         for (symbol, entity) in self.environment.bindings.items():

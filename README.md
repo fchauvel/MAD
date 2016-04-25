@@ -21,8 +21,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
         * Monitoring
             * Client status (not only service)
             * Per operation
-                * arrival rate
-                * reliability
                 * emission rate
             * current timeout
             * current back-off delay per 'partner'
@@ -60,6 +58,8 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * overall response time
     * per operation
         * response time 
+        * arrival rate
+        * reliability
  * Bug Fixes:
     * Fix R script to render 'missing values' (i.e., "NA") properly
     * Fix multiple folders created when the simulation takes a long time

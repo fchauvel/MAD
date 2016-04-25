@@ -25,11 +25,69 @@ from tests.fakes import InMemoryDataStorage
 from mad.log import Log
 from mad.evaluation import Symbols
 from mad.simulation.factory import Factory
-from mad.simulation.monitoring import Monitor, Probe, Statistics, Logger
+from mad.simulation.monitoring import OperationStatistics, Monitor, Probe, Statistics, Logger
 from mad.simulation.events import Dispatcher
 from mad.simulation.requests import Request
 
-FAKE_REQUEST = "whatever"
+
+def _a_fake_request(operation="foo", response_time=5):
+    request = MagicMock()
+    type(request).operation = operation
+    type(request).response_time = response_time
+    return request
+
+
+class OperationStatisticsTests(TestCase):
+
+    def setUp(self):
+        self.operation = OperationStatistics()
+
+    def test_call_count(self):
+        for i in range(3):
+            self.operation.call()
+
+        self.assertEqual(3, self.operation.call_count)
+
+    def test_rejection_count(self):
+        for i in range(5):
+            self.operation.call_rejected()
+
+        self.assertEqual(5, self.operation.rejection_count)
+
+    def test_reliability(self):
+        self.assertIsNone(self.operation.reliability)
+
+        for i in range(10):
+            self.operation.call()
+        for i in range(5):
+            self.operation.call_failed()
+        for i in range(2):
+            self.operation.call_rejected()
+
+        expectation = (10 - (5+2)) / 10
+        self.assertEqual(expectation, self.operation.reliability)
+
+    def test_response_time(self):
+        self.assertIsNone(self.operation.response_time)
+
+        durations = [4, 5, 6, 7, 8]
+        for each_duration in durations:
+            self.operation.call_succeed(each_duration)
+
+        expectation = sum(durations) / len(durations)
+        self.assertEqual(expectation, self.operation.response_time)
+
+    def test_reset(self):
+        self.operation.call()
+        self.operation.call_failed()
+        self.operation.call()
+        self.operation.call_succeed(56)
+        self.operation.reset()
+
+        self.assertIsNone(self.operation.reliability)
+        self.assertIsNone(self.operation.response_time)
+        self.assertEqual(0, self.operation.call_count)
+        self.assertEqual(0, self.operation.success_count)
 
 
 class StatisticsTests(TestCase):
@@ -40,51 +98,51 @@ class StatisticsTests(TestCase):
     def test_rejection_count(self):
         expected_count = 3
         for i in range(expected_count):
-            self.statistics.rejection_of(FAKE_REQUEST)
+            self.statistics.rejection_of(_a_fake_request())
 
         self.assertEqual(expected_count, self.statistics.rejection_count)
 
     def test_request_count(self):
         expected_count = 10
         for i in range(expected_count):
-            self.statistics.arrival_of(FAKE_REQUEST)
+            self.statistics.arrival_of(_a_fake_request())
 
         self.assertEqual(expected_count, self.statistics.request_count)
 
     def test_reset(self):
-        self.statistics.arrival_of(FAKE_REQUEST)
-        self.statistics.rejection_of(FAKE_REQUEST)
-        self.statistics.error_replied_to(FAKE_REQUEST)
-        self.statistics.success_replied_to(self._a_fake_request(10))
+        self.statistics.arrival_of(_a_fake_request())
+        self.statistics.rejection_of(_a_fake_request())
+        self.statistics.error_replied_to(_a_fake_request())
+        self.statistics.success_replied_to(_a_fake_request(10))
         self.statistics.reset()
 
         self.assertEqual(0, self.statistics.request_count)
         self.assertEqual(0, self.statistics.rejection_count)
-        self.assertEqual(0, self.statistics.error_response_count)
+        self.assertEqual(0, self.statistics.failure_count)
         self.assertIsNone(self.statistics.response_time)
 
     def test_error_response(self):
-        self.statistics.error_replied_to(FAKE_REQUEST)
+        self.statistics.error_replied_to(_a_fake_request())
 
-        self.assertEqual(1, self.statistics.error_response_count)
+        self.assertEqual(1, self.statistics.failure_count)
 
     def test_success_count(self):
-        self.statistics.arrival_of(FAKE_REQUEST)
-        self.statistics.arrival_of(FAKE_REQUEST)
-        self.statistics.arrival_of(FAKE_REQUEST)
-        self.statistics.arrival_of(FAKE_REQUEST)
-        self.statistics.rejection_of(FAKE_REQUEST)
-        self.statistics.error_replied_to(FAKE_REQUEST)
+        self.statistics.arrival_of(_a_fake_request())
+        self.statistics.arrival_of(_a_fake_request())
+        self.statistics.arrival_of(_a_fake_request())
+        self.statistics.arrival_of(_a_fake_request())
+        self.statistics.rejection_of(_a_fake_request())
+        self.statistics.error_replied_to(_a_fake_request())
 
         self.assertEqual(2, self.statistics.success_count)
 
     def test_reliability(self):
-        self.statistics.arrival_of(FAKE_REQUEST)
-        self.statistics.arrival_of(FAKE_REQUEST)
-        self.statistics.arrival_of(FAKE_REQUEST)
-        self.statistics.arrival_of(FAKE_REQUEST)
-        self.statistics.rejection_of(FAKE_REQUEST)
-        self.statistics.error_replied_to(FAKE_REQUEST)
+        self.statistics.arrival_of(_a_fake_request())
+        self.statistics.arrival_of(_a_fake_request())
+        self.statistics.arrival_of(_a_fake_request())
+        self.statistics.arrival_of(_a_fake_request())
+        self.statistics.rejection_of(_a_fake_request())
+        self.statistics.error_replied_to(_a_fake_request())
 
         expected = (4 - 1 - 1) / 4
 
@@ -105,7 +163,7 @@ class StatisticsTests(TestCase):
                     {"operation": "quz", "response_time": 10}]
 
         for each_request in requests:
-            request = self._a_fake_request(**each_request)
+            request = _a_fake_request(**each_request)
             self.statistics.success_replied_to(request)
 
         self.assertEqual(13.0, self.statistics.response_time_for("foo"))
@@ -114,14 +172,9 @@ class StatisticsTests(TestCase):
 
     def _success_of_requests(self, response_times=[3,4,5,6]):
         for each_response_time in response_times:
-            request = self._a_fake_request(response_time=each_response_time)
+            request = _a_fake_request(response_time=each_response_time)
             self.statistics.success_replied_to(request)
 
-    def _a_fake_request(self, operation="foo", response_time=5):
-        request = MagicMock()
-        type(request).operation = operation
-        type(request).response_time = response_time
-        return request
 
 
 class ProbeTests(TestCase):
@@ -167,11 +220,11 @@ class MonitorTests(TestCase):
 
     def _run_scenario(self, total, rejected, errors):
         for i in range(total):
-            self.monitor.statistics.arrival_of(FAKE_REQUEST)
+            self.monitor.statistics.arrival_of(_a_fake_request())
         for i in range(rejected):
-            self.monitor.statistics.rejection_of(FAKE_REQUEST)
+            self.monitor.statistics.rejection_of(_a_fake_request())
         for i in range(errors):
-            self.monitor.statistics.error_replied_to(FAKE_REQUEST)
+            self.monitor.statistics.error_replied_to(_a_fake_request())
 
     def test_runs_with_the_proper_period(self):
         with patch.object(Monitor, 'monitor') as trigger:
