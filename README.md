@@ -18,7 +18,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Services
         * Monitoring
             * response time
-            * incoming request count
             * current timeout
             * current back-off delay per 'partner'
             * incoming/outgoing rejection rate/count
@@ -31,6 +30,9 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Clients
         * Multiple clients
         * Workload patterns
+ * Bug fixes
+    * Several folders are created when the simulation takes some much time
+    
  * Examples
     * SensApp example
  * Tests
@@ -42,13 +44,15 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     right away?)
  * Refactorings
     * A test factory shared among simulation test
-    * Move the creation of workers from Service to the autoscalling strategy
+    * Move the creation of workers from Service to the autoscaling strategy
     * Split acceptance tests into several files (commons, nominals, errors)
     * Merge test_evaluation and test_interpreter
 
 ## NEXT RELEASE CHANGE LOG
 
  * Support of an 'ignore-error' primitive
+ * Bug Fixes
+    * Fix R script to render 'missing values' (i.e., "NA") properly
 
 
 

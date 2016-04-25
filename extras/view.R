@@ -22,7 +22,11 @@ MAD_OUTPUTS = "*.log";
 VIEW_NAME = "%s_view.pdf";
 
 service_overview <- function(service) {
-  data <- read.csv(file=file_name_for(service), header=TRUE, na.strings="NA");
+  data <- read.csv(
+                file=file_name_for(service),
+                header=TRUE,
+                strip.white=TRUE
+  );
   
   layout(matrix(1:8, 4, 2, byrow = TRUE));
   
