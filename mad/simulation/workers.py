@@ -76,13 +76,16 @@ class Worker(SimulatedEntity):
         self.identifier = identifier
 
     def assign(self, task):
-        def release_worker(result):
-            service = self.look_up(Symbols.SERVICE)
-            service.release(self)
+        if task.request.is_pending:
+            def release_worker(result):
+                service = self.look_up(Symbols.SERVICE)
+                service.release(self)
 
-        if task.is_started:
-            task.resume(self)
+            if task.is_started:
+                task.resume(self)
+            else:
+                task.mark_as_started()
+                operation = self.look_up(task.request.operation)
+                operation.invoke(task, [], release_worker, self)
         else:
-            task.mark_as_started()
-            operation = self.look_up(task.request.operation)
-            operation.invoke(task, [], release_worker, self)
+            self.listener.error_replied_to(task.request) # log the timeout as an error

@@ -53,7 +53,8 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
 ## NEXT RELEASE CHANGE LOG
 
  * Bug Fixes:
-    * Bug fixes in the calculation of the throughput and reliability that leaded to negative values
+    * Fix in the calculation of the throughput and reliability that leaded to negative values
+    * Fix the worker behaviour when request have timeout. They now check whether the task is still pending before to proceed
 
 
 
