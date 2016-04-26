@@ -52,19 +52,10 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  
 ## NEXT RELEASE CHANGE LOG
 
- * MAD language:
-    * Support of an 'ignore-error' primitive
- * Monitoring:
-    * overall response time
-    * per operation
-        * response time 
-        * arrival rate
-        * reliability
  * Bug Fixes:
-    * Fix R script to render 'missing values' (i.e., "NA") properly
-    * Fix multiple folders created when the simulation takes a long time
-    * Fix the validation so that it does not detect false 'never invoked operation' (on forward references)   
-    * Fix R script to avoid plotting measures when all are NA (possible on edge cases)
+    * Bug fixes in the calculation of the throughput and reliability that leaded to negative values
+
+
 
 
     

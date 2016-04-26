@@ -218,11 +218,11 @@ class Evaluation:
         request.send_to(recipient)
 
         def timeout_check():
-            sender.listener.timeout_of(request)
 
             def resume(worker):
                 self.environment.dynamic_scope = worker.environment
                 if request.is_pending:
+                    sender.listener.timeout_of(request)
                     request.reply_error()
                     self.continuation(Error())
 

@@ -43,7 +43,7 @@ class Operation(SimulatedEntity):
 
         def send_response(status):
             if status.is_successful:
-                if task.request.is_pending: # Could have timedout
+                if task.request.is_pending: # Could have timed out
                     task.request.reply_success()
                     self.listener.success_replied_to(task.request)
                 else:

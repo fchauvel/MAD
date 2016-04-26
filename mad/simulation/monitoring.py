@@ -42,14 +42,6 @@ class OperationStatistics:
     def call(self):
         self.call_count += 1
 
-    @property
-    def success_count(self):
-        return self.call_count - self.failure_count
-
-    @property
-    def failure_count(self):
-        return self.rejection_count + self.error_count
-
     def call_rejected(self):
         self.rejection_count += 1
 
@@ -60,11 +52,24 @@ class OperationStatistics:
         self.response_times.append(duration)
 
     @property
+    def complete_call_count(self):
+        return self.success_count + self.failure_count
+
+    @property
+    def success_count(self):
+        return len(self.response_times)
+
+    @property
+    def failure_count(self):
+        return self.rejection_count + self.error_count
+
+    @property
     def reliability(self):
-        if self.call_count == 0:
+        total = self.complete_call_count
+        if total == 0:
             return None
         else:
-            return self.success_count / self.call_count
+            return self.success_count / total
 
     @property
     def response_time(self):
@@ -93,13 +98,18 @@ class Statistics(Listener):
 
     @property
     def reliability(self):
-        total = self.request_count
+        total = self.complete_request_count
         if total == 0:
             return None
         return self.success_count / total
 
     @property
-    def request_count(self):
+    def complete_request_count(self):
+        counts = (each_operation.complete_call_count for each_operation in self._operations.values())
+        return reduce(lambda x,y: x+y, counts, 0)
+
+    @property
+    def arrival_count(self):
         counts = (each_operation.call_count for each_operation in self._operations.values())
         return reduce(lambda x,y: x+y, counts, 0)
 
@@ -238,18 +248,18 @@ class Monitor(SimulatedEntity):
         self.probes.append(response_time)
 
     def _add_reliability(self, operation):
-        response_time = Probe("reliability " + operation.name,
+        reliability = Probe("reliability " + operation.name,
                           10,
                           "{:5.2f}",
                           lambda self: self.statistics.reliability_for(operation.name))
-        self.probes.append(response_time)
+        self.probes.append(reliability)
 
     def _add_arrival_rate(self, operation):
-        response_time = Probe("arrival rate " + operation.name,
+        arrival_rate = Probe("arrival rate " + operation.name,
                           10,
                           "{:5.2f}",
                           lambda self: self.statistics.request_count_for(operation.name) / self.period)
-        self.probes.append(response_time)
+        self.probes.append(arrival_rate)
 
     def _all_operations(self):
         for (symbol, entity) in self.environment.bindings.items():
@@ -288,7 +298,7 @@ class Monitor(SimulatedEntity):
         return service.worker_count
 
     def _arrival_rate(self):
-        return self.statistics.request_count / self.period
+        return self.statistics.arrival_count / self.period
 
     def _rejection_rate(self):
         return self.statistics.rejection_count / self.period

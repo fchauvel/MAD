@@ -59,5 +59,4 @@ class Request:
     def reply_error(self):
         if self.is_pending:
             self.status = self.ERROR
-            #self.on_error()
             self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_error)
