@@ -32,6 +32,11 @@ service Storage {
 
     settings {
         queue: FIFO
+        throttling: tail-drop(100)
+        autoscaling {
+            period: 10
+            limits: [1, 3]
+        }
     }
 
     operation store {
@@ -47,16 +52,8 @@ service Storage {
 
 service Notifier {
 
-    settings {
-        queue: FIFO
-        autoscaling {
-            period: 10
-            limits: [1, 40]
-        }
-    }
-
     operation notify {
-        #query Storage/search
+        query Storage/search
         invoke Followers/found
     }
 
@@ -65,7 +62,7 @@ service Notifier {
 # Stubs to close the architecture
 
 client Sensors {
-    every 5 {
+    every 3 {
         invoke Dispatcher/dispatch
     }
 }
@@ -86,7 +83,7 @@ service DB {
 
     settings {
         queue: LIFO
-        throttling: tail-drop(100)
+        throttling: tail-drop(50)
         autoscaling {
             period: 10
             limits: [1, 3]

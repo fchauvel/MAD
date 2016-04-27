@@ -77,9 +77,15 @@ show_plot <- function(data, name, column_name) {
        type="s",
        col=1,
        lty=1,
+       ylim=compute_range(data, column_name),
        xlab="simulation time",
        ylab=name);
   return(rbind(c(), c(column_name, 1)));
+}
+
+compute_range <- function(data, column_name) {
+    columns <- grep(sprintf("^%s", column_name), colnames(data));
+    return(range(na.omit(data[, columns])));
 }
 
 show_variations <- function(data, column_name, matches) {
