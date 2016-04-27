@@ -36,7 +36,6 @@ class Operation(SimulatedEntity):
     def __repr__(self):
         return "operation:%s" % (str(self.body))
 
-    # TODO Rename as "query"
     def invoke(self, task, arguments, continuation=lambda r: r, worker=None):
         environment = self.environment.create_local_environment(worker.environment)
         environment.define(Symbols.TASK, task)
@@ -122,6 +121,7 @@ class Service(SimulatedEntity):
     def activate(self, task):
         if self.workers.are_available:
             worker = self.workers.acquire_one()
+            self.tasks.intercept(task)
             worker.assign(task)
         else:
             self.tasks.activate(task)

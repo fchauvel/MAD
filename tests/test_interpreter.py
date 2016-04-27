@@ -256,17 +256,39 @@ class TestInterpreter(TestCase):
 
 
     def test_evaluate_timeout_queries(self):
-        db = self.define("DB", self.fake_service())
-        self.evaluate(
+        db = self.define("DB", self._a_service_that_replies_after(8))
+        front_end = self.evaluate(
             DefineService("Front-end",
                 DefineOperation("checkout",
-                     Query("DB", "op", timeout=10)
+                     Query("DB", "op", timeout=5)
                 )
             )
-        )
+        ).value
 
         request = self.send_request("Front-end", "checkout")
         self.simulate_until(50)
+
+        self.assertEqual(Request.ERROR, request.status)
+        self.assertEqual(0, front_end.tasks.blocked_count)
+
+    def test_evaluate_timeout_no_expiration(self):
+        db = self.evaluate(
+            DefineService("DB",
+                DefineOperation("op", Think(1))
+            )
+        ).value
+        front_end = self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("checkout",
+                     Retry(expression=Query("DB", "op", timeout=1),
+                           delay=Delay(2, "constant"),
+                           limit=5)
+                )
+            )
+        ).value
+
+        request = self.send_request("Front-end", "checkout")
+        self.simulate_until(25)
 
         self.assertEqual(Request.ERROR, request.status)
 
@@ -462,6 +484,7 @@ class TestInterpreter(TestCase):
     def fake_client(self):
         fake_client = MagicMock()
         fake_client.schedule = self.simulation.schedule
+        fake_client.next_request_id = MagicMock(side_effect = range(1, 100))
         return fake_client
 
     def _a_service_that_rejects_requests(self):
@@ -478,6 +501,18 @@ class TestInterpreter(TestCase):
 
             request.accept()
             self.simulation._scheduler.after(after, do_fail)
+
+        service = self.fake_service()
+        service.process.side_effect = always_accept
+        return service
+
+    def _a_service_that_replies_after(self, after=4):
+        def always_accept(request):
+            def do_succeed():
+                request.reply_success()
+
+            request.accept()
+            self.simulation._scheduler.after(after, do_succeed)
 
         service = self.fake_service()
         service.process.side_effect = always_accept

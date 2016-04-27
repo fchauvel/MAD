@@ -75,3 +75,7 @@ class Request:
         if self.is_pending:
             self.status = self.ERROR
             self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_error)
+
+    def discard(self):
+        if self.is_pending:
+            self.status = self.ERROR

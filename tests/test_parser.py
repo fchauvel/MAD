@@ -60,9 +60,12 @@ class CorrectExpressionTests(ParserTests):
             ("query DB/Select {timeout: 50}", Query("DB", "Select", timeout=50), "query"),
             ("query DB/Select {priority: 12}", Query("DB", "Select", priority=12), "query"),
             ("query DB/Select {priority: 12, timeout: 50}", Query("DB", "Select", priority=12, timeout=50), "query"),
+
             ("invoke DB/Select", Trigger("DB", "Select"), "invoke"),
             ("invoke DB/Select {priority: 12}", Trigger("DB", "Select", 12), "invoke"),
+
             ("think 5", Think(5), "think"),
+
             ("fail", Fail(), "fail"),
             ("fail 0.5", Fail(probability=0.5), "fail"),
 

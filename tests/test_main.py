@@ -19,7 +19,7 @@
 
 from io import StringIO
 
-from unittest import TestCase
+from unittest import TestCase, skip
 from tests.fakes import InMemoryDataStorage, InMemoryFileSystem
 
 from mad.ast.commons import *
@@ -36,6 +36,14 @@ class TestXXX(TestCase):
 
     def setUp(self):
         self.file_system = InMemoryFileSystem()
+
+    @skip("Debugging Sensapp example")
+    def test_sensapp(self):
+        with open("C:/Users/franckc/home/projects/diversify/dev/mad/samples/sensapp/sensapp.mad") as source:
+            self.file_system.define("test.mad", source.read())
+
+        controller = Controller(StringIO(), self.file_system)
+        simulation = controller.execute("test.mad", "200")
 
     def test_client_server_with_autoscaling(self):
         self.file_system.define(

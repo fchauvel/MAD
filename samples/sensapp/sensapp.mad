@@ -6,10 +6,6 @@ service Dispatcher {
 
     settings {
         queue: FIFO
-        autoscaling {
-            period: 10
-            limits: [1, 20]
-        }
     }
 
     operation dispatch {
@@ -36,14 +32,10 @@ service Storage {
 
     settings {
         queue: FIFO
-        autoscaling {
-            period: 10
-            limits: [1, 40]
-        }
     }
 
     operation store {
-        retry(limit: 20, delay:exponential(5)) {
+        retry(limit: 2, delay:exponential(5)) {
             query DB/insert {timeout:10, priority: 10}
         }
     }
@@ -57,10 +49,14 @@ service Notifier {
 
     settings {
         queue: FIFO
+        autoscaling {
+            period: 10
+            limits: [1, 40]
+        }
     }
 
     operation notify {
-        query Storage/search
+        #query Storage/search
         invoke Followers/found
     }
 
@@ -69,16 +65,14 @@ service Notifier {
 # Stubs to close the architecture
 
 client Sensors {
-    every 1 {
+    every 5 {
         invoke Dispatcher/dispatch
     }
 }
 
 client WebUI {
     every 20 {
-        query Storage/search {priority: 5}
-        query Storage/search {priority: 5}
-        query Storage/search {priority: 5}
+        query Storage/search
     }
 }
 
@@ -92,11 +86,10 @@ service DB {
 
     settings {
         queue: LIFO
-        #throttling: tail-drop(100)
-        #throttling: None
+        throttling: tail-drop(100)
         autoscaling {
-            period: 20
-            limits: [4, 20]
+            period: 10
+            limits: [1, 3]
         }
     }
 
@@ -105,7 +98,7 @@ service DB {
     }
 
     operation select {
-        think 20
+        think 10
     }
 
 }

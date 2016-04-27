@@ -212,23 +212,20 @@ class Evaluation:
         backoff = self.factory.create_backoff(retry.delay)
 
         def retry_on_error(remaining_tries):
-            if remaining_tries == 0:
-                return lambda status: Error()
+            if remaining_tries <= 0:
+                return lambda s: self.continuation(Error())
             else:
                 def continuation(status):
                     if status.is_successful:
-                        return self.continuation(status)
-                    else: # Failed Attempt
-                        def reactivate_task():
-                            sender.activate(task)
-
+                        return self.continuation(Success(None))
+                    else:
                         def try_again(worker):
                             self.environment.dynamic_scope = worker.environment
                             self._evaluation_of(retry.expression, retry_on_error(remaining_tries-1))
 
                         task.resume = try_again
                         delay = backoff.delay(retry.limit - remaining_tries)
-                        sender.schedule.after(delay, reactivate_task)
+                        sender.schedule.after(delay, lambda: sender.activate(task))
                         return self._pause()
 
                 return continuation
@@ -274,7 +271,9 @@ class Evaluation:
             on_accept= on_accept,
             on_reject= on_reject)
 
+        sender.listener.posting_of(trigger.service, request)
         request.send_to(recipient)
+
         return self._pause()
 
     def _send_query(self, query):
@@ -326,16 +325,15 @@ class Evaluation:
         request.send_to(recipient)
 
         def timeout_check():
-
             def resume(worker):
                 self.environment.dynamic_scope = worker.environment
-                if request.is_pending:
-                    sender.listener.timeout_of(request)
-                    request.reply_error()
-                    self.continuation(Error())
+                self.continuation(Error())
 
-            task.resume = resume
-            sender.activate(task)
+            if request.is_pending:
+                sender.listener.timeout_of(request)
+                request.discard()
+                task.resume = resume
+                sender.activate(task)
 
         if query.has_timeout:
             sender.schedule.after(query.timeout, timeout_check)

@@ -72,9 +72,11 @@ class AbstractTaskPoolTests:
     def test_activate_increases_size(self):
         self._activate_a_task()
         self.assertEqual(self.pool.size, 1)
+        self.assertEqual(0, len(self.pool.paused))
 
     def test_pause_increases_blocked_count(self):
         self._pause_a_task()
+
         self.assertEqual(self.pool.size, 0)
         self.assertEqual(self.pool.blocked_count, 1)
 

@@ -45,7 +45,10 @@ class TaskPool:
         raise NotImplementedError("TaskPool::activate is abstract")
 
     def pause(self, task):
-        raise NotImplementedError("TaskPool::activate is abstract")
+        raise NotImplementedError("TaskPool::pause is abstract")
+
+    def intercept(self, task):
+        raise NotImplementedError("TaskPool::intercept is abstract")
 
 
 class TaskPoolDecorator(TaskPool):
@@ -77,6 +80,9 @@ class TaskPoolDecorator(TaskPool):
 
     def pause(self, task):
         self.delegate.pause(task)
+
+    def intercept(self, task):
+        self.delegate.intercept(task)
 
 
 class TaskPoolWrapper(TaskPoolDecorator, SimulatedEntity):
@@ -112,6 +118,9 @@ class AbstractTaskPool(TaskPool):
 
     def pause(self, task):
         self.paused.append(task)
+
+    def intercept(self, task):
+        self.paused.remove(task)
 
     def put(self, task):
         task.request.accept()
