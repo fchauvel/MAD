@@ -214,7 +214,8 @@ class Monitor(SimulatedEntity):
 
     DEFAULT_PROBES = [
         Probe("time", 6, "{:d}", lambda self: self.schedule.time_now),
-        Probe("queue length", 4, "{:d}", lambda self: self._queue_length()),
+        Probe("queue", 4, "{:d}", lambda self: self._queue_length()),
+        Probe("queue blocked", 4, "{:d}", lambda self: self._queue_blocked()),
         Probe("utilisation", 10, "{:5.2f}", lambda self: self._utilisation()),
         Probe("worker count", 4, "{:d}", lambda self: self._worker_count()),
         Probe("arrival rate", 10, "{:5.2f}", lambda self: self._arrival_rate()),
@@ -288,6 +289,10 @@ class Monitor(SimulatedEntity):
     def _queue_length(self):
         task_pool = self.look_up(Symbols.QUEUE)
         return task_pool.size
+
+    def _queue_blocked(self):
+        task_pool = self.look_up(Symbols.QUEUE)
+        return task_pool.blocked_count
 
     def _utilisation(self):
         service = self.look_up(Symbols.SERVICE)

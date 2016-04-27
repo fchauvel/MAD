@@ -1,0 +1,25 @@
+
+#
+# Illustrate autoscaling
+#
+
+service DB {
+
+    settings {
+        autoscaling {
+            limits: [1, 10]
+            period: 15
+        }
+    }
+
+    operation Select { think 10 }
+
+}
+
+client Browser {
+
+    every 1 {
+        query DB/Select
+    }
+
+}

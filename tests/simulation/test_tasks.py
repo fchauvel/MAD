@@ -32,6 +32,7 @@ class AbstractTaskPoolTests:
     def _make_task(priority=DEFAULT_PRIORITY):
         task = MagicMock(Task)
         type(task).priority = PropertyMock(return_value=priority)
+        task.request = MagicMock()
         return task
 
     def _put_a_task(self, priority=DEFAULT_PRIORITY):
@@ -41,7 +42,13 @@ class AbstractTaskPoolTests:
 
     def _activate_a_task(self, priority=DEFAULT_PRIORITY):
         task = self._make_task(priority)
+        self.pool.pause(task)
         self.pool.activate(task)
+        return task
+
+    def _pause_a_task(self):
+        task = self._make_task()
+        self.pool.pause(task)
         return task
 
     def test_take_fails_when_empty(self):
@@ -65,6 +72,11 @@ class AbstractTaskPoolTests:
     def test_activate_increases_size(self):
         self._activate_a_task()
         self.assertEqual(self.pool.size, 1)
+
+    def test_pause_increases_blocked_count(self):
+        self._pause_a_task()
+        self.assertEqual(self.pool.size, 0)
+        self.assertEqual(self.pool.blocked_count, 1)
 
     def test_take_return_a_task_with_highest_priority(self):
         self._put_a_task(priority=1)

@@ -108,7 +108,9 @@ class CorrectExpressionTests(ParserTests):
              DefineService("DB", DefineOperation("Select", Think(4))),
              "define_service"),
 
-            ("client Browser { every 5 { query DB/Select } }", DefineClientStub("Browser", 5, Query("DB", "Select")), "define_client"),
+            ("client Browser { every 5 { query DB/Select } }",
+             DefineClientStub("Browser", 5, Query("DB", "Select")),
+             "define_client"),
 
             ("service DB { "
              "  operation Select { "
@@ -127,10 +129,10 @@ class CorrectExpressionTests(ParserTests):
             ("settings { queue: LIFO }", Settings(queue=LIFO()), "settings"),
 
             ("autoscaling {"
-             "  period: 10"
-             "  limits: [1, 5]"
+             "  period: 134"
+             "  limits: [27, 52]"
              "}",
-             {"autoscaling": Autoscaling(period=10, limits=(1, 5))},
+             {"autoscaling": Autoscaling(period=134, limits=(27, 52))},
              "autoscaling"),
 
             ("throttling: none",

@@ -38,7 +38,7 @@ service Storage {
         queue: FIFO
         autoscaling {
             period: 10
-            limits: [1, 20]
+            limits: [1, 40]
         }
     }
 
@@ -92,10 +92,11 @@ service DB {
 
     settings {
         queue: LIFO
-        throttling: tail-drop(100)
+        #throttling: tail-drop(100)
+        #throttling: None
         autoscaling {
             period: 20
-            limits: [4, 5]
+            limits: [4, 20]
         }
     }
 

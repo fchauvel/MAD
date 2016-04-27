@@ -72,7 +72,7 @@ class SimulationFactory:
     def create_client_stub(self, environment, definition):
         self._abort(self.create_client_stub.__name__)
 
-    def create_request(self, sender, operation, priority, on_success=lambda: None, on_error=lambda: None):
+    def create_request(self, sender, kind, operation, priority, on_accept=lambda:None, on_reject=lambda:None, on_success=lambda: None, on_error=lambda: None):
         self._abort(self.create_request.__name__)
 
     def create_no_throttling(self, environment, task_pool):
@@ -182,65 +182,23 @@ class Evaluation:
         return self._evaluation_of(sequence.first_expression, abort_on_error)
 
     def of_trigger(self, trigger):
-        sender = self._look_up(Symbols.SELF)
-        recipient = self._look_up(trigger.service)
-        request = self.factory.create_request(sender, trigger.operation, trigger.priority)
-        request.send_to(recipient)
-        return self.continuation(Success(None))
+        return self._get_busy_for(
+            duration=1,
+            after=lambda status: self._do_trigger(trigger))
 
     def of_query(self, query):
-        task = self._look_up(Symbols.TASK)
-        sender = self._look_up(Symbols.SELF)
-        recipient = self._look_up(query.service)
-
-        def on_success():
-            sender.listener.success_of(request)
-
-            def resume(worker):
-                self.environment.dynamic_scope = worker.environment
-                self.continuation(Success())
-
-            task.resume = resume
-            sender.activate(task)
-
-        def on_error():
-            sender.listener.failure_of(request)
-
-            def resume(worker):
-                self.environment.dynamic_scope = worker.environment
-                self.continuation(Error())
-
-            task.resume = resume
-            sender.activate(task)
-
-        request = self.factory.create_request(sender, query.operation, query.priority, on_success, on_error)
-        sender.listener.posting_of(query.service, request)
-        request.send_to(recipient)
-
-        def timeout_check():
-
-            def resume(worker):
-                self.environment.dynamic_scope = worker.environment
-                if request.is_pending:
-                    sender.listener.timeout_of(request)
-                    request.reply_error()
-                    self.continuation(Error())
-
-            task.resume = resume
-            sender.activate(task)
-
-        if query.has_timeout:
-            sender.schedule.after(query.timeout, timeout_check)
-
-        worker = self.environment.dynamic_look_up(Symbols.WORKER)
-        sender.release(worker)
-        return Paused()
+        return self._get_busy_for(
+            duration=1,
+            after=lambda status: self._send_query(query))
 
     def of_think(self, think):
-        def resume():
-            self.continuation(Success())
-        self.simulation.schedule.after(think.duration, resume)
-        return Paused()
+        """
+        Simulate the worker processing the task for the specified amount of time.
+        The worker is not released and the task is not paused.
+        """
+        return self._get_busy_for(
+            duration=think.duration,
+            after=lambda status: self.continuation(status))
 
     def of_fail(self, fail):
         if random() < fail.probability:
@@ -271,9 +229,7 @@ class Evaluation:
                         task.resume = try_again
                         delay = backoff.delay(retry.limit - remaining_tries)
                         sender.schedule.after(delay, reactivate_task)
-                        worker = self.environment.dynamic_look_up(Symbols.WORKER)
-                        sender.release(worker)
-                        return Paused()
+                        return self._pause()
 
                 return continuation
 
@@ -284,6 +240,120 @@ class Evaluation:
             return self.continuation(Success(status.value))
         return self._evaluation_of(ignore_error.expression, ignore_status)
 
+    def _do_trigger(self, trigger):
+        task = self._look_up(Symbols.TASK)
+        sender = self._look_up(Symbols.SELF)
+        recipient = self._look_up(trigger.service)
+
+        def on_reject():
+            # TODO: Notify rejection received!
+
+            def resume(worker):
+                self.environment.dynamic_scope = worker.environment
+                self.continuation(Error())
+
+            task.resume = resume
+            sender.activate(task)
+
+        def on_accept():
+            # TODO: Notify acceptance ack received!
+
+            def resume(worker):
+                self.environment.dynamic_scope = worker.environment
+                self.continuation(Success())
+
+            task.resume = resume
+            sender.activate(task)
+
+        # TODO: Replace that ugly magic '1'
+        request = self.factory.create_request(
+            sender,
+            1,
+            trigger.operation,
+            trigger.priority,
+            on_accept= on_accept,
+            on_reject= on_reject)
+
+        request.send_to(recipient)
+        return self._pause()
+
+    def _send_query(self, query):
+        task = self._look_up(Symbols.TASK)
+        sender = self._look_up(Symbols.SELF)
+        recipient = self._look_up(query.service)
+
+        def on_reject():
+            # TODO: Notify rejection received!
+
+            def resume(worker):
+                self.environment.dynamic_scope = worker.environment
+                self.continuation(Error())
+
+            task.resume = resume
+            sender.activate(task)
+
+        def on_success():
+            sender.listener.success_of(request)
+
+            def resume(worker):
+                self.environment.dynamic_scope = worker.environment
+                self.continuation(Success())
+
+            task.resume = resume
+            sender.activate(task)
+
+        def on_error():
+            sender.listener.failure_of(request)
+
+            def resume(worker):
+                self.environment.dynamic_scope = worker.environment
+                self.continuation(Error())
+
+            task.resume = resume
+            sender.activate(task)
+
+        # TODO: Replace that ugly magic '0'
+        request = self.factory.create_request(
+            sender,
+            0,
+            query.operation,
+            query.priority,
+            on_reject=on_reject,
+            on_success=on_success,
+            on_error=on_error)
+
+        sender.listener.posting_of(query.service, request)
+        request.send_to(recipient)
+
+        def timeout_check():
+
+            def resume(worker):
+                self.environment.dynamic_scope = worker.environment
+                if request.is_pending:
+                    sender.listener.timeout_of(request)
+                    request.reply_error()
+                    self.continuation(Error())
+
+            task.resume = resume
+            sender.activate(task)
+
+        if query.has_timeout:
+            sender.schedule.after(query.timeout, timeout_check)
+
+        return self._pause()
+
+    def _get_busy_for(self, duration, after):
+        self.simulation.schedule.after(duration, lambda: after(Success()))
+        return Busy()
+
+    def _pause(self):
+        service = self._look_up(Symbols.SELF)
+        task = self._look_up(Symbols.TASK)
+        worker = self.environment.dynamic_look_up(Symbols.WORKER)
+        service.pause(task)
+        service.release(worker)
+        return Paused()
+
 
 class Result:
     """
@@ -292,6 +362,7 @@ class Result:
     PAUSED = 0
     SUCCESS = 1
     ERROR = 2
+    BUSY = 3
 
     def __init__(self, status, value):
         self.status = status
@@ -309,8 +380,16 @@ class Result:
     def is_erroneous(self):
         return self.status == Result.ERROR
 
+    def is_busy(self):
+        return self.status == Result.BUSY
+
+    names = {ERROR: "ERROR",
+             BUSY: "BUSY",
+             PAUSED: "PAUSED",
+             SUCCESS: "SUCCESS"}
+
     def __repr__(self):
-        return "SUCCESS" if self.is_successful else "ERROR"
+        return self.names[self.status]
 
 
 class Success(Result):
@@ -328,3 +407,8 @@ class Error(Result):
 class Paused(Result):
     def __init__(self):
         super().__init__(Result.PAUSED, None)
+
+
+class Busy(Result):
+    def __init__(self):
+        super().__init__(Result.BUSY, None)

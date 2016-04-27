@@ -34,6 +34,7 @@ class ThrottlingPolicy(TaskPoolDecorator):
         if self._accepts(task):
             self.delegate.put(task)
         else:
+            task.reject()
             self._reject(task)
 
     def _accepts(self, task):

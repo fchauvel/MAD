@@ -78,7 +78,7 @@ class FIFO(QueueDiscipline):
 
 class Autoscaling(Expression):
 
-    def __init__(self, period=30, limits=(1, 4)):
+    def __init__(self, period=30, limits=(1, 1)):
         super().__init__()
         if not isinstance(period, int):
             raise ValueError("Expecting integer value for period, but found '%1$s' (%2$s)" % (str(period), type(period)))

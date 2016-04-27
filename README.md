@@ -35,6 +35,9 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
         * Multiple clients
         * Workload patterns
  * Bug fixes
+    * R Script ylim which are based on the first series, instead of the max of all series
+    * timeout activation that fails because the request was not properly paused
+    * recursion that exceeds the maximum depth
  * Examples
     * SensApp example
  * Tests
@@ -55,6 +58,9 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * Bug Fixes:
     * Fix in the calculation of the throughput and reliability that leaded to negative values
     * Fix the worker behaviour when request have timeout. They now check whether the task is still pending before to proceed
+    * Fiz the invoke and query which now wait for acceptance by the server.
+    * Fix the behaviour of the invocation, which take 1 unit of time to send the requests
+    * Fix autoscalling issues that exceeds its limits by one.
 
 
 

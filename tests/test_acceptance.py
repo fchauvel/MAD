@@ -82,7 +82,7 @@ class AcceptanceTests(TestCase):
                                             "}"
                                             ""
                                             "client Browser_A {"
-                                            "   every 2 {"
+                                            "   every 1 {"
                                             "      query DB/Select {priority: 10}"
                                             "   }"
                                             "}"
@@ -93,7 +93,7 @@ class AcceptanceTests(TestCase):
                                             "   }"
                                             "}")
 
-        self._execute([self.LOCATION, 20])
+        self._execute([self.LOCATION, 22])
 
         self._verify_opening()
         self._verify_valid_model()

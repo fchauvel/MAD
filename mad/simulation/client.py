@@ -63,6 +63,9 @@ class ClientStub(SimulatedEntity):
     def activate(self, task):
         task.resume(self)
 
+    def pause(self, task):
+        pass
+
     def release(self, worker):
         pass
 

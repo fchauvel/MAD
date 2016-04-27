@@ -34,10 +34,17 @@ class TaskPool:
         raise NotImplementedError("TaskPool::size is abstract")
 
     @property
+    def blocked_count(self):
+        raise NotImplementedError("TaskPool::size is abstract")
+
+    @property
     def are_pending(self):
         raise NotImplementedError("TaskPool::are_pending is abstract")
 
     def activate(self, task):
+        raise NotImplementedError("TaskPool::activate is abstract")
+
+    def pause(self, task):
         raise NotImplementedError("TaskPool::activate is abstract")
 
 
@@ -57,12 +64,19 @@ class TaskPoolDecorator(TaskPool):
     def size(self):
         return self.delegate.size
 
+    @TaskPool.blocked_count.getter
+    def blocked_count(self):
+        return self.delegate.blocked_count
+
     @TaskPool.are_pending.getter
     def are_pending(self):
         return self.delegate.are_pending
 
     def activate(self, task):
         self.delegate.activate(task)
+
+    def pause(self, task):
+        self.delegate.pause(task)
 
 
 class TaskPoolWrapper(TaskPoolDecorator, SimulatedEntity):
@@ -94,8 +108,13 @@ class AbstractTaskPool(TaskPool):
         super().__init__()
         self.tasks = []
         self.interrupted = []
+        self.paused = []
+
+    def pause(self, task):
+        self.paused.append(task)
 
     def put(self, task):
+        task.request.accept()
         self.tasks.append(task)
 
     def take(self):
@@ -134,7 +153,13 @@ class AbstractTaskPool(TaskPool):
     def size(self):
         return len(self.tasks) + len(self.interrupted)
 
+    @TaskPool.blocked_count.getter
+    def blocked_count(self):
+        return len(self.paused)
+
     def activate(self, task):
+        assert task in self.paused, "Error: Req. {:d} should have been paused!".format(task.request.identifier)
+        self.paused.remove(task)
         self.interrupted.append(task)
 
 

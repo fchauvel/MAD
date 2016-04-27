@@ -31,7 +31,7 @@ service_overview <- function(service) {
   layout(matrix(1:8, 4, 2, byrow = TRUE));
   
   columns <- c(
-    "queue length",
+    "queue",
     "utilisation",
     "worker count",
     "arrival rate",

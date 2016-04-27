@@ -19,17 +19,26 @@
 
 
 class Request:
+    QUERY = 0
+    TRIGGER = 1
+
     TRANSMISSION_DELAY = 1
+
     PENDING = 0
     OK = 1
     ERROR = 2
+    ACCEPTED = 3
+    REJECTED = 4
 
-    def __init__(self, sender, operation, priority, on_success=lambda: None, on_error=lambda: None):
+    def __init__(self, sender, kind, operation, priority, on_accept=lambda:None, on_reject=lambda:None, on_success=lambda: None, on_error=lambda: None):
         assert sender, "Invalid sender (found %s)" % str(sender)
         self.identifier = sender.next_request_id()
         self.sender = sender
+        self.kind = kind
         self.operation = operation
         self.priority = priority
+        self.on_accept = on_accept
+        self.on_reject = on_reject
         self.on_success = on_success
         self.on_error = on_error
         self.status = self.PENDING
@@ -48,6 +57,12 @@ class Request:
     def send_to(self, service):
         self._emission_time = self.sender.schedule.time_now
         service.schedule.after(self.TRANSMISSION_DELAY, lambda: service.process(self))
+
+    def accept(self):
+        self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_accept)
+
+    def reject(self):
+        self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_reject)
 
     def reply_success(self):
         if self.is_pending:

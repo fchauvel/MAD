@@ -37,7 +37,7 @@ class RequestTests(TestCase):
     def do_test_response_time(self, sent_at, replied_at):
         sender = MagicMock()
         type(sender.schedule).time_now = PropertyMock(side_effect = [sent_at, replied_at] )
-        request = Request(sender, "foo_operation", 1)
+        request = Request(sender, 0, "foo_operation", 1)
 
         recipient = MagicMock()
 
@@ -46,12 +46,10 @@ class RequestTests(TestCase):
 
         self.assertEqual(replied_at - sent_at, request.response_time)
 
-
-
     def test_response_time_on_error(self):
         sender = MagicMock()
         sender.schedule.time = MagicMock(return_value = (5, 10, 15))
-        request = Request(sender, "foo_operation", 1)
+        request = Request(sender, 0, "foo_operation", 1)
 
         recipient = MagicMock()
 

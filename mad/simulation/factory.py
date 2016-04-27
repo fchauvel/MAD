@@ -73,8 +73,8 @@ class Factory(SimulationFactory):
             environment
         )
 
-    def create_request(self, sender, operation, priority, on_success=lambda: None, on_error=lambda: None):
-        return Request(sender, operation, priority, on_success, on_error)
+    def create_request(self, sender, kind, operation, priority, on_accept=lambda:None, on_reject=lambda:None, on_success=lambda: None, on_error=lambda: None):
+        return Request(sender, kind, operation, priority, on_accept, on_reject, on_success, on_error)
 
     def create_no_throttling(self, environment, task_pool):
         return ThrottlingWrapper(environment, NoThrottling(task_pool))

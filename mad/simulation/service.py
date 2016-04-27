@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+from mad.ast.actions import Think
 from mad.evaluation import Symbols, Evaluation
 from mad.simulation.commons import SimulatedEntity
 from mad.simulation.workers import WorkerPool, Worker
@@ -36,10 +36,17 @@ class Operation(SimulatedEntity):
     def __repr__(self):
         return "operation:%s" % (str(self.body))
 
+    # TODO Rename as "query"
     def invoke(self, task, arguments, continuation=lambda r: r, worker=None):
         environment = self.environment.create_local_environment(worker.environment)
         environment.define(Symbols.TASK, task)
         environment.define_each(self.parameters, arguments)
+
+        def compute_and_send_response(status):
+            if task.request.kind == task.request.QUERY:
+                return Evaluation(environment, Think(1), self.factory, lambda s: send_response(status)).result
+            else:
+                send_response(status)
 
         def send_response(status):
             if status.is_successful:
@@ -55,9 +62,14 @@ class Operation(SimulatedEntity):
 
             else:
                 pass
-            continuation(status)
 
-        Evaluation(environment, self.body, self.factory, send_response).result
+            service = environment.look_up(Symbols.SELF)
+            worker = environment.dynamic_look_up(Symbols.WORKER)
+            service.release(worker)
+            continuation(status) # TODO: Must be over! Remove this useless call to continuation
+
+        return Evaluation(environment, self.body, self.factory, compute_and_send_response).result
+
 
 
 class Service(SimulatedEntity):
@@ -81,7 +93,7 @@ class Service(SimulatedEntity):
     def set_worker_count(self, capacity):
         error = self.workers.capacity - capacity
         if error < 0:
-            new_workers = [self._new_worker(id) for id in range(self.workers.capacity, capacity+1)]
+            new_workers = [self._new_worker(id) for id in range(-error)]
             self.workers.add_workers(new_workers)
         elif error > 0:
             self.workers.shutdown(error)
@@ -94,6 +106,7 @@ class Service(SimulatedEntity):
         self.listener.arrival_of(request)
         task = Task(request)
         if self.workers.are_available:
+            request.accept()
             worker = self.workers.acquire_one()
             worker.assign(task)
         else:
@@ -112,3 +125,6 @@ class Service(SimulatedEntity):
             worker.assign(task)
         else:
             self.tasks.activate(task)
+
+    def pause(self, task):
+        self.tasks.pause(task)

@@ -204,7 +204,7 @@ class ServiceMonitoring(TestCase):
         return request
 
     def fake_request(self, operation, on_success=lambda: None, on_error=lambda: None):
-        return Request(self.fake_client(), operation, 1, on_success=on_success, on_error=on_error)
+        return Request(self.fake_client(), 0, operation, 1, on_success=on_success, on_error=on_error)
 
     def fake_client(self):
         fake_client = MagicMock()

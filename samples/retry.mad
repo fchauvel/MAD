@@ -1,0 +1,16 @@
+
+
+service DB {
+    operation Select {
+        think 2
+        fail 0.25
+    }
+}
+
+client Browser {
+    every 5 {
+        retry(limit:10, delay:exponential(10)) {
+            query DB/Select
+        }
+    }
+}

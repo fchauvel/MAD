@@ -59,15 +59,6 @@ class TestInterpreter(TestCase):
     def simulate_until(self, end):
         self.simulation.run_until(end)
 
-    def test_evaluate_non_blocking_service_invocation(self):
-        fake_service = self.define("serviceX", self.fake_service())
-
-        self.define(Symbols.SELF, self.fake_client())
-        self.evaluate(Trigger("serviceX", "op"))
-        self.simulate_until(10)
-
-        self.assertEqual(fake_service.process.call_count, 1)
-
     def test_evaluate_blocking_service_invocation(self):
         db = self.define("DB", self.fake_service())
         self.evaluate(
@@ -82,6 +73,187 @@ class TestInterpreter(TestCase):
         self.simulate_until(10)
 
         self.assertEqual(db.process.call_count, 1)
+
+    def test_query_make_services_busy(self):
+        db = self.evaluate(
+            DefineService("DB",
+                DefineOperation("Select",
+                     Think(2)
+                )
+            )
+        ).value
+        front_end = self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("show",
+                     Query("DB", "Select")
+                )
+            )
+        ).value
+
+        request = self.send_request("Front-end", "show")
+        self.simulate_until(1)
+        self.assertEqual(100.0, front_end.utilisation) # The front-end should be busy
+
+        self.simulate_until(2)
+        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+        self.assertEqual(0.0, db.utilisation) # DB has not yet received the request
+
+        self.simulate_until(3)
+        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+        self.assertEqual(100.0, db.utilisation) # DB busy thinking
+
+        self.simulate_until(5)
+        self.assertEqual(0.0, front_end.utilisation) # Front end has nothing to do
+        self.assertEqual(100.0, db.utilisation) # DB busy sending answer
+
+        self.simulate_until(6)
+        self.assertEqual(0.0, front_end.utilisation) # Front end has nothing to do
+        self.assertEqual(0.0, db.utilisation) # DB has nothing to do anymore
+
+        self.simulate_until(7)
+        self.assertEqual(100.0, front_end.utilisation) # Front end busy replying
+        self.assertEqual(0.0, db.utilisation) # DB has nothing to do anymore
+
+        self.simulate_until(8)
+        self.assertEqual(0.0, front_end.utilisation) # Front end busy replying
+        self.assertEqual(0.0, db.utilisation) # DB has nothing to do anymore
+
+        self.simulate_until(9)
+        self.assertTrue(request.status == request.OK)
+
+    def test_trigger_make_services_busy(self):
+        db = self.evaluate(
+            DefineService("DB",
+                DefineOperation("Select",
+                     Think(2)
+                )
+            )
+        ).value
+        front_end = self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("show",
+                     Trigger("DB", "Select")
+                )
+            )
+        ).value
+
+        request = self.send_request("Front-end", "show")
+        self.simulate_until(1)
+        self.assertEqual(100.0, front_end.utilisation) # The front-end should be busy
+        self.assertEqual(0.0, db.utilisation) # DB has nothing to do
+
+        self.simulate_until(2)
+        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+        self.assertEqual(0.0, db.utilisation) # DB has not yet received the request
+
+        self.simulate_until(3)
+        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+        self.assertEqual(100.0, db.utilisation) # DB busy thinking
+
+        self.simulate_until(4)
+        self.assertEqual(100.0, front_end.utilisation) # Front end has received the acceptance ack and is replying
+        self.assertEqual(100.0, db.utilisation) # DB busy sending answer
+
+        self.simulate_until(5)
+        self.assertEqual(0.0, front_end.utilisation) # Front end has nothing to do
+        self.assertEqual(0.0, db.utilisation) # DB has nothing to do anymore
+
+        self.simulate_until(6)
+        self.assertTrue(request.status == request.OK)
+
+    def test_rejected_query_make_services_busy(self):
+        db = self._a_service_that_rejects_requests()
+        self.define("DB", db)
+        front_end = self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("show",
+                     Query("DB", "Select")
+                )
+            )
+        ).value
+
+        request = self.send_request("Front-end", "show")
+
+        self.simulate_until(1)
+        self.assertEqual(100.0, front_end.utilisation) # The front-end should be busy
+
+        self.simulate_until(2)
+        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+
+        self.simulate_until(3)
+        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+
+        self.simulate_until(4)
+        self.assertEqual(100.0, front_end.utilisation) # Front end has received the acceptance ack and is replying
+
+        self.simulate_until(5)
+        self.assertEqual(0.0, front_end.utilisation) # Front end has nothing to do
+
+        self.simulate_until(6)
+        self.assertTrue(request.status == request.ERROR)
+
+    def test_failed_query_make_services_busy(self):
+        db = self._a_service_that_accepts_but_fails(after=3)
+        self.define("DB", db)
+        front_end = self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("show",
+                     Query("DB", "Select")
+                )
+            )
+        ).value
+
+        request = self.send_request("Front-end", "show")
+
+        self.simulate_until(1)
+        self.assertEqual(100.0, front_end.utilisation) # The front-end should be busy
+
+        self.simulate_until(2)
+        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+
+        self.simulate_until(3)
+        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+
+        self.simulate_until(7)
+        self.assertEqual(100.0, front_end.utilisation) # Front-end forward the error
+
+        self.simulate_until(8)
+        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+
+        self.simulate_until(9)
+        self.assertTrue(request.status == request.ERROR)
+
+    def test_rejected_trigger_make_services_busy(self):
+        db = self._a_service_that_rejects_requests()
+        self.define("DB", db)
+        front_end = self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("show",
+                     Trigger("DB", "Select")
+                )
+            )
+        ).value
+
+        request = self.send_request("Front-end", "show")
+
+        self.simulate_until(1)
+        self.assertEqual(100.0, front_end.utilisation) # The front-end should be busy
+
+        self.simulate_until(2)
+        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+
+        self.simulate_until(3)
+        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+
+        self.simulate_until(4)
+        self.assertEqual(100.0, front_end.utilisation) # Front end has received the acceptance ack and is replying
+
+        self.simulate_until(5)
+        self.assertEqual(0.0, front_end.utilisation) # Front end has nothing to do
+
+        self.simulate_until(6)
+        self.assertTrue(request.status == request.ERROR)
+
 
     def test_evaluate_timeout_queries(self):
         db = self.define("DB", self.fake_service())
@@ -99,7 +271,7 @@ class TestInterpreter(TestCase):
         self.assertEqual(Request.ERROR, request.status)
 
     def test_sequence_evaluation(self):
-        db = self.define("DB", self.service_that_always_fails())
+        db = self.define("DB", self._a_service_that_accepts_but_fails(after=2))
         self.evaluate(
             DefineService("Front-end",
                 DefineOperation("checkout",
@@ -268,18 +440,18 @@ class TestInterpreter(TestCase):
                     DefineOperation("op", Think(2))
                 ),
                 DefineClientStub(
-                    "Client", 5,
+                    "Client", 10,
                     Query("Service X", "op"))
             )
         ).value
         client.on_success = MagicMock()
 
-        self.simulate_until(24)
+        self.simulate_until(26)
 
-        self.assertEqual(client.on_success.call_count, 4)
+        self.assertEqual(client.on_success.call_count, 2)
 
     def fake_request(self, operation, on_success=lambda: None, on_error=lambda: None):
-        return Request(self.fake_client(), operation, 1, on_success=on_success, on_error=on_error)
+        return Request(self.fake_client(), Request.QUERY, operation, 1, on_success=on_success, on_error=on_error)
 
     def fake_service(self):
         fake_service = MagicMock()
@@ -291,6 +463,25 @@ class TestInterpreter(TestCase):
         fake_client = MagicMock()
         fake_client.schedule = self.simulation.schedule
         return fake_client
+
+    def _a_service_that_rejects_requests(self):
+        def always_reject(request):
+            request.reject()
+        service = self.fake_service()
+        service.process.side_effect = always_reject
+        return service
+
+    def _a_service_that_accepts_but_fails(self, after=4):
+        def always_accept(request):
+            def do_fail():
+                request.reply_error()
+
+            request.accept()
+            self.simulation._scheduler.after(after, do_fail)
+
+        service = self.fake_service()
+        service.process.side_effect = always_accept
+        return service
 
     def service_that_always_fails(self):
         def always_fail(request):
