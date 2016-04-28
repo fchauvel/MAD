@@ -110,3 +110,10 @@ class ArgumentsTest(TestCase):
 
         with patch.object(Arguments, "_identifier", return_value="3"):
             self.assertEqual(arguments._output_directory, "test_2")
+
+    def test_model_copy(self):
+        with patch.object(Arguments, "_identifier", return_value="2"):
+            arguments = Arguments(["foo/test.mad", "25"])
+
+            expected = Arguments.PATH_TO_MODEL_COPY.format(directory="test_2", file="test.mad")
+            self.assertEqual(expected, arguments.model_copy)

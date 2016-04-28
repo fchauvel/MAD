@@ -43,6 +43,8 @@ class Messages:
 
     MODEL_LOADED = "MAD model loaded from '{location:s}'\n"
 
+    MODEL_COPIED = "Model copied into '{location:s}'\n"
+
     SIMULATION_PROGRESS = "\rSimulation {progress:.2f} %"
 
     RESULTS_AVAILABLE = "\n\nSee results in directory: ./{location:s}/\n"
@@ -125,7 +127,14 @@ class Controller:
             lambda name, format: CSVReport(self.file_system.open_output_stream(arguments.report_for(name)), format))
         self.display.model_loaded(arguments)
         expression = self.storage.model()
+        self.copy_model(arguments)
         return expression
+
+    def copy_model(self, arguments):
+        source = self.file_system.open_input_stream(arguments._file_name)
+        copy = self.file_system.open_output_stream(arguments.model_copy)
+        copy.write(source.read())
+        self.display.model_copied(arguments)
 
     def _validate(self, expression):
         validator = Validator()
@@ -174,6 +183,9 @@ class Display:
 
     def model_loaded(self, project):
         self._format(Messages.MODEL_LOADED, location=project._file_name)
+
+    def model_copied(self, arguments):
+        self._format(Messages.MODEL_COPIED, location=arguments.model_copy)
 
     def update(self, current_time, end):
         progress = current_time / end * 100
@@ -249,6 +261,7 @@ class Arguments:
     PATH_TO_LOG_FILE = "{directory:s}/{log_file:s}"
     OUTPUT_DIRECTORY = "{name:s}_{identifier:s}"
     REPORT = "{directory:s}/{entity:s}.log"
+    PATH_TO_MODEL_COPY = "{directory:s}/{file:s}"
 
     def __init__(self, arguments):
         if len(arguments) != 2:
@@ -281,6 +294,13 @@ class Arguments:
         if self.__output_directory is None:
             self.__output_directory = self.OUTPUT_DIRECTORY.format(name=self._model_name, identifier=self._identifier())
         return self.__output_directory
+
+    @property
+    def model_copy(self):
+        return self.PATH_TO_MODEL_COPY.format(
+            directory=self._output_directory,
+            file=self._model_name + ".mad"
+        )
 
     @property
     def _model_name(self):
