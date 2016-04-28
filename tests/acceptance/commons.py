@@ -166,3 +166,9 @@ class MadAcceptanceTests(TestCase):
         report = Arguments.PATH_TO_LOG_FILE.format(directory=directory, log_file=Arguments.LOG_FILE)
         self.assertTrue(self.file_system.has_file(report),
                         "Missing log file '%s'.\n Existing files are %s" % (report, str(self.file_system.opened_files.keys())))
+
+    def _verify_model_copy(self):
+        directory = Arguments.OUTPUT_DIRECTORY.format(name=self.MODEL_NAME, identifier=self.IDENTIFIER)
+        model_copy = Arguments.PATH_TO_MODEL_COPY.format(directory=directory, file=self.MODEL_NAME+".mad")
+        self.assertTrue(self.file_system.has_file(model_copy),
+                        "Missing copy of the model '%s'.\n Existing files are %s" % (model_copy, str(self.file_system.opened_files.keys())))

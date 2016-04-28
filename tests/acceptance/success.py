@@ -55,6 +55,7 @@ class SuccessfulTests(MadAcceptanceTests):
         self._verify_no_warnings()
         self._verify_reports_for(["DB"])
         self._verify_log()
+        self._verify_model_copy()
 
     def test_priority_scheme(self):
         self.file_system.define("test.mad", "service DB {"
@@ -84,6 +85,7 @@ class SuccessfulTests(MadAcceptanceTests):
         self._verify_successful_invocations("Browser_B", 0)
         self._verify_reports_for(["DB"])
         self._verify_log()
+        self._verify_model_copy()
 
     def test_fail(self):
         self.file_system.define("test.mad", "service DB {"
@@ -106,6 +108,7 @@ class SuccessfulTests(MadAcceptanceTests):
         self._verify_successful_invocations("Browser", 0)
         self._verify_reports_for(["DB"])
         self._verify_log()
+        self._verify_model_copy()
 
     def test_retry(self):
         self.file_system.define("test.mad", "service DB {"
@@ -131,6 +134,7 @@ class SuccessfulTests(MadAcceptanceTests):
         self._verify_request_count("DB", 10)
         self._verify_reports_for(["DB"])
         self._verify_log()
+        self._verify_model_copy()
 
     def test_ignore_error(self):
         self.file_system.define("test.mad", "service DB {"
@@ -155,6 +159,7 @@ class SuccessfulTests(MadAcceptanceTests):
         self._verify_successful_invocations("Browser", 1)
         self._verify_reports_for(["DB"])
         self._verify_log()
+        self._verify_model_copy()
 
 
     def test_timeouts(self):
@@ -177,4 +182,4 @@ class SuccessfulTests(MadAcceptanceTests):
         self._verify_successful_invocations("Browser", 0)
         self._verify_reports_for(["DB"])
         self._verify_log()
-
+        self._verify_model_copy()
