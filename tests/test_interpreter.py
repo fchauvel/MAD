@@ -254,9 +254,12 @@ class TestInterpreter(TestCase):
         self.simulate_until(6)
         self.assertTrue(request.status == request.ERROR)
 
-
     def test_evaluate_timeout_queries(self):
-        db = self.define("DB", self._a_service_that_replies_after(8))
+        db = self.evaluate(
+            DefineService("DB",
+                DefineOperation("op", Think(8))
+            )
+        ).value
         front_end = self.evaluate(
             DefineService("Front-end",
                 DefineOperation("checkout",
@@ -266,10 +269,49 @@ class TestInterpreter(TestCase):
         ).value
 
         request = self.send_request("Front-end", "checkout")
-        self.simulate_until(50)
+        self.simulate_until(8)
+        self.assertTrue(request.status == Request.ERROR)
 
+        self.simulate_until(12)
         self.assertEqual(Request.ERROR, request.status)
+        self.assertEqual(0, len(front_end.tasks.delegate.delegate.delegate.paused))
         self.assertEqual(0, front_end.tasks.blocked_count)
+        self.assertTrue(front_end.workers.are_available)
+        self.assertEqual(0, db.tasks.blocked_count)
+        self.assertEqual(0, len(db.tasks.delegate.delegate.delegate.paused))
+        self.assertTrue(db.workers.are_available)
+
+    def test_evaluate_timeout_on_query(self):
+        """
+        Test that workers are released when a task is resumed, but its associated request has been discarded
+        """
+        db = self.evaluate(
+            DefineService("DB",
+                DefineOperation("insert", Think(8))
+            )
+        ).value
+        storage = self.evaluate(
+            DefineService("Storage",
+                DefineOperation("store",
+                     Query("DB", "insert")
+                )
+            )
+        ).value
+        notifier = self.evaluate(
+            DefineService("Notifier",
+                DefineOperation("notify",
+                     Query("Storage", "store", timeout=5)
+                )
+            )
+        ).value
+
+        request = self.send_request("Notifier", "notify")
+        self.simulate_until(8)
+        self.assertTrue(request.status == Request.ERROR)
+
+        self.simulate_until(50) # Should have been release by then
+        self.assertTrue(storage.workers.are_available)
+        self.assertEqual(0,  len(storage.tasks.delegate.delegate.delegate.paused))
 
     def test_evaluate_timeout_no_expiration(self):
         db = self.evaluate(

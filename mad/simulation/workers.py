@@ -99,4 +99,6 @@ class Worker(SimulatedEntity):
                 operation.invoke(task, [], worker=self)
                 # the worker will be released from the evaluation of the operation
         else:
-            self.listener.replied_error_to(task.request) # log the timeout as an error
+            self.listener.replied_error_to(task.request) #TODO log the timeout as an error
+            service = self.look_up(Symbols.SERVICE)
+            service.release(self)

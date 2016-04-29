@@ -322,7 +322,6 @@ class LoggerTest(TestCase):
     def verify_log_call(self, message):
         self.simulation.log.record.assert_called_once_with(0, self.CALLER, message)
 
-
     def _fake_request(self):
         request = MagicMock(Request)
         request.identifier = self.REQUEST_ID

@@ -55,6 +55,9 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
 
  * Features
     * Copy the model into the output directory
+ * Bug Fixes
+    * Fix worker that are not released when the triggering request as been
+    discarded and that the emitted request succeed
  * Refactorings
     * Split acceptance tests into several files (commons, nominals, errors)
  

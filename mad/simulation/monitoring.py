@@ -333,11 +333,11 @@ class Logger(SimulatedEntity, Listener):
     ERROR_REPLIED = "Reply to Req. {request:d} (ERROR)"
     SUCCESS_REPLIED = "Reply to Req. {request:d} (SUCCESS)"
 
-    REQUEST_SENT = "Sending Req. {request:d} to {service:s}::{operation:s}"
+    REQUEST_SENT = "Req. {request:d} sent to {service:s}::{operation:s}"
     REQUEST_ACCEPTED = "Req. {request:d} accepted"
     REQUEST_REJECTED = "Req. {request:d} rejected!"
     REQUEST_TIMEOUT = "Req. {request:d} timeout!"
-    REQUEST_FAILURE = "Req. {request:d} failed"
+    REQUEST_FAILURE = "Req. {request:d} failed!"
     REQUEST_SUCCESS = "Req. {request:d} complete"
 
     def __init__(self, environment):
