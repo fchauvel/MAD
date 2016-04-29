@@ -57,16 +57,18 @@ class DispatcherTests(TestCase):
     def test_dispatch(self):
         invocations = [
             ("arrival_of", [FAKE_REQUEST]),
-            ("rejection_of", [FAKE_REQUEST]),
+            ("replied_rejected_to", [FAKE_REQUEST]),
+            ("replied_error_to", [FAKE_REQUEST]),
+            ("replied_success_to", [FAKE_REQUEST]),
             ("posting_of", [FAKE_SERVICE, FAKE_REQUEST]),
+            ("acceptance_of", [FAKE_REQUEST]),
+            ("rejection_of", [FAKE_REQUEST]),
             ("success_of", [FAKE_REQUEST]),
             ("failure_of", [FAKE_REQUEST]),
             ("timeout_of", [FAKE_REQUEST]),
             ("storage_of", [FAKE_REQUEST]),
             ("selection_of", [FAKE_REQUEST]),
-            ("resuming", [FAKE_REQUEST]),
-            ("error_replied_to", [FAKE_REQUEST]),
-            ("success_replied_to", [FAKE_REQUEST])
+            ("resuming", [FAKE_REQUEST])
         ]
 
         for (method_name, parameters) in invocations:
@@ -128,8 +130,8 @@ class ServiceMonitoring(TestCase):
         expected_calls = [
             call.arrival_of(request1),
             call.arrival_of(request2),
-            call.rejection_of(request2),
-            call.success_replied_to(request1)]
+            call.replied_rejected_to(request2),
+            call.replied_success_to(request1)]
 
         self.assertEqual(expected_calls, listener.method_calls, listener.method_calls)
 
@@ -150,7 +152,7 @@ class ServiceMonitoring(TestCase):
 
         expected_calls = [
             call.arrival_of(request),
-            call.success_replied_to(request)]
+            call.replied_success_to(request)]
 
         self.assertEqual(expected_calls, listener.method_calls, listener.method_calls)
 
@@ -171,7 +173,7 @@ class ServiceMonitoring(TestCase):
 
         expected_calls = [
             call.arrival_of(request),
-            call.error_replied_to(request)]
+            call.replied_error_to(request)]
 
         self.assertEqual(expected_calls, listener.method_calls, listener.method_calls)
 
@@ -193,7 +195,7 @@ class ServiceMonitoring(TestCase):
 
         expected_calls = [
             call.arrival_of(request),
-            call.error_replied_to(request)]
+            call.replied_error_to(request)]
 
         self.assertEqual(expected_calls, listener.method_calls, listener.method_calls)
 
@@ -209,4 +211,5 @@ class ServiceMonitoring(TestCase):
     def fake_client(self):
         fake_client = MagicMock()
         fake_client.schedule = self.simulation.schedule
+        fake_client.next_request_id = MagicMock(side_effect=range(1, 1000))
         return fake_client

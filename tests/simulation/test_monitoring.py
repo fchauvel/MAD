@@ -98,7 +98,7 @@ class StatisticsTests(TestCase):
     def test_rejection_count(self):
         expected_count = 3
         for i in range(expected_count):
-            self.statistics.rejection_of(_a_fake_request())
+            self.statistics.replied_rejected_to(_a_fake_request())
 
         self.assertEqual(expected_count, self.statistics.rejection_count)
 
@@ -112,8 +112,8 @@ class StatisticsTests(TestCase):
     def test_reset(self):
         self.statistics.arrival_of(_a_fake_request())
         self.statistics.rejection_of(_a_fake_request())
-        self.statistics.error_replied_to(_a_fake_request())
-        self.statistics.success_replied_to(_a_fake_request(10))
+        self.statistics.replied_error_to(_a_fake_request())
+        self.statistics.replied_success_to(_a_fake_request(10))
         self.statistics.reset()
 
         self.assertEqual(0, self.statistics.arrival_count)
@@ -122,27 +122,27 @@ class StatisticsTests(TestCase):
         self.assertIsNone(self.statistics.response_time)
 
     def test_error_response(self):
-        self.statistics.error_replied_to(_a_fake_request())
+        self.statistics.replied_error_to(_a_fake_request())
 
         self.assertEqual(1, self.statistics.failure_count)
 
     def test_success_count(self):
-        self.statistics.success_replied_to(_a_fake_request())
-        self.statistics.success_replied_to(_a_fake_request())
-        self.statistics.success_replied_to(_a_fake_request())
-        self.statistics.success_replied_to(_a_fake_request())
+        self.statistics.replied_success_to(_a_fake_request())
+        self.statistics.replied_success_to(_a_fake_request())
+        self.statistics.replied_success_to(_a_fake_request())
+        self.statistics.replied_success_to(_a_fake_request())
         self.statistics.rejection_of(_a_fake_request())
-        self.statistics.error_replied_to(_a_fake_request())
+        self.statistics.replied_error_to(_a_fake_request())
 
         self.assertEqual(4, self.statistics.success_count)
 
     def test_reliability(self):
-        self.statistics.success_replied_to(_a_fake_request())
-        self.statistics.success_replied_to(_a_fake_request())
-        self.statistics.success_replied_to(_a_fake_request())
-        self.statistics.success_replied_to(_a_fake_request())
-        self.statistics.rejection_of(_a_fake_request())
-        self.statistics.error_replied_to(_a_fake_request())
+        self.statistics.replied_success_to(_a_fake_request())
+        self.statistics.replied_success_to(_a_fake_request())
+        self.statistics.replied_success_to(_a_fake_request())
+        self.statistics.replied_success_to(_a_fake_request())
+        self.statistics.replied_rejected_to(_a_fake_request())
+        self.statistics.replied_error_to(_a_fake_request())
 
         expected = 4 / (4+2)
 
@@ -164,7 +164,7 @@ class StatisticsTests(TestCase):
 
         for each_request in requests:
             request = _a_fake_request(**each_request)
-            self.statistics.success_replied_to(request)
+            self.statistics.replied_success_to(request)
 
         self.assertEqual(13.0, self.statistics.response_time_for("foo"))
         self.assertEqual(4.0, self.statistics.response_time_for("bar"))
@@ -173,7 +173,7 @@ class StatisticsTests(TestCase):
     def _success_of_requests(self, response_times=[3,4,5,6]):
         for each_response_time in response_times:
             request = _a_fake_request(response_time=each_response_time)
-            self.statistics.success_replied_to(request)
+            self.statistics.replied_success_to(request)
 
 
 
@@ -220,11 +220,11 @@ class MonitorTests(TestCase):
 
     def _run_scenario(self, total, rejected, errors):
         for i in range(total):
-            self.monitor.statistics.success_replied_to(_a_fake_request())
+            self.monitor.statistics.replied_success_to(_a_fake_request())
         for i in range(rejected):
             self.monitor.statistics.rejection_of(_a_fake_request())
         for i in range(errors):
-            self.monitor.statistics.error_replied_to(_a_fake_request())
+            self.monitor.statistics.replied_error_to(_a_fake_request())
 
     def test_runs_with_the_proper_period(self):
         with patch.object(Monitor, 'monitor') as trigger:
@@ -281,38 +281,47 @@ class LoggerTest(TestCase):
 
     def test_logging_request_arrival(self):
         self.logger.arrival_of(self._fake_request())
-        self.verify_log_call(Logger.REQUEST_ARRIVAL % self.REQUEST_ID)
+        self.verify_log_call(Logger.REQUEST_RECEIVED.format(request=self.REQUEST_ID))
 
     def test_logging_request_stored(self):
         self.logger.storage_of(self._fake_request())
-        self.verify_log_call(Logger.REQUEST_STORED % self.REQUEST_ID)
+        self.verify_log_call(Logger.REQUEST_STORED.format(request=self.REQUEST_ID))
 
     def test_logging_failure_of(self):
         self.logger.failure_of(self._fake_request())
-        self.verify_log_call(Logger.REQUEST_FAILURE % self.REQUEST_ID)
+        self.verify_log_call(Logger.REQUEST_FAILURE.format(request=self.REQUEST_ID))
 
     def test_logging_success_of(self):
         self.logger.success_of(self._fake_request())
-        self.verify_log_call(Logger.REQUEST_SUCCESS % self.REQUEST_ID)
+        self.verify_log_call(Logger.REQUEST_SUCCESS.format(request=self.REQUEST_ID))
 
     def test_logging_posting_of(self):
         self.logger.posting_of(self.CALLEE, self._fake_request())
-        self.verify_log_call(Logger.REQUEST_SENT % (self.REQUEST_ID, self.CALLEE, self.OPERATION))
+        self.verify_log_call(Logger.REQUEST_SENT.format(request=self.REQUEST_ID, service=self.CALLEE, operation=self.OPERATION))
 
     def test_logging_timeout_of(self):
         self.logger.timeout_of(self._fake_request())
-        self.verify_log_call(Logger.REQUEST_TIMEOUT % self.REQUEST_ID)
+        self.verify_log_call(Logger.REQUEST_TIMEOUT.format(request=self.REQUEST_ID))
 
     def test_logging_error_replied(self):
-        self.logger.error_replied_to(self._fake_request())
-        self.verify_log_call(Logger.ERROR_REPLIED % self.REQUEST_ID)
+        self.logger.replied_error_to(self._fake_request())
+        self.verify_log_call(Logger.ERROR_REPLIED.format(request=self.REQUEST_ID))
 
     def test_logging_success_replied(self):
-        self.logger.success_replied_to(self._fake_request())
-        self.verify_log_call(Logger.SUCCESS_REPLIED % self.REQUEST_ID)
+        self.logger.replied_success_to(self._fake_request())
+        self.verify_log_call(Logger.SUCCESS_REPLIED.format(request=self.REQUEST_ID))
+
+    def verify_logging_acceptance(self):
+        self.logger.acceptance_of(self._fake_request())
+        self.verify_log_call(Logger.REQUEST_ACCEPTED.format(request=self.REQUEST_ID))
+
+    def verify_logging_acceptance(self):
+        self.logger.rejection_of(self._fake_request())
+        self.verify_log_call(Logger.REQUEST_REJECTED.format(request=self.REQUEST_ID))
 
     def verify_log_call(self, message):
         self.simulation.log.record.assert_called_once_with(0, self.CALLER, message)
+
 
     def _fake_request(self):
         request = MagicMock(Request)

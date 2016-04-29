@@ -152,20 +152,8 @@ class Statistics(Listener):
         self.total_request_count += 1
         self._get(request.operation).call()
 
-    def rejection_of(self, request):
+    def replied_rejected_to(self, request):
         self._get(request.operation).call_rejected()
-
-    def success_of(self, request):
-        pass
-
-    def failure_of(self, request):
-        pass
-
-    def timeout_of(self, request):
-        pass
-
-    def posting_of(self, service, request):
-        pass
 
     def selection_of(self, request):
         pass
@@ -176,11 +164,32 @@ class Statistics(Listener):
     def resuming(self, request):
         pass
 
-    def error_replied_to(self, request):
+    def replied_error_to(self, request):
         self._get(request.operation).call_failed()
 
-    def success_replied_to(self, request):
+    def replied_success_to(self, request):
         self._get(request.operation).call_succeed(request.response_time)
+
+
+    # Client side events
+
+    def posting_of(self, service, request):
+        pass
+
+    def acceptance_of(self, request):
+        pass
+
+    def rejection_of(self, request):
+        pass
+
+    def success_of(self, request):
+        pass
+
+    def failure_of(self, request):
+        pass
+
+    def timeout_of(self, request):
+        pass
 
 
 class Probe:
@@ -319,14 +328,17 @@ class Monitor(SimulatedEntity):
 
 
 class Logger(SimulatedEntity, Listener):
-    REQUEST_ARRIVAL = "Req. %d accepted"
-    REQUEST_STORED = "Req. %d enqueued"
-    REQUEST_FAILURE = "Req. %d failed"
-    REQUEST_SUCCESS = "Req. %d complete"
-    REQUEST_SENT = "Sending Req. %d to %s::%s"
-    REQUEST_TIMEOUT = "Req. %d timeout!"
-    ERROR_REPLIED = "Reply to Req. %d (ERROR)"
-    SUCCESS_REPLIED = "Reply to Req. %d (SUCCESS)"
+    REQUEST_RECEIVED = "Req. {request:d} received"
+    REQUEST_STORED = "Req. {request:d} enqueued"
+    ERROR_REPLIED = "Reply to Req. {request:d} (ERROR)"
+    SUCCESS_REPLIED = "Reply to Req. {request:d} (SUCCESS)"
+
+    REQUEST_SENT = "Sending Req. {request:d} to {service:s}::{operation:s}"
+    REQUEST_ACCEPTED = "Req. {request:d} accepted"
+    REQUEST_REJECTED = "Req. {request:d} rejected!"
+    REQUEST_TIMEOUT = "Req. {request:d} timeout!"
+    REQUEST_FAILURE = "Req. {request:d} failed"
+    REQUEST_SUCCESS = "Req. {request:d} complete"
 
     def __init__(self, environment):
         SimulatedEntity.__init__(self, Symbols.LOGGER, environment)
@@ -336,37 +348,43 @@ class Logger(SimulatedEntity, Listener):
     def resuming(self, request):
         pass
 
-    def error_replied_to(self, request):
-        self._log(self.ERROR_REPLIED, request.identifier)
+    def replied_error_to(self, request):
+        self._log(self.ERROR_REPLIED, request=request.identifier)
 
-    def rejection_of(self, request):
+    def replied_rejected_to(self, request):
         pass
 
     def arrival_of(self, request):
-        self._log(self.REQUEST_ARRIVAL, request.identifier)
+        self._log(self.REQUEST_RECEIVED, request=request.identifier)
+
+    def replied_success_to(self, request):
+        self._log(self.SUCCESS_REPLIED, request=request.identifier)
 
     def selection_of(self, request):
         pass
 
     def failure_of(self, request):
-        self._log(self.REQUEST_FAILURE, request.identifier)
+        self._log(self.REQUEST_FAILURE, request=request.identifier)
 
     def success_of(self, request):
-        self._log(self.REQUEST_SUCCESS, request.identifier)
+        self._log(self.REQUEST_SUCCESS, request=request.identifier)
 
     def posting_of(self, service, request):
-        self._log(self.REQUEST_SENT, (request.identifier, service, request.operation))
+        self._log(self.REQUEST_SENT, request=request.identifier, service=service, operation=request.operation)
 
-    def success_replied_to(self, request):
-        self._log(self.SUCCESS_REPLIED, request.identifier)
+    def acceptance_of(self, request):
+        self._log(self.REQUEST_ACCEPTED, request=request.identifier)
+
+    def rejection_of(self, request):
+        self._log(self.REQUEST_REJECTED, request=request.identifier)
 
     def timeout_of(self, request):
-        self._log(self.REQUEST_TIMEOUT, request.identifier)
+        self._log(self.REQUEST_TIMEOUT, request=request.identifier)
 
     def storage_of(self, request):
-        self._log(self.REQUEST_STORED, request.identifier)
+        self._log(self.REQUEST_STORED, request=request.identifier)
 
-    def _log(self, message, values):
+    def _log(self, message, **values):
         now = self.schedule.time_now
         caller = self.look_up(Symbols.SELF)
-        self.simulation.log.record(now, caller.name, message % values)
+        self.simulation.log.record(now, caller.name, message.format(**values))

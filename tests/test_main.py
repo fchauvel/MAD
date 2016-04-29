@@ -27,6 +27,7 @@ from mad.ast.definitions import *
 from mad.ast.actions import *
 from mad.log import Event
 from mad.simulation.factory import Simulation
+from mad.simulation.monitoring import Logger
 
 from mad.ui import Controller
 
@@ -98,25 +99,31 @@ class TestMain(TestCase):
 
         self.verify_trace(
                 simulation,
-                [Event(6,   "Client",       "Sending Req. 1 to Server::op"),
-                 Event(7,   "Server",       "Req. 1 accepted"),
-                 Event(8,   "Server",       "Sending Req. 2 to Database::op"),
-                 Event(9,   "Database",     "Req. 2 accepted"),
+                [Event(6,   "Client",       Logger.REQUEST_SENT.format(request=1, service="Server", operation="op")),
+                 Event(7,   "Server",       Logger.REQUEST_RECEIVED.format(request=1)),
+                 Event(8,   "Client",       Logger.REQUEST_ACCEPTED.format(request=1)),
+                 Event(8,   "Server",       Logger.REQUEST_SENT.format(request=2, service="Database", operation="op")),
+                 Event(9,   "Database",     Logger.REQUEST_RECEIVED.format(request=2)),
+                 Event(10,  "Server",       Logger.REQUEST_ACCEPTED.format(request=2)),
 
-                 Event(11,  "Client",       "Sending Req. 3 to Server::op"),
-                 Event(12,  "Server",       "Req. 3 accepted"),
-                 Event(13,  "Server",       "Sending Req. 4 to Database::op"),
-                 Event(14,  "Database",     "Req. 4 accepted"),
-                 Event(14,  "Database",     "Req. 4 enqueued"),
+                 Event(11,  "Client",       Logger.REQUEST_SENT.format(request=3, service="Server", operation="op")),
+                 Event(12,  "Server",       Logger.REQUEST_RECEIVED.format(request=3)),
+                 Event(13,  "Client",       Logger.REQUEST_ACCEPTED.format(request=3)),
+                 Event(13,  "Server",       Logger.REQUEST_SENT.format(request=4, service="Database", operation="op")),
+                 Event(14,  "Database",     Logger.REQUEST_RECEIVED.format(request=4)),
+                 Event(14,  "Database",     Logger.REQUEST_STORED.format(request=4)),
+                 Event(15,  "Server",       Logger.REQUEST_ACCEPTED.format(request=4)),
 
-                 Event(16,  "Client",       "Sending Req. 5 to Server::op"),
-                 Event(17,  "Server",       "Req. 5 accepted"),
-                 Event(18,  "Database",     "Reply to Req. 2 (SUCCESS)"),
-                 Event(18,  "Server",       "Sending Req. 6 to Database::op"),
-                 Event(19,  "Server",       "Req. 2 complete"),
-                 Event(19,  "Database",     "Req. 6 accepted"),
-                 Event(19,  "Database",     "Req. 6 enqueued"),
-                 Event(20,  "Server",       "Reply to Req. 1 (SUCCESS)")]
+                 Event(16,  "Client",       Logger.REQUEST_SENT.format(request=5, service="Server", operation="op")),
+                 Event(17,  "Server",       Logger.REQUEST_RECEIVED.format(request=5)),
+                 Event(18,  "Database",     Logger.SUCCESS_REPLIED.format(request=2)),
+                 Event(18,  "Client",       Logger.REQUEST_ACCEPTED.format(request=5)),
+                 Event(18,  "Server",       Logger.REQUEST_SENT.format(request=6, service="Database", operation="op")),
+                 Event(19,  "Server",       Logger.REQUEST_SUCCESS.format(request=2)),
+                 Event(19,  "Database",     Logger.REQUEST_RECEIVED.format(request=6)),
+                 Event(19,  "Database",     Logger.REQUEST_STORED.format(request=6)),
+                 Event(20,  "Server",       Logger.SUCCESS_REPLIED.format(request=1)),
+                 Event(20,  "Server",       Logger.REQUEST_ACCEPTED.format(request=6))]
             )
 
 
@@ -146,14 +153,16 @@ class TestMain(TestCase):
 
         self.verify_trace(
                 simulation,
-                [Event(11, "C1", "Sending Req. 1 to S1::op"),
-                 Event(12, "S1", "Req. 1 accepted"),
-                 Event(16, "S1", "Reply to Req. 1 (SUCCESS)"),
-                 Event(17, "C1", "Req. 1 complete"),
-                 Event(21, "C1", "Sending Req. 2 to S1::op"),
-                 Event(22, "S1", "Req. 2 accepted"),
-                 Event(26, "S1", "Reply to Req. 2 (SUCCESS)"),
-                 Event(27, "C1", "Req. 2 complete")]
+                [Event(11, "C1", Logger.REQUEST_SENT.format(request=1, service="S1", operation="op")),
+                 Event(12, "S1", Logger.REQUEST_RECEIVED.format(request=1)),
+                 Event(13, "C1", Logger.REQUEST_ACCEPTED.format(request=1)),
+                 Event(16, "S1", Logger.SUCCESS_REPLIED.format(request=1)),
+                 Event(17, "C1", Logger.REQUEST_SUCCESS.format(request=1)),
+                 Event(21, "C1", Logger.REQUEST_SENT.format(request=2, service="S1", operation="op")),
+                 Event(22, "S1", Logger.REQUEST_RECEIVED.format(request=2)),
+                 Event(23, "C1", Logger.REQUEST_ACCEPTED.format(request=2)),
+                 Event(26, "S1", Logger.SUCCESS_REPLIED.format(request=2)),
+                 Event(27, "C1", Logger.REQUEST_SUCCESS.format(request=2))]
         )
 
     def evaluate(self, expression):

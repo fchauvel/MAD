@@ -51,13 +51,13 @@ class Operation(SimulatedEntity):
             if status.is_successful:
                 if task.request.is_pending: # Could have timed out
                     task.request.reply_success()
-                    self.listener.success_replied_to(task.request)
+                    self.listener.replied_success_to(task.request)
                 else:
-                    self.listener.error_replied_to(task.request)
+                    self.listener.replied_error_to(task.request)
 
             elif status.is_erroneous:
                 task.request.reply_error()
-                self.listener.error_replied_to(task.request)
+                self.listener.replied_error_to(task.request)
 
             else:
                 pass

@@ -243,23 +243,13 @@ class Evaluation:
         recipient = self._look_up(trigger.service)
 
         def on_reject():
-            # TODO: Notify rejection received!
-
-            def resume(worker):
-                self.environment.dynamic_scope = worker.environment
-                self.continuation(Error())
-
-            task.resume = resume
+            sender.listener.rejection_of(request)
+            task.resume = self._resume_task_with(Error())
             sender.activate(task)
 
         def on_accept():
-            # TODO: Notify acceptance ack received!
-
-            def resume(worker):
-                self.environment.dynamic_scope = worker.environment
-                self.continuation(Success())
-
-            task.resume = resume
+            sender.listener.acceptance_of(request)
+            task.resume = self._resume_task_with(Success())
             sender.activate(task)
 
         # TODO: Replace that ugly magic '1'
@@ -281,34 +271,22 @@ class Evaluation:
         sender = self._look_up(Symbols.SELF)
         recipient = self._look_up(query.service)
 
+        def on_accept():
+            sender.listener.acceptance_of(request)
+
         def on_reject():
-            # TODO: Notify rejection received!
-
-            def resume(worker):
-                self.environment.dynamic_scope = worker.environment
-                self.continuation(Error())
-
-            task.resume = resume
+            sender.listener.rejection_of(request)
+            task.resume = self._resume_task_with(Error())
             sender.activate(task)
 
         def on_success():
             sender.listener.success_of(request)
-
-            def resume(worker):
-                self.environment.dynamic_scope = worker.environment
-                self.continuation(Success())
-
-            task.resume = resume
+            task.resume = self._resume_task_with(Success())
             sender.activate(task)
 
         def on_error():
             sender.listener.failure_of(request)
-
-            def resume(worker):
-                self.environment.dynamic_scope = worker.environment
-                self.continuation(Error())
-
-            task.resume = resume
+            task.resume = self._resume_task_with(Error())
             sender.activate(task)
 
         # TODO: Replace that ugly magic '0'
@@ -317,6 +295,7 @@ class Evaluation:
             0,
             query.operation,
             query.priority,
+            on_accept=on_accept,
             on_reject=on_reject,
             on_success=on_success,
             on_error=on_error)
@@ -324,25 +303,27 @@ class Evaluation:
         sender.listener.posting_of(query.service, request)
         request.send_to(recipient)
 
-        def timeout_check():
-            def resume(worker):
-                self.environment.dynamic_scope = worker.environment
-                self.continuation(Error())
-
-            if request.is_pending:
-                sender.listener.timeout_of(request)
-                request.discard()
-                task.resume = resume
-                sender.activate(task)
-
         if query.has_timeout:
-            sender.schedule.after(query.timeout, timeout_check)
+            def on_check_timeout():
+                if request.is_pending:
+                    sender.listener.timeout_of(request)
+                    request.discard()
+                    task.resume = self._resume_task_with(Error())
+                    sender.activate(task)
+
+            sender.schedule.after(query.timeout, on_check_timeout)
 
         return self._pause()
 
     def _get_busy_for(self, duration, after):
         self.simulation.schedule.after(duration, lambda: after(Success()))
         return Busy()
+
+    def _resume_task_with(self, status):
+        def resume(worker):
+            self.environment.dynamic_scope = worker.environment
+            self.continuation(status)
+        return resume
 
     def _pause(self):
         service = self._look_up(Symbols.SELF)

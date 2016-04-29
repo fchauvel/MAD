@@ -30,8 +30,14 @@ class Listener:
     def arrival_of(self, request):
         raise NotImplementedError("Listener::arrival_of is abstract")
 
-    def rejection_of(self, request):
+    def replied_rejected_to(self, request):
         raise NotImplementedError("Listener::rejection_of is abstract")
+
+    def replied_success_to(self, request):
+        raise NotImplementedError("Listener::replied_success_to is abstract")
+
+    def replied_error_to(self, request):
+        raise NotImplementedError("Listener::replied_error_to is abstract")
 
     def storage_of(self, request):
         raise NotImplementedError("Listener::timeout_of is abstract")
@@ -42,16 +48,17 @@ class Listener:
     def resuming(self, request):
         raise NotImplementedError("Listener::timeout_of is abstract")
 
-    def error_replied_to(self, request):
-        raise NotImplementedError("Listener::error_replied_to is abstract")
-
-    def success_replied_to(self, request):
-        raise NotImplementedError("Listener::success_replied_to is abstract")
 
     # Outgoing requests
 
     def posting_of(self, request):
         raise NotImplementedError("Listener::posting_of is abstract")
+
+    def acceptance_of(self, request):
+        raise NotImplementedError("Listener::acceptance_of is abstract")
+
+    def rejection_of(self, request):
+        raise NotImplementedError("Listener::rejection_of is abstract")
 
     def success_of(self, request):
         raise NotImplementedError("Listener::success_of is abstract")
@@ -72,20 +79,20 @@ class Dispatcher(Listener):
         self._listeners = set()
 
     def register(self, listener):
-        assert isinstance(listener, Listener),INVALID_LISTENER.format(type(listener))
+        assert isinstance(listener, Listener), INVALID_LISTENER.format(type(listener))
         self._listeners.add(listener)
 
     def arrival_of(self, request):
         self._dispatch(self.arrival_of.__name__, request)
 
-    def rejection_of(self, request):
-        self._dispatch(self.rejection_of.__name__, request)
+    def replied_rejected_to(self, request):
+        self._dispatch(self.replied_rejected_to.__name__, request)
 
-    def error_replied_to(self, request):
-        self._dispatch(self.error_replied_to.__name__, request)
+    def replied_error_to(self, request):
+        self._dispatch(self.replied_error_to.__name__, request)
 
-    def success_replied_to(self, request):
-        self._dispatch(self.success_replied_to.__name__, request)
+    def replied_success_to(self, request):
+        self._dispatch(self.replied_success_to.__name__, request)
 
     def storage_of(self, request):
         self._dispatch(self.storage_of.__name__, request)
@@ -98,6 +105,12 @@ class Dispatcher(Listener):
 
     def posting_of(self, service, request):
         self._dispatch(self.posting_of.__name__, service, request)
+
+    def acceptance_of(self, request):
+        self._dispatch(self.acceptance_of.__name__, request)
+
+    def rejection_of(self, request):
+        self._dispatch(self.rejection_of.__name__, request)
 
     def success_of(self, request):
         self._dispatch(self.success_of.__name__, request)
