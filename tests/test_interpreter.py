@@ -19,7 +19,7 @@
 
 
 from unittest import TestCase
-from mock import MagicMock
+from mock import MagicMock, patch
 from tests.fakes import InMemoryDataStorage
 
 from mad.ast.commons import *
@@ -73,6 +73,26 @@ class TestInterpreter(TestCase):
         self.simulate_until(10)
 
         self.assertEqual(db.process.call_count, 1)
+
+    def test_trigger_rejection(self):
+        db = self.define("DB", self._a_service_that_rejects_requests())
+        front_end = self.evaluate(
+            DefineService("Front-end",
+                DefineOperation("checkout",
+                     Trigger("DB", "op")
+                )
+            )
+        ).value
+
+        request = self.send_request("Front-end", "checkout")
+
+        from mad.simulation.monitoring import Statistics
+        with patch.object(Statistics, "reset"):
+            self.simulate_until(10)
+
+            self.assertTrue(request.status == Request.ERROR)
+            monitor = front_end.look_up(Symbols.MONITOR)
+            self.assertEqual(0., monitor._reliability())
 
     def test_query_make_services_busy(self):
         db = self.evaluate(

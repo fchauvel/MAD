@@ -148,6 +148,26 @@ class StatisticsTests(TestCase):
 
         self.assertEqual(expected, self.statistics.reliability)
 
+    def test_reliability_with_only_rejection(self):
+        self.statistics.replied_rejected_to(_a_fake_request())
+        self.statistics.replied_rejected_to(_a_fake_request())
+        self.statistics.replied_rejected_to(_a_fake_request())
+        self.statistics.replied_rejected_to(_a_fake_request())
+
+        expected = 0.
+
+        self.assertEqual(expected, self.statistics.reliability)
+
+    def test_reliability_with_only_errors(self):
+        self.statistics.replied_error_to(_a_fake_request())
+        self.statistics.replied_error_to(_a_fake_request())
+        self.statistics.replied_error_to(_a_fake_request())
+        self.statistics.replied_error_to(_a_fake_request())
+
+        expected = 0.
+
+        self.assertEqual(expected, self.statistics.reliability)
+
     def test_response_time(self):
         response_times = [10, 6, 7, 9, 8]
         self._success_of_requests(response_times)
@@ -218,11 +238,21 @@ class MonitorTests(TestCase):
         expected = (success) / period
         self.assertEqual(expected, self.monitor._throughput())
 
+    def test_reliability_with_only_errors(self):
+        period = 10
+        self.monitor = self._create_monitor(period)
+
+        (success, rejection, error) = (0, 0, 5)
+        self._run_scenario(success, rejection, error)
+
+        expected = 0.
+        self.assertEqual(expected, self.monitor._throughput())
+
     def _run_scenario(self, total, rejected, errors):
         for i in range(total):
             self.monitor.statistics.replied_success_to(_a_fake_request())
         for i in range(rejected):
-            self.monitor.statistics.rejection_of(_a_fake_request())
+            self.monitor.statistics.replied_rejected_to(_a_fake_request())
         for i in range(errors):
             self.monitor.statistics.replied_error_to(_a_fake_request())
 

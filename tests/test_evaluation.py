@@ -18,20 +18,34 @@
 #
 
 from unittest import TestCase
+from mock import MagicMock
 from tests.fakes import InMemoryDataStorage
 
 from mad.environment import Environment
 
+from mad.ast.commons import Sequence
 from mad.ast.actions import *
 from mad.ast.settings import *
 
-from mad.evaluation import Evaluation, Symbols
+from mad.evaluation import Evaluation, Symbols, Success
 from mad.simulation.factory import Simulation, Factory
 from mad.simulation.tasks import LIFOTaskPool, FIFOTaskPool
 from mad.simulation.autoscaling import AutoScaler
 
 
 class EvaluationTest(TestCase):
+
+    def test_evaluation_of_sequence_stops_at_the_first_failure(self):
+        environment = Environment()
+
+        succeed = MagicMock(Expression)
+        succeed.accept = MagicMock(return_value=Success())
+
+        def check_result(status):
+            self.assertTrue(status.is_erroneous)
+
+        Evaluation(environment, Sequence(Fail(), succeed), Factory(), continuation=check_result).result
+        succeed.accept.assert_not_called()
 
     def test_evaluation_of_fail(self):
         environment = Environment()

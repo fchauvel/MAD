@@ -62,7 +62,9 @@ class Request:
         self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_accept)
 
     def reject(self):
-        self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_reject)
+        if self.is_pending:
+            self.status = self.ERROR
+            self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_reject)
 
     def reply_success(self):
         if self.is_pending:

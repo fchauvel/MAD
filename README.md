@@ -50,6 +50,7 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * A test factory shared among simulation test
     * Move the creation of workers from Service to the autoscaling strategy
     * Merge test_evaluation and test_interpreter
+    * Merge throttling and Task pool into Bounded task pool
  
 ## NEXT RELEASE CHANGE LOG
 
@@ -58,6 +59,7 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * Bug Fixes
     * Fix worker that are not released when the triggering request as been
     discarded and that the emitted request succeed
+    * Fix rejection that did not fail the 'parent' request
  * Refactorings
     * Split acceptance tests into several files (commons, nominals, errors)
  

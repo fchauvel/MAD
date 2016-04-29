@@ -202,7 +202,7 @@ class Task:
         self.resume = lambda: None
 
     def reject(self):
-        self.request.reply_error()
+        self.request.reject()
 
     @property
     def priority(self):
