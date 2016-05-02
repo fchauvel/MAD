@@ -96,11 +96,11 @@ class TaskPoolWrapper(TaskPoolDecorator, SimulatedEntity):
 
     def put(self, task):
         super().put(task)
-        self.listener.storage_of(task.request)
+        self.listener.task_ready(task.request)
 
     def take(self):
         task = super().take()
-        self.listener.selection_of(task.request)
+        self.listener.task_running(task.request)
         return task
 
     def activate(self, task):

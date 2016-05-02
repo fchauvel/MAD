@@ -27,24 +27,25 @@ class Listener:
 
     # Incoming request
 
-    def arrival_of(self, request):
-        raise NotImplementedError("Listener::arrival_of is abstract")
+    def task_created(self, request):
+        raise NotImplementedError("Listener::task_created is abstract")
 
-    def replied_rejected_to(self, request):
+    def task_rejected(self, request):
         raise NotImplementedError("Listener::rejection_of is abstract")
 
-    def replied_success_to(self, request):
-        raise NotImplementedError("Listener::replied_success_to is abstract")
+    def task_successful(self, request):
+        raise NotImplementedError("Listener::task_successful is abstract")
 
-    def replied_error_to(self, request):
-        raise NotImplementedError("Listener::replied_error_to is abstract")
+    def task_failed(self, request):
+        raise NotImplementedError("Listener::task_failed is abstract")
 
-    def storage_of(self, request):
+    def task_ready(self, request):
         raise NotImplementedError("Listener::timeout_of is abstract")
 
-    def selection_of(self, request):
+    def task_running(self, request):
         raise NotImplementedError("Listener::timeout_of is abstract")
 
+    # TODO should be removed
     def resuming(self, request):
         raise NotImplementedError("Listener::timeout_of is abstract")
 
@@ -82,23 +83,23 @@ class Dispatcher(Listener):
         assert isinstance(listener, Listener), INVALID_LISTENER.format(type(listener))
         self._listeners.add(listener)
 
-    def arrival_of(self, request):
-        self._dispatch(self.arrival_of.__name__, request)
+    def task_created(self, request):
+        self._dispatch(self.task_created.__name__, request)
 
-    def replied_rejected_to(self, request):
-        self._dispatch(self.replied_rejected_to.__name__, request)
+    def task_rejected(self, request):
+        self._dispatch(self.task_rejected.__name__, request)
 
-    def replied_error_to(self, request):
-        self._dispatch(self.replied_error_to.__name__, request)
+    def task_failed(self, request):
+        self._dispatch(self.task_failed.__name__, request)
 
-    def replied_success_to(self, request):
-        self._dispatch(self.replied_success_to.__name__, request)
+    def task_successful(self, request):
+        self._dispatch(self.task_successful.__name__, request)
 
-    def storage_of(self, request):
-        self._dispatch(self.storage_of.__name__, request)
+    def task_ready(self, request):
+        self._dispatch(self.task_ready.__name__, request)
 
-    def selection_of(self, request):
-        self._dispatch(self.selection_of.__name__, request)
+    def task_running(self, request):
+        self._dispatch(self.task_running.__name__, request)
 
     def resuming(self, request):
         self._dispatch(self.resuming.__name__, request)

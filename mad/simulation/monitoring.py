@@ -148,26 +148,26 @@ class Statistics(Listener):
     def request_count_for(self, operation):
         return self._get(operation).call_count
 
-    def arrival_of(self, request):
+    def task_created(self, request):
         self.total_request_count += 1
         self._get(request.operation).call()
 
-    def replied_rejected_to(self, request):
+    def task_rejected(self, request):
         self._get(request.operation).call_rejected()
 
-    def selection_of(self, request):
+    def task_running(self, request):
         pass
 
-    def storage_of(self, request):
+    def task_ready(self, request):
         pass
 
     def resuming(self, request):
         pass
 
-    def replied_error_to(self, request):
+    def task_failed(self, request):
         self._get(request.operation).call_failed()
 
-    def replied_success_to(self, request):
+    def task_successful(self, request):
         self._get(request.operation).call_succeed(request.response_time)
 
 
@@ -348,19 +348,19 @@ class Logger(SimulatedEntity, Listener):
     def resuming(self, request):
         pass
 
-    def replied_error_to(self, request):
+    def task_failed(self, request):
         self._log(self.ERROR_REPLIED, request=request.identifier)
 
-    def replied_rejected_to(self, request):
+    def task_rejected(self, request):
         pass
 
-    def arrival_of(self, request):
+    def task_created(self, request):
         self._log(self.REQUEST_RECEIVED, request=request.identifier)
 
-    def replied_success_to(self, request):
+    def task_successful(self, request):
         self._log(self.SUCCESS_REPLIED, request=request.identifier)
 
-    def selection_of(self, request):
+    def task_running(self, request):
         pass
 
     def failure_of(self, request):
@@ -381,7 +381,7 @@ class Logger(SimulatedEntity, Listener):
     def timeout_of(self, request):
         self._log(self.REQUEST_TIMEOUT, request=request.identifier)
 
-    def storage_of(self, request):
+    def task_ready(self, request):
         self._log(self.REQUEST_STORED, request=request.identifier)
 
     def _log(self, message, **values):

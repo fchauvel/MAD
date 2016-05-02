@@ -21,13 +21,11 @@
 from unittest import TestCase
 from mock import MagicMock, call, ANY
 
-from tests.fakes import InMemoryDataStorage
+from tests.simulation.commons import ServiceTests
 
 from mad.evaluation import Symbols
-from mad.ast.commons import Sequence
 from mad.ast.definitions import *
 from mad.ast.actions import *
-from mad.simulation.factory import Simulation
 from mad.simulation.events import Listener, Dispatcher
 from mad.simulation.throttling import ThrottlingWrapper, ThrottlingPolicyDecorator
 from mad.simulation.requests import Request
@@ -50,24 +48,24 @@ class DispatcherTests(TestCase):
         self.dispatcher.register(listener)
         self.dispatcher.register(listener)
 
-        self.dispatcher.arrival_of(FAKE_REQUEST)
+        self.dispatcher.task_created(FAKE_REQUEST)
 
-        listener.arrival_of.assert_called_once_with(FAKE_REQUEST)
+        listener.task_created.assert_called_once_with(FAKE_REQUEST)
 
     def test_dispatch(self):
         invocations = [
-            ("arrival_of", [FAKE_REQUEST]),
-            ("replied_rejected_to", [FAKE_REQUEST]),
-            ("replied_error_to", [FAKE_REQUEST]),
-            ("replied_success_to", [FAKE_REQUEST]),
+            ("task_created", [FAKE_REQUEST]),
+            ("task_rejected", [FAKE_REQUEST]),
+            ("task_failed", [FAKE_REQUEST]),
+            ("task_successful", [FAKE_REQUEST]),
             ("posting_of", [FAKE_SERVICE, FAKE_REQUEST]),
             ("acceptance_of", [FAKE_REQUEST]),
             ("rejection_of", [FAKE_REQUEST]),
             ("success_of", [FAKE_REQUEST]),
             ("failure_of", [FAKE_REQUEST]),
             ("timeout_of", [FAKE_REQUEST]),
-            ("storage_of", [FAKE_REQUEST]),
-            ("selection_of", [FAKE_REQUEST]),
+            ("task_ready", [FAKE_REQUEST]),
+            ("task_running", [FAKE_REQUEST]),
             ("resuming", [FAKE_REQUEST])
         ]
 
@@ -89,23 +87,7 @@ class DispatcherTests(TestCase):
         return listener
 
 
-class ServiceMonitoring(TestCase):
-
-    def setUp(self):
-        self.simulation = Simulation(InMemoryDataStorage(None))
-
-    def define(self, symbol, value):
-        self.simulation.environment.define(symbol, value)
-        return value
-
-    def look_up(self, symbol):
-        return self.simulation.environment.look_up(symbol)
-
-    def evaluate(self, expression, continuation=lambda x:x):
-        return self.simulation.evaluate(expression, continuation)
-
-    def simulate_until(self, end):
-        self.simulation.run_until(end)
+class NotificationTests(ServiceTests):
 
     def test_server_notifies_rejection(self):
         db = self.evaluate(
@@ -123,18 +105,17 @@ class ServiceMonitoring(TestCase):
         listener = MagicMock(Listener)
         db.environment.look_up(Symbols.LISTENER).register(listener)
 
-        request1 = self.send_request(Request.QUERY, "DB", "Select")
-        request2 = self.send_request(Request.QUERY, "DB", "Select")
+        request1 = self.query("DB", "Select")
+        request2 = self.query("DB", "Select")
         self.simulate_until(10)
 
         expected_calls = [
-            call.arrival_of(request1),
-            call.arrival_of(request2),
-            call.replied_rejected_to(request2),
-            call.replied_success_to(request1)]
+            call.task_created(request1),
+            call.task_created(request2),
+            call.task_rejected(request2),
+            call.task_successful(request1)]
 
         self.assertEqual(expected_calls, listener.method_calls, listener.method_calls)
-
 
     def test_client_notifies_rejection_on_trigger(self):
         db = self.evaluate(
@@ -161,14 +142,14 @@ class ServiceMonitoring(TestCase):
         listener = MagicMock(Listener)
         storage.environment.look_up(Symbols.LISTENER).register(listener)
 
-        request = self.send_request(Request.TRIGGER, "Storage", "store")
+        request = self.trigger("Storage", "store")
         self.simulate_until(10)
 
         expected_calls = [
-            call.arrival_of(request),
+            call.task_created(request),
             call.posting_of("DB", ANY),
             call.rejection_of(ANY),
-            call.replied_error_to(request)
+            call.task_failed(request)
         ]
 
         self.assertEqual(request.status, Request.ERROR)
@@ -186,12 +167,12 @@ class ServiceMonitoring(TestCase):
         listener = MagicMock(Listener)
         db.environment.look_up(Symbols.LISTENER).register(listener)
 
-        request = self.send_request(Request.QUERY, "DB", "Select")
+        request = self.query("DB", "Select")
         self.simulate_until(10)
 
         expected_calls = [
-            call.arrival_of(request),
-            call.replied_success_to(request)]
+            call.task_created(request),
+            call.task_successful(request)]
 
         self.assertEqual(expected_calls, listener.method_calls, listener.method_calls)
 
@@ -207,12 +188,12 @@ class ServiceMonitoring(TestCase):
         listener = MagicMock(Listener)
         db.environment.look_up(Symbols.LISTENER).register(listener)
 
-        request = self.send_request(Request.QUERY, "DB", "Select")
+        request = self.query("DB", "Select")
         self.simulate_until(10)
 
         expected_calls = [
-            call.arrival_of(request),
-            call.replied_error_to(request)]
+            call.task_created(request),
+            call.task_failed(request)]
 
         self.assertEqual(expected_calls, listener.method_calls, listener.method_calls)
 
@@ -228,27 +209,39 @@ class ServiceMonitoring(TestCase):
         listener = MagicMock(Listener)
         db.environment.look_up(Symbols.LISTENER).register(listener)
 
-        request = self.send_request(Request.QUERY, "DB", "Select")
+        request = self.query("DB", "Select")
         request.reply_error()
         self.simulate_until(40)
 
         expected_calls = [
-            call.arrival_of(request),
-            call.replied_error_to(request)]
+            call.task_created(request),
+            call.task_failed(request)]
 
         self.assertEqual(expected_calls, listener.method_calls, listener.method_calls)
 
-    def send_request(self, kind, service_name, operation_name, on_success=lambda:None, on_error=lambda:None):
-        service = self.look_up(service_name)
-        request = self.fake_request(kind, operation_name, on_success=on_success, on_error=on_error)
-        request.send_to(service)
-        return request
+    def test_task_status_notification(self):
+        db = self.evaluate(
+            DefineService("DB",
+                DefineOperation("Select",
+                     Think(5)
+                )
+            )
+        ).value
 
-    def fake_request(self, kind, operation, on_success=lambda: None, on_error=lambda: None):
-        return Request(self.fake_client(), kind, operation, 1, on_success=on_success, on_error=on_error)
+        listener = MagicMock(Listener)
+        db.environment.look_up(Symbols.LISTENER).register(listener)
 
-    def fake_client(self):
-        fake_client = MagicMock()
-        fake_client.schedule = self.simulation.schedule
-        fake_client.next_request_id = MagicMock(side_effect=range(1, 1000))
-        return fake_client
+        query_1 = self.query("DB", "Select")
+        query_2 = self.query("DB", "Select")
+        self.simulate_until(15)
+
+        expected_calls = [
+            call.task_created(query_1),
+            call.task_created(query_2),
+            call.task_ready(query_2),
+            call.task_successful(query_1),
+            call.task_running(query_2),
+            call.task_successful(query_2),
+        ]
+
+        self.assertEqual(expected_calls, listener.method_calls, listener.method_calls)

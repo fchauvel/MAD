@@ -15,8 +15,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
 ## TODO
 
  * Features
-    * UI
-        * Should place a copy of the simulated file in the output folder
     * Services
         * Monitoring
             * Client status (not only service)
@@ -28,20 +26,20 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
         * Priority / Service differentiation
             * An algorithm that ensures fairness
         * Autoscaling
-            * Delay before workers gets active
+            * Delay before workers gets active,
+            * Expose the metrics in use
         * Actions
             * Probabilistic switch statement, a la 'choice'
     * Clients
         * Multiple clients
         * Workload patterns
  * Bug fixes
-    * timeout activation that fails because the request was not properly paused
-    * recursion that exceeds the maximum depth
  * Examples
     * SensApp example
+    * Grafterizer example
+    * Example for The Architecture Conference .NET microservice
  * Tests
     * Test shutting down workers, they shall first complete there current task
-    * Test that rejection count is not cumulative
     * Test that the simulation call back the display
     * Test for retry in an action list in the parser
     * Test timeouts that are activated after the call to send request (what happen if the request is assign to a worker
@@ -51,6 +49,11 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Move the creation of workers from Service to the autoscaling strategy
     * Merge test_evaluation and test_interpreter
     * Merge throttling and Task pool into Bounded task pool
+    * Autoscaling should read statistics from the monitor
+    * Monitor should also account for worker counts
+ * Quid of Caching
+    * Message-Queue/PubSub as a concept?
+
  
 ## NEXT RELEASE CHANGE LOG
 

@@ -98,22 +98,22 @@ class StatisticsTests(TestCase):
     def test_rejection_count(self):
         expected_count = 3
         for i in range(expected_count):
-            self.statistics.replied_rejected_to(_a_fake_request())
+            self.statistics.task_rejected(_a_fake_request())
 
         self.assertEqual(expected_count, self.statistics.rejection_count)
 
     def test_request_count(self):
         expected_count = 10
         for i in range(expected_count):
-            self.statistics.arrival_of(_a_fake_request())
+            self.statistics.task_created(_a_fake_request())
 
         self.assertEqual(expected_count, self.statistics.arrival_count)
 
     def test_reset(self):
-        self.statistics.arrival_of(_a_fake_request())
+        self.statistics.task_created(_a_fake_request())
         self.statistics.rejection_of(_a_fake_request())
-        self.statistics.replied_error_to(_a_fake_request())
-        self.statistics.replied_success_to(_a_fake_request(10))
+        self.statistics.task_failed(_a_fake_request())
+        self.statistics.task_successful(_a_fake_request(10))
         self.statistics.reset()
 
         self.assertEqual(0, self.statistics.arrival_count)
@@ -122,47 +122,47 @@ class StatisticsTests(TestCase):
         self.assertIsNone(self.statistics.response_time)
 
     def test_error_response(self):
-        self.statistics.replied_error_to(_a_fake_request())
+        self.statistics.task_failed(_a_fake_request())
 
         self.assertEqual(1, self.statistics.failure_count)
 
     def test_success_count(self):
-        self.statistics.replied_success_to(_a_fake_request())
-        self.statistics.replied_success_to(_a_fake_request())
-        self.statistics.replied_success_to(_a_fake_request())
-        self.statistics.replied_success_to(_a_fake_request())
+        self.statistics.task_successful(_a_fake_request())
+        self.statistics.task_successful(_a_fake_request())
+        self.statistics.task_successful(_a_fake_request())
+        self.statistics.task_successful(_a_fake_request())
         self.statistics.rejection_of(_a_fake_request())
-        self.statistics.replied_error_to(_a_fake_request())
+        self.statistics.task_failed(_a_fake_request())
 
         self.assertEqual(4, self.statistics.success_count)
 
     def test_reliability(self):
-        self.statistics.replied_success_to(_a_fake_request())
-        self.statistics.replied_success_to(_a_fake_request())
-        self.statistics.replied_success_to(_a_fake_request())
-        self.statistics.replied_success_to(_a_fake_request())
-        self.statistics.replied_rejected_to(_a_fake_request())
-        self.statistics.replied_error_to(_a_fake_request())
+        self.statistics.task_successful(_a_fake_request())
+        self.statistics.task_successful(_a_fake_request())
+        self.statistics.task_successful(_a_fake_request())
+        self.statistics.task_successful(_a_fake_request())
+        self.statistics.task_rejected(_a_fake_request())
+        self.statistics.task_failed(_a_fake_request())
 
         expected = 4 / (4+2)
 
         self.assertEqual(expected, self.statistics.reliability)
 
     def test_reliability_with_only_rejection(self):
-        self.statistics.replied_rejected_to(_a_fake_request())
-        self.statistics.replied_rejected_to(_a_fake_request())
-        self.statistics.replied_rejected_to(_a_fake_request())
-        self.statistics.replied_rejected_to(_a_fake_request())
+        self.statistics.task_rejected(_a_fake_request())
+        self.statistics.task_rejected(_a_fake_request())
+        self.statistics.task_rejected(_a_fake_request())
+        self.statistics.task_rejected(_a_fake_request())
 
         expected = 0.
 
         self.assertEqual(expected, self.statistics.reliability)
 
     def test_reliability_with_only_errors(self):
-        self.statistics.replied_error_to(_a_fake_request())
-        self.statistics.replied_error_to(_a_fake_request())
-        self.statistics.replied_error_to(_a_fake_request())
-        self.statistics.replied_error_to(_a_fake_request())
+        self.statistics.task_failed(_a_fake_request())
+        self.statistics.task_failed(_a_fake_request())
+        self.statistics.task_failed(_a_fake_request())
+        self.statistics.task_failed(_a_fake_request())
 
         expected = 0.
 
@@ -184,7 +184,7 @@ class StatisticsTests(TestCase):
 
         for each_request in requests:
             request = _a_fake_request(**each_request)
-            self.statistics.replied_success_to(request)
+            self.statistics.task_successful(request)
 
         self.assertEqual(13.0, self.statistics.response_time_for("foo"))
         self.assertEqual(4.0, self.statistics.response_time_for("bar"))
@@ -193,7 +193,7 @@ class StatisticsTests(TestCase):
     def _success_of_requests(self, response_times=[3,4,5,6]):
         for each_response_time in response_times:
             request = _a_fake_request(response_time=each_response_time)
-            self.statistics.replied_success_to(request)
+            self.statistics.task_successful(request)
 
 
 
@@ -250,11 +250,11 @@ class MonitorTests(TestCase):
 
     def _run_scenario(self, total, rejected, errors):
         for i in range(total):
-            self.monitor.statistics.replied_success_to(_a_fake_request())
+            self.monitor.statistics.task_successful(_a_fake_request())
         for i in range(rejected):
-            self.monitor.statistics.replied_rejected_to(_a_fake_request())
+            self.monitor.statistics.task_rejected(_a_fake_request())
         for i in range(errors):
-            self.monitor.statistics.replied_error_to(_a_fake_request())
+            self.monitor.statistics.task_failed(_a_fake_request())
 
     def test_runs_with_the_proper_period(self):
         with patch.object(Monitor, 'monitor') as trigger:
@@ -310,11 +310,11 @@ class LoggerTest(TestCase):
         self.logger = Logger(self.simulation.environment)
 
     def test_logging_request_arrival(self):
-        self.logger.arrival_of(self._fake_request())
+        self.logger.task_created(self._fake_request())
         self.verify_log_call(Logger.REQUEST_RECEIVED.format(request=self.REQUEST_ID))
 
     def test_logging_request_stored(self):
-        self.logger.storage_of(self._fake_request())
+        self.logger.task_ready(self._fake_request())
         self.verify_log_call(Logger.REQUEST_STORED.format(request=self.REQUEST_ID))
 
     def test_logging_failure_of(self):
@@ -334,11 +334,11 @@ class LoggerTest(TestCase):
         self.verify_log_call(Logger.REQUEST_TIMEOUT.format(request=self.REQUEST_ID))
 
     def test_logging_error_replied(self):
-        self.logger.replied_error_to(self._fake_request())
+        self.logger.task_failed(self._fake_request())
         self.verify_log_call(Logger.ERROR_REPLIED.format(request=self.REQUEST_ID))
 
     def test_logging_success_replied(self):
-        self.logger.replied_success_to(self._fake_request())
+        self.logger.task_successful(self._fake_request())
         self.verify_log_call(Logger.SUCCESS_REPLIED.format(request=self.REQUEST_ID))
 
     def verify_logging_acceptance(self):

@@ -51,13 +51,13 @@ class Operation(SimulatedEntity):
             if status.is_successful:
                 if task.request.is_pending: # Could have timed out
                     task.request.reply_success()
-                    self.listener.replied_success_to(task.request)
+                    self.listener.task_successful(task.request)
                 else:
-                    self.listener.replied_error_to(task.request)
+                    self.listener.task_failed(task.request)
 
             elif status.is_erroneous:
                 task.request.reply_error()
-                self.listener.replied_error_to(task.request)
+                self.listener.task_failed(task.request)
 
             else:
                 pass
@@ -102,7 +102,7 @@ class Service(SimulatedEntity):
         return self.workers.utilisation
 
     def process(self, request):
-        self.listener.arrival_of(request)
+        self.listener.task_created(request)
         task = Task(request)
         if self.workers.are_available:
             request.accept()

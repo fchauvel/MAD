@@ -45,6 +45,9 @@ class Request:
         self._response_time = None
         self._emission_time = None
 
+    def __repr__(self):
+        return "Req. %d" % self.identifier
+
     @property
     def response_time(self):
         assert self.status == self.OK, "Only successful requests expose a 'response time'"

@@ -26,7 +26,9 @@ this operation every 5 unit of steps.
     }
 
 MAD will simulate their behaviour and output traces for both service and clients, including queue length, emission rate, 
-utilisation and many other measures.
+utilisation and many other measures as shown below:
+
+<img src="sample_stats.png" alt="Example of measures collected using MAD" style="width: 600px;"/>
 
 ## Install
 
