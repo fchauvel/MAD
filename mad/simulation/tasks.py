@@ -195,6 +195,13 @@ class LIFOTaskPool(AbstractTaskPool):
 
 
 class Task:
+    CREATED = 0
+    RUNNING = 1
+    BLOCKED = 2
+    READY = 3
+    REJECTED = 4
+    FAILED = 5
+    SUCCESSFUL = 6
 
     def __init__(self, request=None):
         self.request = request

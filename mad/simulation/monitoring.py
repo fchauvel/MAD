@@ -23,9 +23,82 @@ from mad.evaluation import Symbols
 from mad.simulation.service import Operation
 from mad.simulation.commons import SimulatedEntity
 from mad.simulation.events import Listener
+from mad.simulation.tasks import Task
 
 
 MISSING_VALUE = "NA"
+
+
+class TasksStatistics(Listener):
+
+    def __init__(self):
+        self.created = 0
+        self.ready = 0
+        self.running = 0
+        self.blocked = 0
+        self.rejected = 0
+        self.successful = 0
+        self.failed = 0
+
+    def task_created(self, request):
+        self.created += 1
+
+    def task_ready(self, task):
+        if task.status == Task.CREATED:
+            self.created -= 1
+            self.ready += 1
+        elif task.status == Task.BLOCKED:
+            self.blocked -= 1
+            self.ready += 1
+        else:
+            error = "Invalid task status (expected CREATED or BLOCKED, found {:d})".format(task.status)
+            raise AssertionError(error)
+
+    def task_rejected(self, task):
+        assert task.status == Task.CREATED, "Invalid task status (expected CREATED, found {:d})".format(task.status)
+        self.created -= 1
+        self.rejected += 1
+
+    def task_assigned(self, task, worker):
+        if task.status == Task.CREATED:
+            self.created -= 1
+            self.running += 1
+        elif task.status == Task.READY:
+            self.ready -= 1
+            self.running += 1
+        else:
+            message = "Invalid task status (expected CREATED or BLOCKED, found {:d})".format(task.status)
+            raise AssertionError(message)
+
+    def task_blocked(self, task):
+        assert task.status == Task.RUNNING, "Invalid task status (expected BLOCKED, found {:d})".format(task.status)
+        self.blocked += 1
+        self.running -= 1
+
+    @property
+    def active(self):
+        return self.created + \
+               self.ready + \
+               self.running + \
+               self.blocked
+
+    @property
+    def complete(self):
+        return self.successful + self.failed
+
+    def task_successful(self, request):
+        assert self.running > 0, "No task can succeed as none is running (State: {!s})".format(self)
+        self.running -= 1
+        self.successful += 1
+
+    def task_failed(self, request):
+        assert self.running > 0, "No task can fail as none is running (State: {!s})".format(self)
+        self.running -= 1
+        self.failed += 1
+
+    def __repr__(self):
+        return "(C={0.created:d}, Rd={0.ready:d}, Rn={0.running:d}, B={0.blocked:d}| " \
+               "S={0.successful:d}, F={0.failed:d})".format(self)
 
 
 class OperationStatistics:
@@ -338,7 +411,7 @@ class Logger(SimulatedEntity, Listener):
     REQUEST_REJECTED = "Req. {request:d} rejected!"
     REQUEST_TIMEOUT = "Req. {request:d} timeout!"
     REQUEST_FAILURE = "Req. {request:d} failed!"
-    REQUEST_SUCCESS = "Req. {request:d} complete"
+    REQUEST_SUCCESS = "Req. {request:d} successful"
 
     def __init__(self, environment):
         SimulatedEntity.__init__(self, Symbols.LOGGER, environment)

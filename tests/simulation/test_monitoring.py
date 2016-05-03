@@ -25,9 +25,10 @@ from tests.fakes import InMemoryDataStorage
 from mad.log import Log
 from mad.evaluation import Symbols
 from mad.simulation.factory import Factory
-from mad.simulation.monitoring import OperationStatistics, Monitor, Probe, Statistics, Logger
+from mad.simulation.monitoring import OperationStatistics, TasksStatistics, Monitor, Probe, Statistics, Logger
 from mad.simulation.events import Dispatcher
 from mad.simulation.requests import Request
+from mad.simulation.tasks import Task
 
 
 def _a_fake_request(operation="foo", response_time=5):
@@ -35,6 +36,138 @@ def _a_fake_request(operation="foo", response_time=5):
     type(request).operation = operation
     type(request).response_time = response_time
     return request
+
+
+def a_task(status=None):
+    task = MagicMock(Task)
+    task.status = status or Task.CREATED
+    return task
+
+
+class TasksStatisticsTests(TestCase):
+
+    def setUp(self):
+        self.statistics = TasksStatistics()
+
+    def test_legal_transitions(self):
+        transitions = [{ "state": {"created": 1},
+                         "event": "task_assigned",
+                         "parameters": [a_task(Task.CREATED), "a worker"],
+                         "check": {"created":0, "running": 1}},
+
+                       { "state": {"created": 1},
+                         "event": "task_ready",
+                         "parameters": [a_task(Task.CREATED)],
+                         "check": {"created": 0, "ready": 1}},
+
+                       { "state": {"created": 1},
+                         "event": "task_rejected",
+                         "parameters": [a_task(Task.CREATED)],
+                         "check": {"rejected": 1}},
+
+                       { "state": {"running": 1},
+                         "event": "task_blocked",
+                         "parameters": [a_task(Task.RUNNING)],
+                         "check": {"running": 0, "blocked":1}},
+
+                       { "state": {"blocked": 1},
+                         "event": "task_ready",
+                         "parameters": [a_task(Task.BLOCKED)],
+                         "check": {"ready": 1, "blocked":0}},
+
+                       { "state": {"ready": 1},
+                         "event": "task_assigned",
+                         "parameters": [a_task(Task.READY), "a worker"],
+                         "check": {"ready": 0, "running": 1}},
+
+                       { "state": {"running": 1},
+                         "event": "task_failed",
+                         "parameters": [a_task(Task.RUNNING)],
+                         "check": {"failed": 1, "running": 0}},
+
+                       { "state": {"running": 1},
+                         "event": "task_successful",
+                         "parameters": [a_task(Task.RUNNING)],
+                         "check": {"successful": 1, "running": 0}},
+
+                       ]
+
+        for each_transition in transitions:
+            self.do_test(**each_transition)
+
+    def test_illegal_transitions(self):
+        transitions = [
+            {   "event": "task_assigned",
+                "legal_states": [Task.CREATED, Task.READY],
+                "parameters": ["a worker"]},
+
+            {   "event": "task_ready",
+                "legal_states": [Task.CREATED, Task.BLOCKED],
+                "parameters": []},
+
+            {   "event": "task_blocked",
+                "legal_states": [Task.RUNNING],
+                "parameters": []},
+
+            {   "event": "task_rejected",
+                "legal_states": [Task.CREATED],
+                "parameters": []},
+
+            {   "event": "task_successful",
+                "legal_states": [Task.RUNNING],
+                "parameters": []},
+
+            {   "event": "task_failed",
+                "legal_states": [Task.RUNNING],
+                "parameters": []}
+        ]
+
+        for each_transition in transitions:
+            self.do_test_illegal_transitions(**each_transition)
+
+    def do_test_illegal_transitions(self, legal_states, event, parameters):
+        default_state = {
+                "created":0, "running":0, "ready": 0, "blocked": 0,
+                "rejected": 0, "failed": 0, "successful": 0}
+        self.set_state(**default_state)
+
+        method = getattr(self.statistics, event)
+
+        illegal_states = [ each_state for each_state in range(0, 7) if each_state not in legal_states ]
+        for each_state in illegal_states:
+            task = a_task(each_state)
+            arguments = [ task ] + parameters
+            with self.assertRaises(AssertionError):
+                try :
+                    method(*arguments)
+                except AssertionError as error:
+                    message = "Event '{:s}' should be forbidden in state {:d}".format(event, each_state)
+                    raise AssertionError(message, error)
+
+    def do_test(self, state, event, parameters, check):
+        default_state = {
+                "created":0, "running":0, "ready": 0, "blocked": 0,
+                "rejected": 0, "failed": 0, "successful": 0}
+        self.set_state(**dict(default_state, **state))
+        method = getattr(self.statistics, event)
+        method(*parameters)
+        try :
+
+            full_check = dict(default_state, **check)
+            self.verify(**full_check)
+        except AssertionError as error:
+            context = "Failed: Applying {!s} on state {!s}!\n{!s}".format(event, state, error)
+            raise AssertionError(context)
+
+    def set_state(self, **values):
+        for (each_property, each_value) in values.items():
+            setattr(self.statistics, each_property, each_value)
+
+    def verify(self, **values):
+        for (label, expected_value) in values.items():
+            property = getattr(self.statistics, label)
+            self.assertEqual(expected_value, property,
+                             "Wrong count of {:s} tasks (expected {!s} but found {!s}!)".format(label, expected_value, property))
 
 
 class OperationStatisticsTests(TestCase):

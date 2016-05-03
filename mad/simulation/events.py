@@ -40,7 +40,7 @@ class Listener:
         raise NotImplementedError("Listener::task_failed is abstract")
 
     def task_ready(self, request):
-        raise NotImplementedError("Listener::timeout_of is abstract")
+        raise NotImplementedError("Listener::task_ready is abstract")
 
     def task_running(self, request):
         raise NotImplementedError("Listener::timeout_of is abstract")
@@ -48,7 +48,6 @@ class Listener:
     # TODO should be removed
     def resuming(self, request):
         raise NotImplementedError("Listener::timeout_of is abstract")
-
 
     # Outgoing requests
 
