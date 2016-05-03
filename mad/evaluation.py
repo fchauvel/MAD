@@ -45,6 +45,9 @@ class SimulationFactory:
     def create_service(self, name, environment):
         self._abort(self.create_service.__name__)
 
+    def create_worker(self, identifier, environment):
+        self._abort(self.create_worker.__name__)
+
     def create_listener(self):
         self._abort(self.create_listener.__name__)
 
@@ -198,7 +201,7 @@ class Evaluation:
         """
         return self._get_busy_for(
             duration=think.duration,
-            after=lambda status: self.continuation(status))
+            after=self.continuation)
 
     def of_fail(self, fail):
         if random() < fail.probability:
@@ -220,13 +223,12 @@ class Evaluation:
                         return self.continuation(Success(None))
                     else:
                         def try_again(worker):
-                            self.environment.dynamic_scope = worker.environment
                             self._evaluation_of(retry.expression, retry_on_error(remaining_tries-1))
 
-                        task.resume = try_again
                         delay = backoff.delay(retry.limit - remaining_tries)
-                        sender.schedule.after(delay, lambda: sender.activate(task))
-                        return self._pause()
+                        sender.schedule.after(delay, lambda: task.resume_with(try_again))
+                        task.pause()
+                        return Paused()
 
                 return continuation
 
@@ -244,13 +246,11 @@ class Evaluation:
 
         def on_reject():
             sender.listener.rejection_of(request)
-            task.resume = self._resume_task_with(Error())
-            sender.activate(task)
+            task.resume_with(lambda worker: self.continuation(Error()))
 
         def on_accept():
             sender.listener.acceptance_of(request)
-            task.resume = self._resume_task_with(Success())
-            sender.activate(task)
+            task.resume_with(lambda worker: self.continuation(Success()))
 
         # TODO: Replace that ugly magic '1'
         request = self.factory.create_request(
@@ -264,7 +264,8 @@ class Evaluation:
         sender.listener.posting_of(trigger.service, request)
         request.send_to(recipient)
 
-        return self._pause()
+        task.pause()
+        return Paused()
 
     def _send_query(self, query):
         task = self._look_up(Symbols.TASK)
@@ -276,18 +277,15 @@ class Evaluation:
 
         def on_reject():
             sender.listener.rejection_of(request)
-            task.resume = self._resume_task_with(Error())
-            sender.activate(task)
+            task.resume_with(lambda worker: self.continuation(Error()))
 
         def on_success():
             sender.listener.success_of(request)
-            task.resume = self._resume_task_with(Success())
-            sender.activate(task)
+            task.resume_with(lambda worker: self.continuation(Success()))
 
         def on_error():
             sender.listener.failure_of(request)
-            task.resume = self._resume_task_with(Error())
-            sender.activate(task)
+            task.resume_with(lambda worker: self.continuation(Error()))
 
         # TODO: Replace that ugly magic '0'
         request = self.factory.create_request(
@@ -308,30 +306,16 @@ class Evaluation:
                 if request.is_pending:
                     sender.listener.timeout_of(request)
                     request.discard()
-                    task.resume = self._resume_task_with(Error())
-                    sender.activate(task)
+                    task.resume_with(lambda worker: self.continuation(Error()))
 
             sender.schedule.after(query.timeout, on_check_timeout)
 
-        return self._pause()
+        task.pause()
+        return Paused()
 
     def _get_busy_for(self, duration, after):
         self.simulation.schedule.after(duration, lambda: after(Success()))
         return Busy()
-
-    def _resume_task_with(self, status):
-        def resume(worker):
-            self.environment.dynamic_scope = worker.environment
-            self.continuation(status)
-        return resume
-
-    def _pause(self):
-        service = self._look_up(Symbols.SELF)
-        task = self._look_up(Symbols.TASK)
-        worker = self.environment.dynamic_look_up(Symbols.WORKER)
-        service.pause(task)
-        service.release(worker)
-        return Paused()
 
 
 class Result:

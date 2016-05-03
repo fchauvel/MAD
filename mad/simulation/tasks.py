@@ -203,17 +203,84 @@ class Task:
     FAILED = 5
     SUCCESSFUL = 6
 
-    def __init__(self, request=None):
+    def __init__(self, service, request=None):
+        self.service = service
+        self.worker = None
         self.request = request
-        self.is_started = False
-        self.resume = lambda: None
-
-    def reject(self):
-        self.request.reject()
+        self.status = Task.CREATED
 
     @property
     def priority(self):
         return self.request.priority
 
-    def mark_as_started(self):
-        self.is_started = True
+    def accept(self):
+        self._assert_status_is(Task.CREATED)
+        self.request.accept()
+        self.activate()
+
+    def reject(self):
+        self._assert_status_is(Task.CREATED)
+        self.status == Task.REJECTED
+        self.request.reject()
+
+    def activate(self):
+        self._assert_status_is(Task.CREATED, Task.BLOCKED)
+        self.status = Task.READY
+
+    def assign_to(self, worker):
+        self._assert_status_is(Task.CREATED, Task.READY)
+
+        self.worker = worker
+        if self.request.is_pending:
+            self.status = Task.RUNNING
+            self._execute(worker)
+        else:
+            self.status = Task.FAILED
+            worker.listener.task_failed(self.request) #TODO log the timeout as an error
+            worker.release()
+
+    def _execute(self, worker):
+        """
+        This method is ASSIGNED during the evaluation to control how to resume it once it has been paused
+        """
+        self._assert_status_is(Task.RUNNING)
+        operation = worker.look_up(self.request.operation)
+        operation.invoke(self, [], worker=worker)
+
+    def pause(self):
+        self._assert_status_is(Task.RUNNING)
+
+        self.status = Task.BLOCKED
+        self.service.pause(self)
+        self.service.release(self.worker) #
+
+    def resume_with(self, on_resume):
+        self._assert_status_is(Task.BLOCKED)
+        self._execute = on_resume
+        self.service.activate(self)
+
+    def reply(self, status):
+        self._assert_status_is(Task.RUNNING)
+
+        if status.is_successful:
+            if self.request.is_pending: # Could have timed out
+                self.status == Task.SUCCESSFUL
+                self.request.reply_success()
+                self.service.listener.task_successful(self.request)
+            else:
+                self.status == Task.FAILED
+                self.service.listener.task_failed(self.request)
+
+        elif status.is_erroneous:
+            self.status == Task.FAILED
+            self.request.reply_error()
+            self.service.listener.task_failed(self.request)
+
+        else:
+            pass
+
+        self.service.release(self.worker)
+
+    def _assert_status_is(self, *legal_states):
+        assert self.status in legal_states, \
+            "Found status == {:d} (expecting {!s})".format(self.status, legal_states)

@@ -55,13 +55,17 @@ class ClientStub(SimulatedEntity):
                 self.on_error()
             else:
                 pass
-        self.environment.define(Symbols.TASK, Task())
+
+        task = Task(self)
+        task.status = Task.RUNNING
         env = self.environment.create_local_environment(self.environment)
+        env.define(Symbols.TASK, task)
         env.define(Symbols.WORKER, self)
         Evaluation(env, self.body, self.factory, post_processing).result
 
     def activate(self, task):
-        task.resume(self)
+        task.status = Task.RUNNING
+        task._execute(self)
 
     def pause(self, task):
         pass

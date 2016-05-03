@@ -132,6 +132,9 @@ class FIFOTaskPoolTests(TestCase, AbstractTaskPoolTests):
         self.assertIs(next_task, self.pool.take())
 
 
+class TaskTests(TestCase):
+    pass
+
 if __name__ == "__main__":
     import unittest.main
     unittest.main()

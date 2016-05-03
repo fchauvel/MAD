@@ -48,23 +48,7 @@ class Operation(SimulatedEntity):
                 send_response(status)
 
         def send_response(status):
-            if status.is_successful:
-                if task.request.is_pending: # Could have timed out
-                    task.request.reply_success()
-                    self.listener.task_successful(task.request)
-                else:
-                    self.listener.task_failed(task.request)
-
-            elif status.is_erroneous:
-                task.request.reply_error()
-                self.listener.task_failed(task.request)
-
-            else:
-                pass
-
-            service = environment.look_up(Symbols.SELF)
-            worker = environment.dynamic_look_up(Symbols.WORKER)
-            service.release(worker)
+            task.reply(status)
             continuation(status) # TODO: Must be over! Remove this useless call to continuation
 
         return Evaluation(environment, self.body, self.factory, compute_and_send_response).result
@@ -83,7 +67,7 @@ class Service(SimulatedEntity):
     def _new_worker(self, identifier):
         environment = self.environment.create_local_environment()
         environment.define(Symbols.SERVICE, self)
-        return Worker(identifier, environment)
+        return self.factory.create_worker(identifier, environment)
 
     @property
     def worker_count(self):
@@ -103,26 +87,27 @@ class Service(SimulatedEntity):
 
     def process(self, request):
         self.listener.task_created(request)
-        task = Task(request)
+        task = Task(self, request)
         if self.workers.are_available:
-            request.accept()
+            task.accept()
             worker = self.workers.acquire_one()
-            worker.assign(task)
+            task.assign_to(worker)
         else:
             self.tasks.put(task)
 
     def release(self, worker):
         if self.tasks.are_pending:
             task = self.tasks.take()
-            worker.assign(task)
+            task.assign_to(worker)
         else:
             self.workers.release(worker)
 
     def activate(self, task):
+        task.activate()
         if self.workers.are_available:
             worker = self.workers.acquire_one()
             self.tasks.intercept(task)
-            worker.assign(task)
+            task.assign_to(worker)
         else:
             self.tasks.activate(task)
 

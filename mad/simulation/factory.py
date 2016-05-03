@@ -23,6 +23,7 @@ from mad.evaluation import Symbols, Evaluation, SimulationFactory
 
 from mad.simulation.events import Dispatcher
 from mad.simulation.service import Service, Operation
+from mad.simulation.workers import Worker
 from mad.simulation.monitoring import Monitor, Logger
 from mad.simulation.client import ClientStub
 from mad.simulation.tasks import FIFOTaskPool, LIFOTaskPool, TaskPoolWrapper
@@ -62,6 +63,9 @@ class Factory(SimulationFactory):
     def create_service(self, name, environment):
         return Service(name, environment)
 
+    def create_worker(self, identifier, environment):
+        return Worker(identifier, environment)
+
     def create_client_stub(self, environment, definition):
         return ClientStub(definition.name, environment, definition.period, definition.body)
 
@@ -89,6 +93,7 @@ class Factory(SimulationFactory):
             return ExponentialBackoff(delay.base_delay)
         else:
             raise ValueError("Unknown backoff strategy '{0:s}' (options are 'constant' and 'exponential')")
+
 
 class Simulation:
     """
