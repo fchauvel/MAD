@@ -28,7 +28,8 @@ from mad.ast.actions import *
 from mad.simulation.factory import Simulation
 from mad.simulation.service import Service, Operation
 from mad.evaluation import Symbols, Error
-from mad.simulation.requests import Request
+from mad.simulation.requests import Request, Query as SQuery
+from mad.simulation.tasks import Task
 
 
 class TestInterpreter(TestCase):
@@ -535,7 +536,7 @@ class TestInterpreter(TestCase):
         self.assertEqual(client.on_success.call_count, 2)
 
     def fake_request(self, operation, on_success=lambda: None, on_error=lambda: None):
-        request = Request(self.fake_client(), Request.QUERY, operation, 1)
+        request = SQuery(Task(self.fake_client()), operation, 1, lambda s: None)
         request.on_error = on_error
         request.on_success = on_success
         return request

@@ -188,12 +188,12 @@ class Evaluation:
         return self._evaluation_of(sequence.first_expression, abort_on_error)
 
     def of_trigger(self, trigger):
-        return self._get_busy_for(
+        return self._compute(
             duration=1,
             after=lambda status: self._do_trigger(trigger))
 
     def of_query(self, query):
-        return self._get_busy_for(
+        return self._compute(
             duration=1,
             after=lambda status: self._send_query(query))
 
@@ -202,7 +202,7 @@ class Evaluation:
         Simulate the worker processing the task for the specified amount of time.
         The worker is not released and the task is not paused.
         """
-        return self._get_busy_for(
+        return self._compute(
             duration=think.duration,
             after=self.continuation)
 
@@ -275,8 +275,9 @@ class Evaluation:
         task.pause()
         return Paused()
 
-    def _get_busy_for(self, duration, after):
-        self.simulation.schedule.after(duration, lambda: after(Success()))
+    def _compute(self, duration, after):
+        task = self._look_up(Symbols.TASK)
+        task.compute(duration, continuation=lambda: after(Success()))
         return Busy()
 
 

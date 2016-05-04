@@ -58,6 +58,7 @@ class ClientStub(SimulatedEntity):
 
         task = Task(self)
         task.status = TaskStatus.RUNNING
+        task.worker = self
         env = self.environment.create_local_environment(self.environment)
         env.define(Symbols.TASK, task)
         env.define(Symbols.WORKER, self)
@@ -78,3 +79,6 @@ class ClientStub(SimulatedEntity):
 
     def on_error(self):
         self.monitor.record_error()
+
+    def compute(self, duration, continuation):
+        self.schedule.after(duration, continuation)

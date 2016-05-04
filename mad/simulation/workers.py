@@ -89,6 +89,8 @@ class Worker(SimulatedEntity):
         self.environment.define(Symbols.WORKER, self)
         self.identifier = identifier
 
+    def compute(self, duration, continuation):
+        self.simulation.schedule.after(duration, continuation)
 
     def release(self):
         service = self.look_up(Symbols.SERVICE)

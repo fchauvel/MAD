@@ -21,10 +21,6 @@ from mad.evaluation import Error, Success
 
 
 class Request:
-    # TODO Remove as it is handled with subclasses
-    QUERY = 0
-    TRIGGER = 1
-
     TRANSMISSION_DELAY = 1
 
     # TODO Use a proper enum!
@@ -34,16 +30,19 @@ class Request:
     ACCEPTED = 3
     REJECTED = 4
 
-    def __init__(self, sender, kind, operation, priority):
-        assert sender, "Invalid sender (found %s)" % str(sender)
-        self.identifier = sender.next_request_id()
-        self.sender = sender
-        self.kind = kind
+    def __init__(self, task, operation, priority):
+        assert task, "Invalid task (found None)"
+        self.task = task
         self.operation = operation
         self.priority = priority
+        self.identifier = self.sender.next_request_id()
         self.status = self.PENDING
         self._response_time = None
         self._emission_time = None
+
+    @property
+    def sender(self):
+        return self.task.service
 
     def __repr__(self):
         return "Req. %d" % self.identifier
@@ -102,8 +101,7 @@ class Request:
 class Query(Request):
 
     def __init__(self, task, operation, priority, continuation):
-        super().__init__(task.service, Request.QUERY, operation, priority)
-        self.task = task
+        super().__init__(task, operation, priority)
         self.continuation = continuation
 
     def on_accept(self):
@@ -125,8 +123,7 @@ class Query(Request):
 class Trigger(Request):
 
     def __init__(self, task, operation, priority, continuation):
-        super().__init__(task.service, Request.TRIGGER, operation, priority)
-        self.task = task
+        super().__init__(task, operation, priority)
         self.continuation = continuation
 
     def on_reject(self):

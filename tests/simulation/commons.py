@@ -22,7 +22,8 @@ from mock import MagicMock
 from tests.fakes import InMemoryDataStorage
 
 from mad.simulation.factory import Simulation
-from mad.simulation.requests import Request
+from mad.simulation.requests import Query, Trigger
+from mad.simulation.tasks import Task, TaskStatus
 
 
 class ServiceTests(TestCase):
@@ -47,23 +48,28 @@ class ServiceTests(TestCase):
     def simulate_until(self, end):
         self.simulation.run_until(end)
 
-    def send_request(self, kind, service_name, operation_name, on_success=lambda:None, on_error=lambda:None):
-        service = self.look_up(service_name)
-        request = self.fake_request(kind, operation_name, on_success=on_success, on_error=on_error)
-        request.send_to(service)
-        return request
-
-    def query(self, service, operation, on_success=lambda:None, on_error=lambda:None):
-        return self.send_request(Request.QUERY, service, operation,on_success=on_success, on_error=on_error)
-
-    def trigger(self, service, operation, on_success=lambda:None, on_error=lambda:None):
-        return self.send_request(Request.TRIGGER, service, operation,on_success=on_success, on_error=on_error)
-
-    def fake_request(self, kind, operation, on_success=lambda: None, on_error=lambda: None):
-        request = Request(self.fake_client(), kind, operation, 1)
+    def query(self, service_name, operation, on_success=lambda:None, on_error=lambda:None):
+        request = Query(self.a_running_task(), operation, 1, lambda s:None)
         request.on_success = on_success
         request.on_error = on_error
+        self.send(request, service_name)
         return request
+
+    def a_running_task(self):
+        task = Task(self.fake_client())
+        task.status = TaskStatus.BLOCKED # A regular evaluation would block it after sending the request
+        return task
+
+    def trigger(self, service_name, operation, on_success=lambda:None, on_error=lambda:None):
+        request = Trigger(self.a_running_task(), operation, 1, lambda s:None)
+        request.on_success = on_success
+        request.on_error = on_error
+        self.send(request, service_name)
+        return request
+
+    def send(self, request, service_name):
+        service_name = self.look_up(service_name)
+        request.send_to(service_name)
 
     def fake_client(self):
         fake_client = MagicMock()

@@ -40,19 +40,7 @@ class Operation(SimulatedEntity):
         environment = self.environment.create_local_environment(worker.environment)
         environment.define(Symbols.TASK, task)
         environment.define_each(self.parameters, arguments)
-
-        def compute_and_send_response(status):
-            if task.request.kind == task.request.QUERY:
-                return Evaluation(environment, Think(1), self.factory, lambda s: send_response(status)).result
-            else:
-                send_response(status)
-
-        def send_response(status):
-            task.reply(status)
-            continuation(status) # TODO: Must be over! Remove this useless call to continuation
-
-        return Evaluation(environment, self.body, self.factory, compute_and_send_response).result
-
+        return Evaluation(environment, self.body, self.factory, task.compute_and_send_response).result
 
 
 class Service(SimulatedEntity):

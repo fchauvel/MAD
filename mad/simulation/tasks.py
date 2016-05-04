@@ -19,9 +19,9 @@
 
 from enum import Enum
 
-from mad.evaluation import Symbols
+from mad.evaluation import Symbols, Evaluation
 from mad.simulation.commons import SimulatedEntity
-
+from mad.simulation.requests import Query
 
 class TaskPool:
 
@@ -231,6 +231,7 @@ class Task:
         self.status = TaskStatus.READY
 
     def assign_to(self, worker):
+        assert worker, "task assigned to None!"
         self.__assert_status_is(TaskStatus.CREATED, TaskStatus.READY)
 
         self.worker = worker
@@ -254,12 +255,25 @@ class Task:
         self.__assert_status_is(TaskStatus.RUNNING)
         self.status = TaskStatus.BLOCKED
         self.service.pause(self)
-        self.service.release(self.worker) #
+        self.service.release(self.worker)
 
     def resume_with(self, on_resume):
+        def next_execution(worker):
+            assert self.worker, "Resuming without a worker!"
+            on_resume(worker)
         self.__assert_status_is(TaskStatus.BLOCKED)
-        self._execute = on_resume
+        self._execute = next_execution
         self.service.activate(self)
+
+    def compute(self, duration, continuation):
+        assert self.worker is not None, "Cannot compute, no worker attached!"
+        self.worker.compute(duration, continuation)
+
+    def compute_and_send_response(self, status):
+        if isinstance(self.request, Query):
+            self.compute(1, lambda: self.reply(status))
+        else:
+            self.reply(status)
 
     def reply(self, status):
         self.__assert_status_is(TaskStatus.RUNNING)
@@ -285,4 +299,4 @@ class Task:
 
     def __assert_status_is(self, *legal_states):
         assert self.status in legal_states, \
-            "Found status == {:d} (expecting {!s})".format(self.status.name, [each.name for each in legal_states])
+            "Found status == {!s} (expecting {!s})".format(self.status, legal_states)
