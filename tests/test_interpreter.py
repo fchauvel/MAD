@@ -28,7 +28,7 @@ from mad.ast.actions import *
 from mad.simulation.factory import Simulation
 from mad.simulation.service import Service, Operation
 from mad.evaluation import Symbols, Error
-from mad.simulation.requests import Request, Query as SQuery
+from mad.simulation.requests import RequestStatus, Query as SQuery
 from mad.simulation.tasks import Task
 
 
@@ -91,7 +91,7 @@ class TestInterpreter(TestCase):
         with patch.object(Statistics, "reset"):
             self.simulate_until(10)
 
-            self.assertTrue(request.status == Request.ERROR)
+            self.assertTrue(request.status == RequestStatus.ERROR)
             monitor = front_end.look_up(Symbols.MONITOR)
             self.assertEqual(0., monitor._reliability())
 
@@ -140,7 +140,7 @@ class TestInterpreter(TestCase):
         self.assertEqual(0.0, db.utilisation) # DB has nothing to do anymore
 
         self.simulate_until(9)
-        self.assertTrue(request.status == request.OK)
+        self.assertTrue(request.status == RequestStatus.OK)
 
     def test_trigger_make_services_busy(self):
         db = self.evaluate(
@@ -180,7 +180,7 @@ class TestInterpreter(TestCase):
         self.assertEqual(0.0, db.utilisation) # DB has nothing to do anymore
 
         self.simulate_until(6)
-        self.assertTrue(request.status == request.OK)
+        self.assertTrue(request.status == RequestStatus.OK)
 
     def test_rejected_query_make_services_busy(self):
         db = self._a_service_that_rejects_requests()
@@ -211,7 +211,7 @@ class TestInterpreter(TestCase):
         self.assertEqual(0.0, front_end.utilisation) # Front end has nothing to do
 
         self.simulate_until(6)
-        self.assertTrue(request.status == request.ERROR)
+        self.assertTrue(request.status == RequestStatus.ERROR)
 
     def test_failed_query_make_services_busy(self):
         db = self._a_service_that_accepts_but_fails(after=3)
@@ -242,7 +242,7 @@ class TestInterpreter(TestCase):
         self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
 
         self.simulate_until(9)
-        self.assertTrue(request.status == request.ERROR)
+        self.assertTrue(request.status == RequestStatus.ERROR)
 
     def test_rejected_trigger_make_services_busy(self):
         db = self._a_service_that_rejects_requests()
@@ -273,7 +273,7 @@ class TestInterpreter(TestCase):
         self.assertEqual(0.0, front_end.utilisation) # Front end has nothing to do
 
         self.simulate_until(6)
-        self.assertTrue(request.status == request.ERROR)
+        self.assertTrue(request.status == RequestStatus.ERROR)
 
     def test_evaluate_timeout_queries(self):
         db = self.evaluate(
@@ -291,10 +291,10 @@ class TestInterpreter(TestCase):
 
         request = self.send_request("Front-end", "checkout")
         self.simulate_until(8)
-        self.assertTrue(request.status == Request.ERROR)
+        self.assertTrue(request.status == RequestStatus.ERROR)
 
         self.simulate_until(12)
-        self.assertEqual(Request.ERROR, request.status)
+        self.assertEqual(RequestStatus.ERROR, request.status)
         self.assertEqual(0, len(front_end.tasks.delegate.delegate.delegate.paused))
         self.assertEqual(0, front_end.tasks.blocked_count)
         self.assertTrue(front_end.workers.are_available)
@@ -328,7 +328,7 @@ class TestInterpreter(TestCase):
 
         request = self.send_request("Notifier", "notify")
         self.simulate_until(8)
-        self.assertTrue(request.status == Request.ERROR)
+        self.assertTrue(request.status == RequestStatus.ERROR)
 
         self.simulate_until(50) # Should have been release by then
         self.assertTrue(storage.workers.are_available)
@@ -353,7 +353,7 @@ class TestInterpreter(TestCase):
         request = self.send_request("Front-end", "checkout")
         self.simulate_until(25)
 
-        self.assertEqual(Request.ERROR, request.status)
+        self.assertEqual(RequestStatus.ERROR, request.status)
 
     def test_sequence_evaluation(self):
         db = self.define("DB", self._a_service_that_accepts_but_fails(after=2))

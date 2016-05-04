@@ -98,15 +98,14 @@ class TaskPoolWrapper(TaskPoolDecorator, SimulatedEntity):
 
     def put(self, task):
         super().put(task)
-        self.listener.task_ready(task.request)
 
     def take(self):
         task = super().take()
-        self.listener.task_running(task.request)
         return task
 
     def activate(self, task):
         super().activate(task)
+        # TODO useless, to remove
         self.listener.resuming(task.request)
 
 
@@ -125,7 +124,8 @@ class AbstractTaskPool(TaskPool):
         self.paused.remove(task)
 
     def put(self, task):
-        task.request.accept()
+        task.accept()
+        task.activate()
         self.tasks.append(task)
 
     def take(self):
@@ -196,7 +196,7 @@ class LIFOTaskPool(AbstractTaskPool):
         return selected
 
 
-class TaskStatus:
+class TaskStatus(Enum):
     CREATED, RUNNING, BLOCKED, READY, REJECTED, FAILED, SUCCESSFUL = range(7)
 
 
@@ -218,16 +218,18 @@ class Task:
 
     def accept(self):
         self.__assert_status_is(TaskStatus.CREATED)
+        self.service.listener.task_accepted(self)
         self.request.accept()
-        self.activate()
 
     def reject(self):
         self.__assert_status_is(TaskStatus.CREATED)
+        self.service.listener.task_rejected(self)
         self.status == TaskStatus.REJECTED
         self.request.reject()
 
     def activate(self):
         self.__assert_status_is(TaskStatus.CREATED, TaskStatus.BLOCKED)
+        self.service.listener.task_activated(self)
         self.status = TaskStatus.READY
 
     def assign_to(self, worker):
@@ -236,11 +238,14 @@ class Task:
 
         self.worker = worker
         if self.request.is_pending:
+            # TODO: self.service.listener.task_assign_to(self, worker)
+            self.service.listener.task_assigned_to(self, worker)
             self.status = TaskStatus.RUNNING
             self._execute(worker)
         else:
+            # TODO: self.service.listener.task_cancelled(self, worker)
             self.status = TaskStatus.FAILED
-            worker.listener.task_failed(self.request) #TODO log the timeout as an error
+            worker.listener.task_cancelled(self)
             worker.release()
 
     def _execute(self, worker):
@@ -253,16 +258,14 @@ class Task:
 
     def pause(self):
         self.__assert_status_is(TaskStatus.RUNNING)
+        # TODO: self.service.listener.task_paused(self)
         self.status = TaskStatus.BLOCKED
         self.service.pause(self)
         self.service.release(self.worker)
 
     def resume_with(self, on_resume):
-        def next_execution(worker):
-            assert self.worker, "Resuming without a worker!"
-            on_resume(worker)
         self.__assert_status_is(TaskStatus.BLOCKED)
-        self._execute = next_execution
+        self._execute = on_resume
         self.service.activate(self)
 
     def compute(self, duration, continuation):
@@ -282,15 +285,15 @@ class Task:
             if self.request.is_pending: # Could have timed out
                 self.status == TaskStatus.SUCCESSFUL
                 self.request.reply_success()
-                self.service.listener.task_successful(self.request)
+                self.service.listener.task_successful(self)
             else:
                 self.status == TaskStatus.FAILED
-                self.service.listener.task_failed(self.request)
+                self.service.listener.task_failed(self)
 
         elif status.is_erroneous:
             self.status == TaskStatus.FAILED
             self.request.reply_error()
-            self.service.listener.task_failed(self.request)
+            self.service.listener.task_failed(self)
 
         else:
             pass
@@ -299,4 +302,4 @@ class Task:
 
     def __assert_status_is(self, *legal_states):
         assert self.status in legal_states, \
-            "Found status == {!s} (expecting {!s})".format(self.status, legal_states)
+            "Found status == {0.name} (expecting {1!s})".format(self.status, [ s.name for s in legal_states ])

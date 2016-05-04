@@ -74,8 +74,8 @@ class Service(SimulatedEntity):
         return self.workers.utilisation
 
     def process(self, request):
-        self.listener.task_created(request)
         task = Task(self, request)
+        self.listener.task_created(task)
         if self.workers.are_available:
             task.accept()
             worker = self.workers.acquire_one()

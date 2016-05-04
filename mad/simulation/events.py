@@ -25,33 +25,42 @@ class Listener:
     Events emitted by a service during the the simulation
     """
 
-    # Incoming request
+    # Task processing
 
-    def task_created(self, request):
+    def task_created(self, task):
         raise NotImplementedError("Listener::task_created is abstract")
 
-    def task_rejected(self, request):
-        raise NotImplementedError("Listener::rejection_of is abstract")
+    def task_accepted(self, task):
+        raise NotImplementedError("Listener::tack_accepted is abstract")
 
-    def task_successful(self, request):
+    def task_rejected(self, task):
+        raise NotImplementedError("Listener::task_rejected is abstract")
+
+    def task_assigned_to(self, task, worker):
+        raise NotImplementedError("Listener::task_assigned_to is abstract")
+
+    def task_paused(self, task):
+        raise NotImplementedError("Listener::task_paused is abstract")
+
+    def task_activated(self, task):
+        raise NotImplementedError("Listener::task_activated is abstract")
+
+    def task_successful(self, task):
         raise NotImplementedError("Listener::task_successful is abstract")
 
-    def task_failed(self, request):
+    def task_failed(self, task):
         raise NotImplementedError("Listener::task_failed is abstract")
 
-    def task_ready(self, request):
-        raise NotImplementedError("Listener::task_ready is abstract")
+    def task_cancelled(self, task):
+        raise NotImplementedError("Listener::task_cancelled is abstract")
 
-    def task_running(self, request):
-        raise NotImplementedError("Listener::timeout_of is abstract")
-
-    # TODO should be removed
+    # TODO should be removed carefully!
     def resuming(self, request):
         raise NotImplementedError("Listener::timeout_of is abstract")
 
     # Outgoing requests
 
-    def posting_of(self, request):
+    def posting_of(self, service, request):
         raise NotImplementedError("Listener::posting_of is abstract")
 
     def acceptance_of(self, request):
@@ -82,24 +91,34 @@ class Dispatcher(Listener):
         assert isinstance(listener, Listener), INVALID_LISTENER.format(type(listener))
         self._listeners.add(listener)
 
-    def task_created(self, request):
-        self._dispatch(self.task_created.__name__, request)
+    def task_created(self, task):
+        self._dispatch(self.task_created.__name__, task)
 
-    def task_rejected(self, request):
-        self._dispatch(self.task_rejected.__name__, request)
+    def task_accepted(self, task):
+        self._dispatch(self.task_accepted.__name__, task)
 
-    def task_failed(self, request):
-        self._dispatch(self.task_failed.__name__, request)
+    def task_rejected(self, task):
+        self._dispatch(self.task_rejected.__name__, task)
 
-    def task_successful(self, request):
-        self._dispatch(self.task_successful.__name__, request)
+    def task_activated(self, task):
+        self._dispatch(self.task_activated.__name__, task)
 
-    def task_ready(self, request):
-        self._dispatch(self.task_ready.__name__, request)
+    def task_paused(self, task):
+        self._dispatch(self.task_paused.__name, task)
 
-    def task_running(self, request):
-        self._dispatch(self.task_running.__name__, request)
+    def task_assigned_to(self, task, worker):
+        self._dispatch(self.task_assigned_to.__name__, task, worker)
 
+    def task_failed(self, task):
+        self._dispatch(self.task_failed.__name__, task)
+
+    def task_successful(self, task):
+        self._dispatch(self.task_successful.__name__, task)
+
+    def task_cancelled(self, task):
+        self._dispatch(self.task_cancelled.__name__, task)
+
+    # TODO remove carefully
     def resuming(self, request):
         self._dispatch(self.resuming.__name__, request)
 

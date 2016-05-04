@@ -246,7 +246,6 @@ class Evaluation:
         task = self._look_up(Symbols.TASK)
 
         request = self.factory.create_trigger(task, trigger.operation, trigger.priority, self.continuation)
-
         recipient = self._look_up(trigger.service)
         request.send_to(recipient)
 

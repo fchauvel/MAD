@@ -31,15 +31,16 @@ from mad.simulation.requests import Request
 from mad.simulation.tasks import Task, TaskStatus
 
 
-def _a_fake_request(operation="foo", response_time=5):
+def a_request(operation="foo", response_time=5):
     request = MagicMock()
     type(request).operation = operation
     type(request).response_time = response_time
     return request
 
 
-def a_task(status=None):
+def a_task(status=None, **request):
     task = MagicMock(Task)
+    task.request = a_request(**request)
     task.status = status or TaskStatus.CREATED
     return task
 
@@ -51,12 +52,12 @@ class TasksStatisticsTests(TestCase):
 
     def test_legal_transitions(self):
         transitions = [{ "state": {"created": 1},
-                         "event": "task_assigned",
+                         "event": "task_assigned_to",
                          "parameters": [a_task(TaskStatus.CREATED), "a worker"],
                          "check": {"created":0, "running": 1}},
 
                        { "state": {"created": 1},
-                         "event": "task_ready",
+                         "event": "task_activated",
                          "parameters": [a_task(TaskStatus.CREATED)],
                          "check": {"created": 0, "ready": 1}},
 
@@ -66,17 +67,17 @@ class TasksStatisticsTests(TestCase):
                          "check": {"rejected": 1}},
 
                        { "state": {"running": 1},
-                         "event": "task_blocked",
+                         "event": "task_paused",
                          "parameters": [a_task(TaskStatus.RUNNING)],
                          "check": {"running": 0, "blocked":1}},
 
                        { "state": {"blocked": 1},
-                         "event": "task_ready",
+                         "event": "task_activated",
                          "parameters": [a_task(TaskStatus.BLOCKED)],
                          "check": {"ready": 1, "blocked":0}},
 
                        { "state": {"ready": 1},
-                         "event": "task_assigned",
+                         "event": "task_assigned_to",
                          "parameters": [a_task(TaskStatus.READY), "a worker"],
                          "check": {"ready": 0, "running": 1}},
 
@@ -97,15 +98,15 @@ class TasksStatisticsTests(TestCase):
 
     def test_illegal_transitions(self):
         transitions = [
-            {   "event": "task_assigned",
+            {   "event": "task_assigned_to",
                 "legal_states": [TaskStatus.CREATED, TaskStatus.READY],
                 "parameters": ["a worker"]},
 
-            {   "event": "task_ready",
+            {   "event": "task_activated",
                 "legal_states": [TaskStatus.CREATED, TaskStatus.BLOCKED],
                 "parameters": []},
 
-            {   "event": "task_blocked",
+            {   "event": "task_paused",
                 "legal_states": [TaskStatus.RUNNING],
                 "parameters": []},
 
@@ -133,7 +134,7 @@ class TasksStatisticsTests(TestCase):
 
         method = getattr(self.statistics, event)
 
-        illegal_states = [ each_state for each_state in range(0, 7) if each_state not in legal_states ]
+        illegal_states = [ each_state for each_state in TaskStatus if each_state not in legal_states ]
         for each_state in illegal_states:
             task = a_task(each_state)
             arguments = [ task ] + parameters
@@ -141,7 +142,7 @@ class TasksStatisticsTests(TestCase):
                 try :
                     method(*arguments)
                 except AssertionError as error:
-                    message = "Event '{:s}' should be forbidden in state {:d}".format(event, each_state)
+                    message = "Event '{:s}' should be forbidden in state {:s}".format(event, each_state)
                     raise AssertionError(message, error)
 
     def do_test(self, state, event, parameters, check):
@@ -231,22 +232,22 @@ class StatisticsTests(TestCase):
     def test_rejection_count(self):
         expected_count = 3
         for i in range(expected_count):
-            self.statistics.task_rejected(_a_fake_request())
+            self.statistics.task_rejected(a_request())
 
         self.assertEqual(expected_count, self.statistics.rejection_count)
 
     def test_request_count(self):
         expected_count = 10
         for i in range(expected_count):
-            self.statistics.task_created(_a_fake_request())
+            self.statistics.task_created(a_request())
 
         self.assertEqual(expected_count, self.statistics.arrival_count)
 
     def test_reset(self):
-        self.statistics.task_created(_a_fake_request())
-        self.statistics.rejection_of(_a_fake_request())
-        self.statistics.task_failed(_a_fake_request())
-        self.statistics.task_successful(_a_fake_request(10))
+        self.statistics.task_created(a_request())
+        self.statistics.rejection_of(a_request())
+        self.statistics.task_failed(a_request())
+        self.statistics.task_successful(a_request(10))
         self.statistics.reset()
 
         self.assertEqual(0, self.statistics.arrival_count)
@@ -255,47 +256,47 @@ class StatisticsTests(TestCase):
         self.assertIsNone(self.statistics.response_time)
 
     def test_error_response(self):
-        self.statistics.task_failed(_a_fake_request())
+        self.statistics.task_failed(a_request())
 
         self.assertEqual(1, self.statistics.failure_count)
 
     def test_success_count(self):
-        self.statistics.task_successful(_a_fake_request())
-        self.statistics.task_successful(_a_fake_request())
-        self.statistics.task_successful(_a_fake_request())
-        self.statistics.task_successful(_a_fake_request())
-        self.statistics.rejection_of(_a_fake_request())
-        self.statistics.task_failed(_a_fake_request())
+        self.statistics.task_successful(a_request())
+        self.statistics.task_successful(a_request())
+        self.statistics.task_successful(a_request())
+        self.statistics.task_successful(a_request())
+        self.statistics.rejection_of(a_request())
+        self.statistics.task_failed(a_request())
 
         self.assertEqual(4, self.statistics.success_count)
 
     def test_reliability(self):
-        self.statistics.task_successful(_a_fake_request())
-        self.statistics.task_successful(_a_fake_request())
-        self.statistics.task_successful(_a_fake_request())
-        self.statistics.task_successful(_a_fake_request())
-        self.statistics.task_rejected(_a_fake_request())
-        self.statistics.task_failed(_a_fake_request())
+        self.statistics.task_successful(a_request())
+        self.statistics.task_successful(a_request())
+        self.statistics.task_successful(a_request())
+        self.statistics.task_successful(a_request())
+        self.statistics.task_rejected(a_request())
+        self.statistics.task_failed(a_request())
 
         expected = 4 / (4+2)
 
         self.assertEqual(expected, self.statistics.reliability)
 
     def test_reliability_with_only_rejection(self):
-        self.statistics.task_rejected(_a_fake_request())
-        self.statistics.task_rejected(_a_fake_request())
-        self.statistics.task_rejected(_a_fake_request())
-        self.statistics.task_rejected(_a_fake_request())
+        self.statistics.task_rejected(a_request())
+        self.statistics.task_rejected(a_request())
+        self.statistics.task_rejected(a_request())
+        self.statistics.task_rejected(a_request())
 
         expected = 0.
 
         self.assertEqual(expected, self.statistics.reliability)
 
     def test_reliability_with_only_errors(self):
-        self.statistics.task_failed(_a_fake_request())
-        self.statistics.task_failed(_a_fake_request())
-        self.statistics.task_failed(_a_fake_request())
-        self.statistics.task_failed(_a_fake_request())
+        self.statistics.task_failed(a_request())
+        self.statistics.task_failed(a_request())
+        self.statistics.task_failed(a_request())
+        self.statistics.task_failed(a_request())
 
         expected = 0.
 
@@ -303,30 +304,30 @@ class StatisticsTests(TestCase):
 
     def test_response_time(self):
         response_times = [10, 6, 7, 9, 8]
-        self._success_of_requests(response_times)
+        self._success_of_tasks(response_times)
 
         expectation = sum(response_times) / len(response_times)
         self.assertEqual(expectation, self.statistics.response_time)
 
     def test_response_time_per_operation(self):
-        requests = [{"operation": "foo", "response_time": 12},
+        tasks = [{"operation": "foo", "response_time": 12},
                     {"operation": "foo", "response_time": 14},
                     {"operation": "bar", "response_time": 5},
                     {"operation": "bar", "response_time": 3},
                     {"operation": "quz", "response_time": 10}]
 
-        for each_request in requests:
-            request = _a_fake_request(**each_request)
+        for each_task in tasks:
+            request = a_task(**each_task)
             self.statistics.task_successful(request)
 
         self.assertEqual(13.0, self.statistics.response_time_for("foo"))
         self.assertEqual(4.0, self.statistics.response_time_for("bar"))
         self.assertEqual(10, self.statistics.response_time_for("quz"))
 
-    def _success_of_requests(self, response_times=[3,4,5,6]):
+    def _success_of_tasks(self, response_times=[3, 4, 5, 6]):
         for each_response_time in response_times:
-            request = _a_fake_request(response_time=each_response_time)
-            self.statistics.task_successful(request)
+            task = a_task(response_time=each_response_time)
+            self.statistics.task_successful(task)
 
 
 
@@ -383,11 +384,11 @@ class MonitorTests(TestCase):
 
     def _run_scenario(self, total, rejected, errors):
         for i in range(total):
-            self.monitor.statistics.task_successful(_a_fake_request())
+            self.monitor.statistics.task_successful(a_request())
         for i in range(rejected):
-            self.monitor.statistics.task_rejected(_a_fake_request())
+            self.monitor.statistics.task_rejected(a_request())
         for i in range(errors):
-            self.monitor.statistics.task_failed(_a_fake_request())
+            self.monitor.statistics.task_failed(a_request())
 
     def test_runs_with_the_proper_period(self):
         with patch.object(Monitor, 'monitor') as trigger:
@@ -447,8 +448,8 @@ class LoggerTest(TestCase):
         self.verify_log_call(Logger.REQUEST_RECEIVED.format(request=self.REQUEST_ID))
 
     def test_logging_request_stored(self):
-        self.logger.task_ready(self._fake_request())
-        self.verify_log_call(Logger.REQUEST_STORED.format(request=self.REQUEST_ID))
+        self.logger.task_activated(self._fake_request())
+        self.verify_log_call(Logger.TASK_ACTIVATED.format(task=self.REQUEST_ID))
 
     def test_logging_failure_of(self):
         self.logger.failure_of(self._fake_request())

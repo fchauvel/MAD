@@ -17,18 +17,17 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from enum import Enum
+
 from mad.evaluation import Error, Success
+
+
+class RequestStatus(Enum):
+    PENDING, OK, ERROR, ACCEPTED, REJECTED = range(5)
 
 
 class Request:
     TRANSMISSION_DELAY = 1
-
-    # TODO Use a proper enum!
-    PENDING = 0
-    OK = 1
-    ERROR = 2
-    ACCEPTED = 3
-    REJECTED = 4
 
     def __init__(self, task, operation, priority):
         assert task, "Invalid task (found None)"
@@ -36,7 +35,7 @@ class Request:
         self.operation = operation
         self.priority = priority
         self.identifier = self.sender.next_request_id()
-        self.status = self.PENDING
+        self.status = RequestStatus.PENDING
         self._response_time = None
         self._emission_time = None
 
@@ -49,12 +48,12 @@ class Request:
 
     @property
     def response_time(self):
-        assert self.status == self.OK, "Only successful requests expose a 'response time'"
+        assert self.status == RequestStatus.OK, "Only successful requests expose a 'response time'"
         return self._response_time
 
     @property
     def is_pending(self):
-        return self.status == self.PENDING
+        return self.status == RequestStatus.PENDING
 
     def send_to(self, service):
         self.sender.listener.posting_of(service.name, self)
@@ -66,24 +65,24 @@ class Request:
 
     def reject(self):
         if self.is_pending:
-            self.status = self.ERROR
+            self.status = RequestStatus.ERROR
             self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_reject)
 
     def reply_success(self):
         if self.is_pending:
-            self.status = self.OK
+            self.status = RequestStatus.OK
             assert self._response_time is None, "Response time are updated multiple times!"
             self._response_time = self.sender.schedule.time_now - self._emission_time
             self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_success)
 
     def reply_error(self):
         if self.is_pending:
-            self.status = self.ERROR
+            self.status = RequestStatus.ERROR
             self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_error)
 
     def discard(self):
         if self.is_pending:
-            self.status = self.ERROR
+            self.status = RequestStatus.ERROR
 
     def on_reject(self):
         pass
@@ -134,10 +133,3 @@ class Trigger(Request):
         self.task.service.listener.acceptance_of(self)
         self.task.resume_with(lambda worker: self.continuation(Success()))
 
-    def on_success(self):
-        # Nothing to do
-        pass
-
-    def on_error(self):
-        # Nothing to do
-        pass

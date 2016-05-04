@@ -28,7 +28,7 @@ class SuccessfulTests(MadAcceptanceTests):
                                             "   operation Insert {"
                                             "      think 5"
                                             "      query Mirror/Insert"
-                                            "      fail 0.5"
+                                            "      "
                                             "   }"
                                             "   operation Select {"
                                             "      think 5"

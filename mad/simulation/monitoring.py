@@ -43,7 +43,7 @@ class TasksStatistics(Listener):
     def task_created(self, request):
         self.created += 1
 
-    def task_ready(self, task):
+    def task_activated(self, task):
         if task.status == TaskStatus.CREATED:
             self.created -= 1
             self.ready += 1
@@ -54,12 +54,15 @@ class TasksStatistics(Listener):
             error = "Invalid task status (expected CREATED or BLOCKED, found {!s})".format(task.status)
             raise AssertionError(error)
 
+    def task_accepted(self, task):
+        pass
+
     def task_rejected(self, task):
         assert task.status == TaskStatus.CREATED, "Invalid task status (expected CREATED, found {!s})".format(task.status)
         self.created -= 1
         self.rejected += 1
 
-    def task_assigned(self, task, worker):
+    def task_assigned_to(self, task, worker):
         if task.status == TaskStatus.CREATED:
             self.created -= 1
             self.running += 1
@@ -70,7 +73,7 @@ class TasksStatistics(Listener):
             message = "Invalid task status (expected CREATED or BLOCKED, found {!s})".format(task.status)
             raise AssertionError(message)
 
-    def task_blocked(self, task):
+    def task_paused(self, task):
         assert task.status == TaskStatus.RUNNING, "Invalid task status (expected BLOCKED, found {!s})".format(task.status)
         self.blocked += 1
         self.running -= 1
@@ -95,6 +98,30 @@ class TasksStatistics(Listener):
         assert self.running > 0, "No task can fail as none is running (State: {!s})".format(self)
         self.running -= 1
         self.failed += 1
+
+    def task_cancelled(self, task):
+        pass
+
+    def failure_of(self, request):
+        pass
+
+    def success_of(self, request):
+        pass
+
+    def posting_of(self, service, request):
+        pass
+
+    def acceptance_of(self, request):
+        pass
+
+    def resuming(self, request):
+        pass
+
+    def timeout_of(self, request):
+        pass
+
+    def rejection_of(self, request):
+        pass
 
     def __repr__(self):
         return "(C={0.created:d}, Rd={0.ready:d}, Rn={0.running:d}, B={0.blocked:d}| " \
@@ -221,27 +248,39 @@ class Statistics(Listener):
     def request_count_for(self, operation):
         return self._get(operation).call_count
 
-    def task_created(self, request):
+    # Event handlers
+
+    def task_created(self, task):
         self.total_request_count += 1
-        self._get(request.operation).call()
+        self._get(task.request.operation).call()
 
-    def task_rejected(self, request):
-        self._get(request.operation).call_rejected()
-
-    def task_running(self, request):
+    def task_accepted(self, task):
         pass
 
-    def task_ready(self, request):
+    def task_rejected(self, task):
+        self._get(task.request.operation).call_rejected()
+
+    def task_assigned_to(self, task, worker):
+        pass
+
+    def task_paused(self, task):
+        pass
+
+    def task_activated(self, task):
+        pass
+
+    def task_failed(self, task):
+        self._get(task.request.operation).call_failed()
+
+    def task_successful(self, task):
+        self._get(task.request.operation).call_succeed(task.request.response_time)
+
+    def task_cancelled(self, task):
         pass
 
     def resuming(self, request):
         pass
 
-    def task_failed(self, request):
-        self._get(request.operation).call_failed()
-
-    def task_successful(self, request):
-        self._get(request.operation).call_succeed(request.response_time)
 
 
     # Client side events
@@ -314,6 +353,8 @@ class Monitor(SimulatedEntity):
         self._add_custom_probes()
         self.report = self._create_report(self._header_format())
         self.statistics = Statistics()
+        self.tasks = TasksStatistics()
+        self.listener.register(self.tasks)
         self.listener.register(self.statistics)
         self.schedule.every(self.period, self.monitor)
 
@@ -401,10 +442,12 @@ class Monitor(SimulatedEntity):
 
 
 class Logger(SimulatedEntity, Listener):
-    REQUEST_RECEIVED = "Req. {request:d} received"
-    REQUEST_STORED = "Req. {request:d} enqueued"
-    ERROR_REPLIED = "Reply to Req. {request:d} (ERROR)"
-    SUCCESS_REPLIED = "Reply to Req. {request:d} (SUCCESS)"
+    REQUEST_RECEIVED = "Task {request:d} received"
+    TASK_ACTIVATED = "Task {task:d} activated"
+    TASK_PAUSED = "Task {task:d} paused"
+    TASK_ASSIGNED = "Task {task:d} assigned to Worker {worker:d}"
+    ERROR_REPLIED = "Reply to Task. {request:d} (ERROR)"
+    SUCCESS_REPLIED = "Reply to Task. {request:d} (SUCCESS)"
 
     REQUEST_SENT = "Req. {request:d} sent to {service:s}::{operation:s}"
     REQUEST_ACCEPTED = "Req. {request:d} accepted"
@@ -421,19 +464,31 @@ class Logger(SimulatedEntity, Listener):
     def resuming(self, request):
         pass
 
-    def task_failed(self, request):
-        self._log(self.ERROR_REPLIED, request=request.identifier)
+    def task_accepted(self, task):
+        pass
 
-    def task_rejected(self, request):
+    def task_rejected(self, task):
         pass
 
     def task_created(self, request):
         self._log(self.REQUEST_RECEIVED, request=request.identifier)
 
+    def task_assigned_to(self, task, worker):
+        self._log(self.TASK_ASSIGNED, task=task.identifier, worker=worker.identifier)
+
+    def task_paused(self, task):
+        self._log(self.TASK_PAUSED, task=task.identifier)
+
+    def task_activated(self, task):
+        self._log(self.TASK_ACTIVATED, task=task.identifier)
+
+    def task_failed(self, task):
+        self._log(self.ERROR_REPLIED, request=task.identifier)
+
     def task_successful(self, request):
         self._log(self.SUCCESS_REPLIED, request=request.identifier)
 
-    def task_running(self, request):
+    def task_cancelled(self, task):
         pass
 
     def failure_of(self, request):
@@ -453,9 +508,6 @@ class Logger(SimulatedEntity, Listener):
 
     def timeout_of(self, request):
         self._log(self.REQUEST_TIMEOUT, request=request.identifier)
-
-    def task_ready(self, request):
-        self._log(self.REQUEST_STORED, request=request.identifier)
 
     def _log(self, message, **values):
         now = self.schedule.time_now
