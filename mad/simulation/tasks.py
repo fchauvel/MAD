@@ -17,6 +17,8 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from enum import Enum
+
 from mad.evaluation import Symbols
 from mad.simulation.commons import SimulatedEntity
 
@@ -194,48 +196,49 @@ class LIFOTaskPool(AbstractTaskPool):
         return selected
 
 
+class TaskStatus:
+    CREATED, RUNNING, BLOCKED, READY, REJECTED, FAILED, SUCCESSFUL = range(7)
+
+
 class Task:
-    CREATED = 0
-    RUNNING = 1
-    BLOCKED = 2
-    READY = 3
-    REJECTED = 4
-    FAILED = 5
-    SUCCESSFUL = 6
 
     def __init__(self, service, request=None):
         self.service = service
         self.worker = None
         self.request = request
-        self.status = Task.CREATED
+        self.status = TaskStatus.CREATED
 
     @property
     def priority(self):
         return self.request.priority
 
+    @property
+    def identifier(self):
+        return self.request.identifier
+
     def accept(self):
-        self._assert_status_is(Task.CREATED)
+        self.__assert_status_is(TaskStatus.CREATED)
         self.request.accept()
         self.activate()
 
     def reject(self):
-        self._assert_status_is(Task.CREATED)
-        self.status == Task.REJECTED
+        self.__assert_status_is(TaskStatus.CREATED)
+        self.status == TaskStatus.REJECTED
         self.request.reject()
 
     def activate(self):
-        self._assert_status_is(Task.CREATED, Task.BLOCKED)
-        self.status = Task.READY
+        self.__assert_status_is(TaskStatus.CREATED, TaskStatus.BLOCKED)
+        self.status = TaskStatus.READY
 
     def assign_to(self, worker):
-        self._assert_status_is(Task.CREATED, Task.READY)
+        self.__assert_status_is(TaskStatus.CREATED, TaskStatus.READY)
 
         self.worker = worker
         if self.request.is_pending:
-            self.status = Task.RUNNING
+            self.status = TaskStatus.RUNNING
             self._execute(worker)
         else:
-            self.status = Task.FAILED
+            self.status = TaskStatus.FAILED
             worker.listener.task_failed(self.request) #TODO log the timeout as an error
             worker.release()
 
@@ -243,36 +246,35 @@ class Task:
         """
         This method is ASSIGNED during the evaluation to control how to resume it once it has been paused
         """
-        self._assert_status_is(Task.RUNNING)
+        self.__assert_status_is(TaskStatus.RUNNING)
         operation = worker.look_up(self.request.operation)
         operation.invoke(self, [], worker=worker)
 
     def pause(self):
-        self._assert_status_is(Task.RUNNING)
-
-        self.status = Task.BLOCKED
+        self.__assert_status_is(TaskStatus.RUNNING)
+        self.status = TaskStatus.BLOCKED
         self.service.pause(self)
         self.service.release(self.worker) #
 
     def resume_with(self, on_resume):
-        self._assert_status_is(Task.BLOCKED)
+        self.__assert_status_is(TaskStatus.BLOCKED)
         self._execute = on_resume
         self.service.activate(self)
 
     def reply(self, status):
-        self._assert_status_is(Task.RUNNING)
+        self.__assert_status_is(TaskStatus.RUNNING)
 
         if status.is_successful:
             if self.request.is_pending: # Could have timed out
-                self.status == Task.SUCCESSFUL
+                self.status == TaskStatus.SUCCESSFUL
                 self.request.reply_success()
                 self.service.listener.task_successful(self.request)
             else:
-                self.status == Task.FAILED
+                self.status == TaskStatus.FAILED
                 self.service.listener.task_failed(self.request)
 
         elif status.is_erroneous:
-            self.status == Task.FAILED
+            self.status == TaskStatus.FAILED
             self.request.reply_error()
             self.service.listener.task_failed(self.request)
 
@@ -281,6 +283,6 @@ class Task:
 
         self.service.release(self.worker)
 
-    def _assert_status_is(self, *legal_states):
+    def __assert_status_is(self, *legal_states):
         assert self.status in legal_states, \
-            "Found status == {:d} (expecting {!s})".format(self.status, legal_states)
+            "Found status == {:d} (expecting {!s})".format(self.status.name, [each.name for each in legal_states])

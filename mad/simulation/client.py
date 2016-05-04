@@ -19,7 +19,7 @@
 
 from mad.evaluation import Symbols, Evaluation
 from mad.simulation.commons import SimulatedEntity
-from mad.simulation.tasks import Task
+from mad.simulation.tasks import Task, TaskStatus
 
 
 class Monitor:
@@ -57,14 +57,14 @@ class ClientStub(SimulatedEntity):
                 pass
 
         task = Task(self)
-        task.status = Task.RUNNING
+        task.status = TaskStatus.RUNNING
         env = self.environment.create_local_environment(self.environment)
         env.define(Symbols.TASK, task)
         env.define(Symbols.WORKER, self)
         Evaluation(env, self.body, self.factory, post_processing).result
 
     def activate(self, task):
-        task.status = Task.RUNNING
+        task.status = TaskStatus.RUNNING
         task._execute(self)
 
     def pause(self, task):

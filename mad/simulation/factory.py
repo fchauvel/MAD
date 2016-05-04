@@ -28,7 +28,7 @@ from mad.simulation.monitoring import Monitor, Logger
 from mad.simulation.client import ClientStub
 from mad.simulation.tasks import FIFOTaskPool, LIFOTaskPool, TaskPoolWrapper
 from mad.simulation.autoscaling import RuleBasedStrategy, AutoScaler
-from mad.simulation.requests import Request
+from mad.simulation.requests import Request, Trigger, Query
 from mad.simulation.throttling import ThrottlingWrapper, NoThrottling, TailDrop
 from mad.simulation.backoff import ConstantBackoff, ExponentialBackoff
 
@@ -77,8 +77,11 @@ class Factory(SimulationFactory):
             environment
         )
 
-    def create_request(self, sender, kind, operation, priority, on_accept=lambda:None, on_reject=lambda:None, on_success=lambda: None, on_error=lambda: None):
-        return Request(sender, kind, operation, priority, on_accept, on_reject, on_success, on_error)
+    def create_trigger(self, task, operation, priority, continuation):
+        return Trigger(task, operation, priority, continuation)
+
+    def create_query(self, task, operation, priority, continuation):
+        return Query(task, operation, priority, continuation)
 
     def create_no_throttling(self, environment, task_pool):
         return ThrottlingWrapper(environment, NoThrottling(task_pool))

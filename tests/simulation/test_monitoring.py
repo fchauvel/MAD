@@ -28,7 +28,7 @@ from mad.simulation.factory import Factory
 from mad.simulation.monitoring import OperationStatistics, TasksStatistics, Monitor, Probe, Statistics, Logger
 from mad.simulation.events import Dispatcher
 from mad.simulation.requests import Request
-from mad.simulation.tasks import Task
+from mad.simulation.tasks import Task, TaskStatus
 
 
 def _a_fake_request(operation="foo", response_time=5):
@@ -40,7 +40,7 @@ def _a_fake_request(operation="foo", response_time=5):
 
 def a_task(status=None):
     task = MagicMock(Task)
-    task.status = status or Task.CREATED
+    task.status = status or TaskStatus.CREATED
     return task
 
 
@@ -52,42 +52,42 @@ class TasksStatisticsTests(TestCase):
     def test_legal_transitions(self):
         transitions = [{ "state": {"created": 1},
                          "event": "task_assigned",
-                         "parameters": [a_task(Task.CREATED), "a worker"],
+                         "parameters": [a_task(TaskStatus.CREATED), "a worker"],
                          "check": {"created":0, "running": 1}},
 
                        { "state": {"created": 1},
                          "event": "task_ready",
-                         "parameters": [a_task(Task.CREATED)],
+                         "parameters": [a_task(TaskStatus.CREATED)],
                          "check": {"created": 0, "ready": 1}},
 
                        { "state": {"created": 1},
                          "event": "task_rejected",
-                         "parameters": [a_task(Task.CREATED)],
+                         "parameters": [a_task(TaskStatus.CREATED)],
                          "check": {"rejected": 1}},
 
                        { "state": {"running": 1},
                          "event": "task_blocked",
-                         "parameters": [a_task(Task.RUNNING)],
+                         "parameters": [a_task(TaskStatus.RUNNING)],
                          "check": {"running": 0, "blocked":1}},
 
                        { "state": {"blocked": 1},
                          "event": "task_ready",
-                         "parameters": [a_task(Task.BLOCKED)],
+                         "parameters": [a_task(TaskStatus.BLOCKED)],
                          "check": {"ready": 1, "blocked":0}},
 
                        { "state": {"ready": 1},
                          "event": "task_assigned",
-                         "parameters": [a_task(Task.READY), "a worker"],
+                         "parameters": [a_task(TaskStatus.READY), "a worker"],
                          "check": {"ready": 0, "running": 1}},
 
                        { "state": {"running": 1},
                          "event": "task_failed",
-                         "parameters": [a_task(Task.RUNNING)],
+                         "parameters": [a_task(TaskStatus.RUNNING)],
                          "check": {"failed": 1, "running": 0}},
 
                        { "state": {"running": 1},
                          "event": "task_successful",
-                         "parameters": [a_task(Task.RUNNING)],
+                         "parameters": [a_task(TaskStatus.RUNNING)],
                          "check": {"successful": 1, "running": 0}},
 
                        ]
@@ -98,27 +98,27 @@ class TasksStatisticsTests(TestCase):
     def test_illegal_transitions(self):
         transitions = [
             {   "event": "task_assigned",
-                "legal_states": [Task.CREATED, Task.READY],
+                "legal_states": [TaskStatus.CREATED, TaskStatus.READY],
                 "parameters": ["a worker"]},
 
             {   "event": "task_ready",
-                "legal_states": [Task.CREATED, Task.BLOCKED],
+                "legal_states": [TaskStatus.CREATED, TaskStatus.BLOCKED],
                 "parameters": []},
 
             {   "event": "task_blocked",
-                "legal_states": [Task.RUNNING],
+                "legal_states": [TaskStatus.RUNNING],
                 "parameters": []},
 
             {   "event": "task_rejected",
-                "legal_states": [Task.CREATED],
+                "legal_states": [TaskStatus.CREATED],
                 "parameters": []},
 
             {   "event": "task_successful",
-                "legal_states": [Task.RUNNING],
+                "legal_states": [TaskStatus.RUNNING],
                 "parameters": []},
 
             {   "event": "task_failed",
-                "legal_states": [Task.RUNNING],
+                "legal_states": [TaskStatus.RUNNING],
                 "parameters": []}
         ]
 

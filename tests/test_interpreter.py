@@ -535,10 +535,14 @@ class TestInterpreter(TestCase):
         self.assertEqual(client.on_success.call_count, 2)
 
     def fake_request(self, operation, on_success=lambda: None, on_error=lambda: None):
-        return Request(self.fake_client(), Request.QUERY, operation, 1, on_success=on_success, on_error=on_error)
+        request = Request(self.fake_client(), Request.QUERY, operation, 1)
+        request.on_error = on_error
+        request.on_success = on_success
+        return request
 
-    def fake_service(self):
+    def fake_service(self, name="DB"):
         fake_service = MagicMock()
+        fake_service.name = name
         fake_service.process = MagicMock()
         fake_service.schedule = self.simulation.schedule
         return fake_service

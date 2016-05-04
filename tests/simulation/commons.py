@@ -60,7 +60,10 @@ class ServiceTests(TestCase):
         return self.send_request(Request.TRIGGER, service, operation,on_success=on_success, on_error=on_error)
 
     def fake_request(self, kind, operation, on_success=lambda: None, on_error=lambda: None):
-        return Request(self.fake_client(), kind, operation, 1, on_success=on_success, on_error=on_error)
+        request = Request(self.fake_client(), kind, operation, 1)
+        request.on_success = on_success
+        request.on_error = on_error
+        return request
 
     def fake_client(self):
         fake_client = MagicMock()

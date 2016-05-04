@@ -75,7 +75,10 @@ class SimulationFactory:
     def create_client_stub(self, environment, definition):
         self._abort(self.create_client_stub.__name__)
 
-    def create_request(self, sender, kind, operation, priority, on_accept=lambda:None, on_reject=lambda:None, on_success=lambda: None, on_error=lambda: None):
+    def create_query(self, task, operation, priority, continuation):
+        self._abort(self.create_request.__name__)
+
+    def create_trigger(self, task, operation, priority, continuation):
         self._abort(self.create_request.__name__)
 
     def create_no_throttling(self, environment, task_pool):
@@ -241,27 +244,10 @@ class Evaluation:
 
     def _do_trigger(self, trigger):
         task = self._look_up(Symbols.TASK)
-        sender = self._look_up(Symbols.SELF)
+
+        request = self.factory.create_trigger(task, trigger.operation, trigger.priority, self.continuation)
+
         recipient = self._look_up(trigger.service)
-
-        def on_reject():
-            sender.listener.rejection_of(request)
-            task.resume_with(lambda worker: self.continuation(Error()))
-
-        def on_accept():
-            sender.listener.acceptance_of(request)
-            task.resume_with(lambda worker: self.continuation(Success()))
-
-        # TODO: Replace that ugly magic '1'
-        request = self.factory.create_request(
-            sender,
-            1,
-            trigger.operation,
-            trigger.priority,
-            on_accept= on_accept,
-            on_reject= on_reject)
-
-        sender.listener.posting_of(trigger.service, request)
         request.send_to(recipient)
 
         task.pause()
@@ -270,37 +256,13 @@ class Evaluation:
     def _send_query(self, query):
         task = self._look_up(Symbols.TASK)
         sender = self._look_up(Symbols.SELF)
+
+        request = self.factory.create_query(task, query.operation, query.priority, self.continuation)
+
         recipient = self._look_up(query.service)
-
-        def on_accept():
-            sender.listener.acceptance_of(request)
-
-        def on_reject():
-            sender.listener.rejection_of(request)
-            task.resume_with(lambda worker: self.continuation(Error()))
-
-        def on_success():
-            sender.listener.success_of(request)
-            task.resume_with(lambda worker: self.continuation(Success()))
-
-        def on_error():
-            sender.listener.failure_of(request)
-            task.resume_with(lambda worker: self.continuation(Error()))
-
-        # TODO: Replace that ugly magic '0'
-        request = self.factory.create_request(
-            sender,
-            0,
-            query.operation,
-            query.priority,
-            on_accept=on_accept,
-            on_reject=on_reject,
-            on_success=on_success,
-            on_error=on_error)
-
-        sender.listener.posting_of(query.service, request)
         request.send_to(recipient)
 
+        # TODO Move this in Request
         if query.has_timeout:
             def on_check_timeout():
                 if request.is_pending:

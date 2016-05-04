@@ -23,7 +23,7 @@ from mad.evaluation import Symbols
 from mad.simulation.service import Operation
 from mad.simulation.commons import SimulatedEntity
 from mad.simulation.events import Listener
-from mad.simulation.tasks import Task
+from mad.simulation.tasks import Task, TaskStatus
 
 
 MISSING_VALUE = "NA"
@@ -44,34 +44,34 @@ class TasksStatistics(Listener):
         self.created += 1
 
     def task_ready(self, task):
-        if task.status == Task.CREATED:
+        if task.status == TaskStatus.CREATED:
             self.created -= 1
             self.ready += 1
-        elif task.status == Task.BLOCKED:
+        elif task.status == TaskStatus.BLOCKED:
             self.blocked -= 1
             self.ready += 1
         else:
-            error = "Invalid task status (expected CREATED or BLOCKED, found {:d})".format(task.status)
+            error = "Invalid task status (expected CREATED or BLOCKED, found {!s})".format(task.status)
             raise AssertionError(error)
 
     def task_rejected(self, task):
-        assert task.status == Task.CREATED, "Invalid task status (expected CREATED, found {:d})".format(task.status)
+        assert task.status == TaskStatus.CREATED, "Invalid task status (expected CREATED, found {!s})".format(task.status)
         self.created -= 1
         self.rejected += 1
 
     def task_assigned(self, task, worker):
-        if task.status == Task.CREATED:
+        if task.status == TaskStatus.CREATED:
             self.created -= 1
             self.running += 1
-        elif task.status == Task.READY:
+        elif task.status == TaskStatus.READY:
             self.ready -= 1
             self.running += 1
         else:
-            message = "Invalid task status (expected CREATED or BLOCKED, found {:d})".format(task.status)
+            message = "Invalid task status (expected CREATED or BLOCKED, found {!s})".format(task.status)
             raise AssertionError(message)
 
     def task_blocked(self, task):
-        assert task.status == Task.RUNNING, "Invalid task status (expected BLOCKED, found {:d})".format(task.status)
+        assert task.status == TaskStatus.RUNNING, "Invalid task status (expected BLOCKED, found {!s})".format(task.status)
         self.blocked += 1
         self.running -= 1
 
