@@ -29,11 +29,12 @@ class RequestStatus(Enum):
 class Request:
     TRANSMISSION_DELAY = 1
 
-    def __init__(self, task, operation, priority):
+    def __init__(self, task, operation, priority, continuation):
         assert task, "Invalid task (found None)"
         self.task = task
         self.operation = operation
         self.priority = priority
+        self.continuation = continuation
         self.identifier = self.sender.next_request_id()
         self.status = RequestStatus.PENDING
         self._response_time = None
@@ -100,8 +101,7 @@ class Request:
 class Query(Request):
 
     def __init__(self, task, operation, priority, continuation):
-        super().__init__(task, operation, priority)
-        self.continuation = continuation
+        super().__init__(task, operation, priority, continuation)
 
     def on_accept(self):
         self.task.service.listener.acceptance_of(self)
@@ -122,8 +122,7 @@ class Query(Request):
 class Trigger(Request):
 
     def __init__(self, task, operation, priority, continuation):
-        super().__init__(task, operation, priority)
-        self.continuation = continuation
+        super().__init__(task, operation, priority, continuation)
 
     def on_reject(self):
         self.task.service.listener.rejection_of(self)
