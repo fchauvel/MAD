@@ -23,6 +23,7 @@ from mad.evaluation import Symbols, Evaluation
 from mad.simulation.commons import SimulatedEntity
 from mad.simulation.requests import Query
 
+
 class TaskPool:
 
     def put(self, task):
@@ -105,8 +106,6 @@ class TaskPoolWrapper(TaskPoolDecorator, SimulatedEntity):
 
     def activate(self, task):
         super().activate(task)
-        # TODO useless, to remove
-        self.listener.resuming(task.request)
 
 
 class AbstractTaskPool(TaskPool):

@@ -91,6 +91,8 @@ class Dispatcher(Listener):
         assert isinstance(listener, Listener), INVALID_LISTENER.format(type(listener))
         self._listeners.add(listener)
 
+    # Server side tasks
+
     def task_created(self, task):
         self._dispatch(self.task_created.__name__, task)
 
@@ -118,9 +120,7 @@ class Dispatcher(Listener):
     def task_cancelled(self, task):
         self._dispatch(self.task_cancelled.__name__, task)
 
-    # TODO remove carefully
-    def resuming(self, request):
-        self._dispatch(self.resuming.__name__, request)
+    # Client side request handling
 
     def posting_of(self, service, request):
         self._dispatch(self.posting_of.__name__, service, request)
