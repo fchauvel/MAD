@@ -106,7 +106,7 @@ class Dispatcher(Listener):
         self._dispatch(self.task_activated.__name__, task)
 
     def task_paused(self, task):
-        self._dispatch(self.task_paused.__name, task)
+        self._dispatch(self.task_paused.__name__, task)
 
     def task_assigned_to(self, task, worker):
         self._dispatch(self.task_assigned_to.__name__, task, worker)

@@ -23,6 +23,8 @@ from mad.evaluation import Symbols, Evaluation
 from mad.simulation.commons import SimulatedEntity
 from mad.simulation.requests import Query
 
+DEFAULT_IDENTIFIER = -1
+
 
 class TaskPool:
 
@@ -213,6 +215,8 @@ class Task:
 
     @property
     def identifier(self):
+        if self.request is None:
+            return DEFAULT_IDENTIFIER
         return self.request.identifier
 
     def accept(self):
@@ -253,7 +257,7 @@ class Task:
 
     def pause(self):
         self._assert_status_is(TaskStatus.RUNNING)
-        #TODO: self.service.listener.task_paused(self)
+        self.service.listener.task_paused(self)
         self.status = TaskStatus.BLOCKED
         self.service.pause(self)
         self.service.release(self.worker)
