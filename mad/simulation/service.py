@@ -40,7 +40,7 @@ class Operation(SimulatedEntity):
         environment = self.environment.create_local_environment(worker.environment)
         environment.define(Symbols.TASK, task)
         environment.define_each(self.parameters, arguments)
-        return Evaluation(environment, self.body, self.factory, task.compute_and_send_response).result
+        return Evaluation(environment, self.body, self.factory, task.finalise).result
 
 
 class Service(SimulatedEntity):

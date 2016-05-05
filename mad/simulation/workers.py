@@ -17,6 +17,8 @@
 # along with MAD.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from enum import Enum
+
 from mad.evaluation import Symbols
 from mad.simulation.commons import SimulatedEntity
 
@@ -77,6 +79,10 @@ class WorkerPool:
         else:
             assert worker in self.stopped_workers, "Error: Unknown worker (not idle, not busy, not stopped)!"
             self.stopped_workers.remove(worker)
+
+
+class WorkerStatus(Enum):
+    STARTING, IDLE, BUSY = range(3)
 
 
 class Worker(SimulatedEntity):

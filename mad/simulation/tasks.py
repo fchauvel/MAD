@@ -216,54 +216,50 @@ class Task:
         return self.request.identifier
 
     def accept(self):
-        self.__assert_status_is(TaskStatus.CREATED)
+        self._assert_status_is(TaskStatus.CREATED)
         self.service.listener.task_accepted(self)
         self.request.accept()
 
     def reject(self):
-        self.__assert_status_is(TaskStatus.CREATED)
+        self._assert_status_is(TaskStatus.CREATED)
         self.service.listener.task_rejected(self)
         self.status == TaskStatus.REJECTED
         self.request.reject()
 
     def activate(self):
-        self.__assert_status_is(TaskStatus.CREATED, TaskStatus.BLOCKED)
+        self._assert_status_is(TaskStatus.CREATED, TaskStatus.BLOCKED)
         self.service.listener.task_activated(self)
         self.status = TaskStatus.READY
 
     def assign_to(self, worker):
         assert worker, "task assigned to None!"
-        self.__assert_status_is(TaskStatus.CREATED, TaskStatus.READY)
+        self._assert_status_is(TaskStatus.CREATED, TaskStatus.READY)
 
         self.worker = worker
         if self.request.is_pending:
-            # TODO: self.service.listener.task_assign_to(self, worker)
             self.service.listener.task_assigned_to(self, worker)
             self.status = TaskStatus.RUNNING
             self._execute(worker)
         else:
-            # TODO: self.service.listener.task_cancelled(self, worker)
-            self.status = TaskStatus.FAILED
-            worker.listener.task_cancelled(self)
-            worker.release()
+            self.discard()
 
     def _execute(self, worker):
         """
         This method is ASSIGNED during the evaluation to control how to resume it once it has been paused
         """
-        self.__assert_status_is(TaskStatus.RUNNING)
+        self._assert_status_is(TaskStatus.RUNNING)
         operation = worker.look_up(self.request.operation)
         operation.invoke(self, [], worker=worker)
 
     def pause(self):
-        self.__assert_status_is(TaskStatus.RUNNING)
-        # TODO: self.service.listener.task_paused(self)
+        self._assert_status_is(TaskStatus.RUNNING)
+        #TODO: self.service.listener.task_paused(self)
         self.status = TaskStatus.BLOCKED
         self.service.pause(self)
         self.service.release(self.worker)
 
     def resume_with(self, on_resume):
-        self.__assert_status_is(TaskStatus.BLOCKED)
+        self._assert_status_is(TaskStatus.BLOCKED)
         self._execute = on_resume
         self.service.activate(self)
 
@@ -271,34 +267,29 @@ class Task:
         assert self.worker is not None, "Cannot compute, no worker attached!"
         self.worker.compute(duration, continuation)
 
-    def compute_and_send_response(self, status):
-        if isinstance(self.request, Query):
-            self.compute(1, lambda: self.reply(status))
-        else:
-            self.reply(status)
+    def finalise(self, status):
+        self.request.finalise(self, status)
 
-    def reply(self, status):
-        self.__assert_status_is(TaskStatus.RUNNING)
-
-        if status.is_successful:
-            if self.request.is_pending: # Could have timed out
-                self.status == TaskStatus.SUCCESSFUL
-                self.request.reply_success()
-                self.service.listener.task_successful(self)
-            else:
-                self.status == TaskStatus.FAILED
-                self.service.listener.task_failed(self)
-
-        elif status.is_erroneous:
-            self.status == TaskStatus.FAILED
-            self.request.reply_error()
-            self.service.listener.task_failed(self)
-
-        else:
-            pass
-
+    def succeed(self):
+        self._assert_status_is(TaskStatus.RUNNING)
+        self.status = TaskStatus.SUCCESSFUL
+        self.request.reply_success()
+        self.service.listener.task_successful(self)
         self.service.release(self.worker)
 
-    def __assert_status_is(self, *legal_states):
+    def discard(self):
+        self._assert_status_is(TaskStatus.CREATED, TaskStatus.RUNNING, TaskStatus.READY)
+        self.worker.listener.task_cancelled(self)
+        self.status = TaskStatus.FAILED
+        self.worker.release()
+
+    def fail(self):
+        self._assert_status_is(TaskStatus.RUNNING)
+        self.service.listener.task_failed(self)
+        self.status == TaskStatus.FAILED
+        self.request.reply_error()
+        self.service.release(self.worker)
+
+    def _assert_status_is(self, *legal_states):
         assert self.status in legal_states, \
             "Found status == {0.name} (expecting {1!s})".format(self.status, [ s.name for s in legal_states ])

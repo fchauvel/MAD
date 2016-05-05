@@ -69,6 +69,16 @@ class Request:
             self.status = RequestStatus.ERROR
             self.sender.schedule.after(self.TRANSMISSION_DELAY, self.on_reject)
 
+    def reply(self, task, status):
+        if not self.is_pending: # Should be has_been_discarded
+            task.discard()
+        elif status.is_successful:
+            self.reply_success()
+            task.succeed()
+        else:
+            self.reply_error()
+            task.fail()
+
     def reply_success(self):
         if self.is_pending:
             self.status = RequestStatus.OK
@@ -97,6 +107,9 @@ class Request:
     def on_error(self):
         pass
 
+    def finalise(self, task, status):
+        pass
+
 
 class Query(Request):
 
@@ -118,6 +131,9 @@ class Query(Request):
         self.task.service.listener.failure_of(self)
         self.task.resume_with(lambda worker: self.continuation(Error()))
 
+    def finalise(self, task, status):
+        task.compute(1, lambda: self.reply(task, status))
+
 
 class Trigger(Request):
 
@@ -132,3 +148,5 @@ class Trigger(Request):
         self.task.service.listener.acceptance_of(self)
         self.task.resume_with(lambda worker: self.continuation(Success()))
 
+    def finalise(self, task, status):
+        self.reply(task, status)
