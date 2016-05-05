@@ -99,7 +99,8 @@ class TestMain(TestCase):
 
         self.verify_trace(
                 simulation,
-                [Event(6,   "Client",       Logger.REQUEST_SENT.format(request=1, service="Server", operation="op")),
+                [Event(5,   "Client",       Logger.TASK_ASSIGNED.format(task=-1, worker=-1)),
+                 Event(6,   "Client",       Logger.REQUEST_SENT.format(request=1, service="Server", operation="op")),
                  Event(6,   "Client",       Logger.TASK_PAUSED.format(task=-1)),
                  Event(7,   "Server",       Logger.REQUEST_RECEIVED.format(request=1)),
                  Event(7,   "Server",       Logger.TASK_ASSIGNED.format(task=1, worker=1)),
@@ -108,6 +109,7 @@ class TestMain(TestCase):
                  Event(8,   "Server",       Logger.TASK_PAUSED.format(task=1)),
                  Event(9,   "Database",     Logger.REQUEST_RECEIVED.format(request=2)),
                  Event(9,   "Database",     Logger.TASK_ASSIGNED.format(task=2, worker=1)),
+                 Event(10,  "Client",       Logger.TASK_ASSIGNED.format(task=-1, worker=-1)),
                  Event(10,  "Server",       Logger.REQUEST_ACCEPTED.format(request=2)),
 
                  Event(11,  "Client",       Logger.REQUEST_SENT.format(request=3, service="Server", operation="op")),
@@ -119,6 +121,7 @@ class TestMain(TestCase):
                  Event(13,  "Server",       Logger.TASK_PAUSED.format(task=3)),
                  Event(14,  "Database",     Logger.REQUEST_RECEIVED.format(request=4)),
                  Event(14,  "Database",     Logger.TASK_ACTIVATED.format(task=4)),
+                 Event(15,  "Client",       Logger.TASK_ASSIGNED.format(task=-1, worker=-1)),
                  Event(15,  "Server",       Logger.REQUEST_ACCEPTED.format(request=4)),
 
                  Event(16,  "Client",       Logger.REQUEST_SENT.format(request=5, service="Server", operation="op")),
@@ -135,6 +138,7 @@ class TestMain(TestCase):
                  Event(19,  "Server",       Logger.TASK_ASSIGNED.format(task=1, worker=1)),
                  Event(19,  "Database",     Logger.REQUEST_RECEIVED.format(request=6)),
                  Event(19,  "Database",     Logger.TASK_ACTIVATED.format(task=6)),
+                 Event(20,  "Client",       Logger.TASK_ASSIGNED.format(task=-1, worker=-1)),
                  Event(20,  "Server",       Logger.SUCCESS_REPLIED.format(request=1)),
                  Event(20,  "Server",       Logger.REQUEST_ACCEPTED.format(request=6))]
             )
@@ -166,20 +170,29 @@ class TestMain(TestCase):
 
         self.verify_trace(
                 simulation,
-                [Event(11, "C1", Logger.REQUEST_SENT.format(request=1, service="S1", operation="op")),
+                [Event(10, "C1", Logger.TASK_ASSIGNED.format(task=-1, worker=-1)),
+                 Event(11, "C1", Logger.REQUEST_SENT.format(request=1, service="S1", operation="op")),
                  Event(11, "C1", Logger.TASK_PAUSED.format(task=-1)),
                  Event(12, "S1", Logger.REQUEST_RECEIVED.format(request=1)),
                  Event(12, "S1", Logger.TASK_ASSIGNED.format(task=1, worker=1)),
                  Event(13, "C1", Logger.REQUEST_ACCEPTED.format(request=1)),
                  Event(16, "S1", Logger.SUCCESS_REPLIED.format(request=1)),
                  Event(17, "C1", Logger.REQUEST_SUCCESS.format(request=1)),
+                 Event(17, "C1", Logger.TASK_ACTIVATED.format(task=-1)),
+                 Event(17, "C1", Logger.TASK_ASSIGNED.format(task=-1, worker=-1)),
+                 Event(17, "C1", Logger.SUCCESS_REPLIED.format(request=-1)),
+                 Event(20, "C1", Logger.TASK_ASSIGNED.format(task=-1, worker=-1)),
                  Event(21, "C1", Logger.REQUEST_SENT.format(request=2, service="S1", operation="op")),
                  Event(21, "C1", Logger.TASK_PAUSED.format(task=-1)),
                  Event(22, "S1", Logger.REQUEST_RECEIVED.format(request=2)),
                  Event(22, "S1", Logger.TASK_ASSIGNED.format(task=2, worker=1)),
                  Event(23, "C1", Logger.REQUEST_ACCEPTED.format(request=2)),
                  Event(26, "S1", Logger.SUCCESS_REPLIED.format(request=2)),
-                 Event(27, "C1", Logger.REQUEST_SUCCESS.format(request=2))]
+                 Event(27, "C1", Logger.REQUEST_SUCCESS.format(request=2)),
+                 Event(27, "C1", Logger.TASK_ACTIVATED.format(task=-1)),
+                 Event(27, "C1", Logger.TASK_ASSIGNED.format(task=-1, worker=-1)),
+                 Event(27, "C1", Logger.SUCCESS_REPLIED.format(request=-1)),
+                 ]
         )
 
     def evaluate(self, expression):

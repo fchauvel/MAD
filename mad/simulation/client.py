@@ -19,20 +19,28 @@
 
 from mad.evaluation import Symbols, Evaluation
 from mad.simulation.commons import SimulatedEntity
+from mad.simulation.service import Operation
 from mad.simulation.tasks import Task, TaskStatus
+from mad.simulation.workers import Worker
 
 
-class Monitor:
+class ClientRequest:
 
     def __init__(self):
-        self.success_count = 0
-        self.error_count = 0
+        self.identifier = -1
+        self.operation = Symbols.CLIENT_OPERATION
+        self.priority = 0
+        self.is_pending = True
+        self.response_time = -1
 
-    def record_success(self):
-        self.success_count += 1
+    def accept(self):
+        pass
 
-    def record_error(self):
-        self.error_count += 1
+    def finalise(self, task, status):
+        if status.is_successful:
+            task.succeed()
+        else:
+            task.fail()
 
 
 class ClientStub(SimulatedEntity):
@@ -40,45 +48,33 @@ class ClientStub(SimulatedEntity):
     def __init__(self, name, environment, period, body):
         super().__init__(name, environment)
         self.environment.define(Symbols.SELF, self)
+        self.environment.define(Symbols.SERVICE, self)
+        self._define_operation(body)
         self.period = period
-        self.body = body
-        self.monitor = Monitor()
+
+    def _define_operation(self, body):
+        operation = Operation(Symbols.CLIENT_OPERATION, [], body, self.environment)
+        self.environment.define(Symbols.CLIENT_OPERATION, operation)
 
     def initialize(self):
         self.schedule.every(self.period, self.invoke)
 
     def invoke(self):
-        def post_processing(result):
-            if result.is_successful:
-                self.on_success()
-            elif result.is_erroneous:
-                self.on_error()
-            else:
-                pass
+        task = Task(self, ClientRequest())
+        task.accept()
+        task.assign_to(self._new_worker())
 
-        task = Task(self)
-        task.status = TaskStatus.RUNNING
-        task.worker = self
+    def _new_worker(self):
         env = self.environment.create_local_environment(self.environment)
-        env.define(Symbols.TASK, task)
-        env.define(Symbols.WORKER, self)
-        Evaluation(env, self.body, self.factory, post_processing).result
+        worker = Worker(identifier=-1, environment=env)
+        return worker
 
     def activate(self, task):
-        task.status = TaskStatus.RUNNING
-        task._execute(self)
+        task.activate()
+        task.assign_to(self._new_worker())
 
     def pause(self, task):
         pass
 
     def release(self, worker):
         pass
-
-    def on_success(self):
-        self.monitor.record_success()
-
-    def on_error(self):
-        self.monitor.record_error()
-
-    def compute(self, duration, continuation):
-        self.schedule.after(duration, continuation)

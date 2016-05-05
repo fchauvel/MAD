@@ -23,8 +23,8 @@ from mad.evaluation import Symbols
 from mad.simulation.service import Operation
 from mad.simulation.commons import SimulatedEntity
 from mad.simulation.events import Listener
-from mad.simulation.tasks import Task, TaskStatus
-
+from mad.simulation.tasks import TaskStatus
+from mad.simulation.client import ClientStub
 
 MISSING_VALUE = "NA"
 
@@ -410,19 +410,19 @@ class Monitor(SimulatedEntity):
         self.statistics.reset()
 
     def _queue_length(self):
-        task_pool = self.look_up(Symbols.QUEUE)
-        return task_pool.size
+        return self.tasks.active
 
     def _queue_blocked(self):
-        task_pool = self.look_up(Symbols.QUEUE)
-        return task_pool.blocked_count
+        return self.tasks.blocked
 
     def _utilisation(self):
         service = self.look_up(Symbols.SERVICE)
+        if isinstance(service, ClientStub): return None #TODO: Fix this ugly patch
         return service.workers.utilisation
 
     def _worker_count(self):
         service = self.look_up(Symbols.SERVICE)
+        if isinstance(service, ClientStub): return None # TODO Fix this ugly patch
         return service.worker_count
 
     def _arrival_rate(self):

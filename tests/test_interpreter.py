@@ -533,7 +533,8 @@ class TestInterpreter(TestCase):
 
         self.simulate_until(26)
 
-        self.assertEqual(client.on_success.call_count, 2)
+        monitor = client.look_up(Symbols.MONITOR)
+        self.assertEqual(monitor.tasks.successful, 2)
 
     def fake_request(self, operation, on_success=lambda: None, on_error=lambda: None):
         request = SQuery(Task(self.fake_client()), operation, 1, lambda s: None)

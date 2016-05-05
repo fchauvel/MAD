@@ -45,14 +45,17 @@ class MadAcceptanceTests(TestCase):
         mad = Controller(self.display, self.file_system)
         self.simulation = mad.execute(*command_line)
 
-    def _verify_successful_invocations(self, entity_name, expected_count):
-        entity = self.simulation.environment.look_up(entity_name)
-        self.assertEqual(expected_count, entity.monitor.success_count)
-
-    def _verify_request_count(self, entity_name, expected_count):
+    def _verify_successful_task_count(self, entity_name, expected_count):
         entity = self.simulation.environment.look_up(entity_name)
         monitor = entity.look_up(Symbols.MONITOR)
-        self.assertEqual(expected_count, monitor.statistics.total_request_count)
+        #self.assertEqual(expected_count, entity.monitor.success_count)
+        self.assertEqual(expected_count, monitor.tasks.successful)
+
+    def _verify_complete_task_count(self, entity_name, expected_count):
+        entity = self.simulation.environment.look_up(entity_name)
+        monitor = entity.look_up(Symbols.MONITOR)
+        #self.assertEqual(expected_count, monitor.statistics.total_request_count)
+        self.assertEqual(expected_count, monitor.tasks.complete)
 
     def _verify_opening(self):
         self._verify_version()

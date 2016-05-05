@@ -24,6 +24,7 @@ from mad.ast.settings import Settings
 
 class Symbols:
     AUTOSCALING = "!autoscaling"
+    CLIENT_OPERATION = "!client_operation"
     LISTENER = "!listener"
     LOGGER = "!logger"
     MONITOR = "!monitor"
@@ -126,9 +127,9 @@ class Evaluation:
         service = self.factory.create_service(service.name, service_environment)
         self._define(service.name, service)
         monitor = self.factory.create_monitor(Symbols.MONITOR, service_environment, None)
-        self._define(Symbols.MONITOR, monitor)
+        service_environment.define(Symbols.MONITOR, monitor)
         logger = self.factory.create_logger(service_environment)
-        self._define(Symbols.LOGGER, logger)
+        service_environment.define(Symbols.LOGGER, logger)
         return self.continuation(Success(service))
 
     def of_settings(self, settings):
@@ -175,8 +176,10 @@ class Evaluation:
         client = self.factory.create_client_stub(client_environment, definition)
         self._define(definition.name, client)
         client.initialize()
+        monitor = self.factory.create_monitor(Symbols.MONITOR, client_environment, None)
+        client_environment.define(Symbols.MONITOR, monitor)
         logger = self.factory.create_logger(client_environment)
-        self._define(Symbols.LOGGER, logger)
+        client_environment.define(Symbols.LOGGER, logger)
         return self.continuation(Success(client))
 
     def of_sequence(self, sequence):

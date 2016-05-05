@@ -19,12 +19,8 @@
 
 from enum import Enum
 
-from mad.evaluation import Symbols, Evaluation
+from mad.evaluation import Symbols
 from mad.simulation.commons import SimulatedEntity
-from mad.simulation.requests import Query
-
-DEFAULT_IDENTIFIER = -1
-
 
 class TaskPool:
 
@@ -209,15 +205,22 @@ class Task:
         self.request = request
         self.status = TaskStatus.CREATED
 
+
     @property
     def priority(self):
         return self.request.priority
 
     @property
     def identifier(self):
-        if self.request is None:
-            return DEFAULT_IDENTIFIER
         return self.request.identifier
+
+    @property
+    def is_cancelled(self):
+        return not self.request.is_pending
+
+    @property
+    def operation(self):
+        return self.request.operation
 
     def accept(self):
         self._assert_status_is(TaskStatus.CREATED)
@@ -240,19 +243,19 @@ class Task:
         self._assert_status_is(TaskStatus.CREATED, TaskStatus.READY)
 
         self.worker = worker
-        if self.request.is_pending:
+        if self.is_cancelled:
+            self.discard()
+        else:
             self.service.listener.task_assigned_to(self, worker)
             self.status = TaskStatus.RUNNING
             self._execute(worker)
-        else:
-            self.discard()
 
     def _execute(self, worker):
         """
         This method is ASSIGNED during the evaluation to control how to resume it once it has been paused
         """
         self._assert_status_is(TaskStatus.RUNNING)
-        operation = worker.look_up(self.request.operation)
+        operation = worker.look_up(self.operation)
         operation.invoke(self, [], worker=worker)
 
     def pause(self):
@@ -276,9 +279,8 @@ class Task:
 
     def succeed(self):
         self._assert_status_is(TaskStatus.RUNNING)
-        self.status = TaskStatus.SUCCESSFUL
-        self.request.reply_success()
         self.service.listener.task_successful(self)
+        self.status = TaskStatus.SUCCESSFUL
         self.service.release(self.worker)
 
     def discard(self):
@@ -291,7 +293,6 @@ class Task:
         self._assert_status_is(TaskStatus.RUNNING)
         self.service.listener.task_failed(self)
         self.status == TaskStatus.FAILED
-        self.request.reply_error()
         self.service.release(self.worker)
 
     def _assert_status_is(self, *legal_states):

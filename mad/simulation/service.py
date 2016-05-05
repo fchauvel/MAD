@@ -52,6 +52,9 @@ class Service(SimulatedEntity):
         self.tasks = self.environment.look_up(Symbols.QUEUE)
         self.workers = WorkerPool([self._new_worker(id) for id in range(1, 2)])
 
+    def __repr__(self):
+        return "Service {:s}".format(self.name)
+
     def _new_worker(self, identifier):
         environment = self.environment.create_local_environment()
         environment.define(Symbols.SERVICE, self)
