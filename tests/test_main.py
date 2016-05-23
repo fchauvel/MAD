@@ -20,6 +20,8 @@
 from io import StringIO
 
 from unittest import TestCase, skip
+
+from mad.evaluation import Symbols
 from tests.fakes import InMemoryDataStorage, InMemoryFileSystem
 
 from mad.ast.commons import *
@@ -70,7 +72,8 @@ class TestXXX(TestCase):
         simulation = controller.execute("test.mad", "115")
 
         server = simulation.environment.look_up("DB")
-        self.assertEqual(5, server.worker_count)
+        worker_pool = server.environment.look_up(Symbols.WORKER_POOL)
+        self.assertEqual(5, worker_pool.capacity)
 
 
 class TestMain(TestCase):

@@ -417,13 +417,14 @@ class Monitor(SimulatedEntity):
 
     def _utilisation(self):
         service = self.look_up(Symbols.SERVICE)
-        if isinstance(service, ClientStub): return None #TODO: Fix this ugly patch
+        if isinstance(service, ClientStub): return None # TODO Fix this ugly patch (should get obselete once worker events are monitored)
         return service.workers.utilisation
 
     def _worker_count(self):
-        service = self.look_up(Symbols.SERVICE)
-        if isinstance(service, ClientStub): return None # TODO Fix this ugly patch
-        return service.worker_count
+        worker_pool = self.look_up(Symbols.WORKER_POOL)
+        if isinstance(self.look_up(Symbols.SERVICE), ClientStub): return None # TODO Fix this ugly patch (should get obselete once worker events are monitored)
+
+        return worker_pool.capacity
 
     def _arrival_rate(self):
         return self.statistics.arrival_count / self.period

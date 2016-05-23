@@ -94,4 +94,3 @@ class ThrottlingWrapper(SimulatedEntity, ThrottlingPolicyDecorator):
 
     def _reject(self, task):
         super()._reject(task)
-        #self.listener.task_rejected(task.request)

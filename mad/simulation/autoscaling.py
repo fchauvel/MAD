@@ -37,17 +37,16 @@ class AutoScaler(SimulatedEntity):
         self.strategy = strategy
 
     def auto_scale(self):
-        service = self.look_up(Symbols.SERVICE)
-        new_worker_count = self._filter(self.strategy.adjust(service))
-        service.set_worker_count(new_worker_count)
+        worker_pool = self.look_up(Symbols.WORKER_POOL)
+        new_worker_count = self._filter(self.strategy.adjust(worker_pool))
+        worker_pool.set_capacity(new_worker_count)
 
     def _filter(self, value):
         if self._too_low(value):
             return self._minimum()
-        elif self._too_high(value):
+        if self._too_high(value):
             return self._maximum()
-        else:
-            return value
+        return value
 
     def _too_high(self, value):
         return value > self._maximum()
@@ -91,8 +90,8 @@ class RuleBasedStrategy:
                  lambda count: count)
         ]
 
-    def adjust(self, service):
-        assert service, "Invalid service (found '%s')" % service
+    def adjust(self, worker_pool):
+        assert worker_pool, "Invalid worker_pool (found '%s')" % worker_pool
         for any_rule in self._rules:
-            if any_rule.applies_to(service.utilisation):
-                return any_rule.compute(service.worker_count)
+            if any_rule.applies_to(worker_pool.utilisation):
+                return any_rule.compute(worker_pool.capacity)

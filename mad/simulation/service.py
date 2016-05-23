@@ -50,31 +50,10 @@ class Service(SimulatedEntity):
         self.environment.define(Symbols.SELF, self)
         self.environment.define(Symbols.SERVICE, self)
         self.tasks = self.environment.look_up(Symbols.QUEUE)
-        self.workers = WorkerPool([self._new_worker(id) for id in range(1, 2)])
+        self.workers = self.environment.look_up(Symbols.WORKER_POOL)
 
     def __repr__(self):
         return "Service {:s}".format(self.name)
-
-    def _new_worker(self, identifier):
-        environment = self.environment.create_local_environment()
-        environment.define(Symbols.SERVICE, self)
-        return self.factory.create_worker(identifier, environment)
-
-    @property
-    def worker_count(self):
-        return self.workers.capacity
-
-    def set_worker_count(self, capacity):
-        error = self.workers.capacity - capacity
-        if error < 0:
-            new_workers = [self._new_worker(id) for id in range(-error)]
-            self.workers.add_workers(new_workers)
-        elif error > 0:
-            self.workers.shutdown(error)
-
-    @property
-    def utilisation(self):
-        return self.workers.utilisation
 
     def process(self, request):
         task = Task(self, request)

@@ -113,31 +113,31 @@ class TestInterpreter(TestCase):
 
         request = self.send_request("Front-end", "show")
         self.simulate_until(1)
-        self.assertEqual(100.0, front_end.utilisation) # The front-end should be busy
+        self.assertEqual(100.0, front_end.workers.utilisation) # The front-end should be busy
 
         self.simulate_until(2)
-        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
-        self.assertEqual(0.0, db.utilisation) # DB has not yet received the request
+        self.assertEqual(0.0, front_end.workers.utilisation) # The front-end should be released
+        self.assertEqual(0.0, db.workers.utilisation) # DB has not yet received the request
 
         self.simulate_until(3)
-        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
-        self.assertEqual(100.0, db.utilisation) # DB busy thinking
+        self.assertEqual(0.0, front_end.workers.utilisation) # The front-end should be released
+        self.assertEqual(100.0, db.workers.utilisation) # DB busy thinking
 
         self.simulate_until(5)
-        self.assertEqual(0.0, front_end.utilisation) # Front end has nothing to do
-        self.assertEqual(100.0, db.utilisation) # DB busy sending answer
+        self.assertEqual(0.0, front_end.workers.utilisation) # Front end has nothing to do
+        self.assertEqual(100.0, db.workers.utilisation) # DB busy sending answer
 
         self.simulate_until(6)
-        self.assertEqual(0.0, front_end.utilisation) # Front end has nothing to do
-        self.assertEqual(0.0, db.utilisation) # DB has nothing to do anymore
+        self.assertEqual(0.0, front_end.workers.utilisation) # Front end has nothing to do
+        self.assertEqual(0.0, db.workers.utilisation) # DB has nothing to do anymore
 
         self.simulate_until(7)
-        self.assertEqual(100.0, front_end.utilisation) # Front end busy replying
-        self.assertEqual(0.0, db.utilisation) # DB has nothing to do anymore
+        self.assertEqual(100.0, front_end.workers.utilisation) # Front end busy replying
+        self.assertEqual(0.0, db.workers.utilisation) # DB has nothing to do anymore
 
         self.simulate_until(8)
-        self.assertEqual(0.0, front_end.utilisation) # Front end busy replying
-        self.assertEqual(0.0, db.utilisation) # DB has nothing to do anymore
+        self.assertEqual(0.0, front_end.workers.utilisation) # Front end busy replying
+        self.assertEqual(0.0, db.workers.utilisation) # DB has nothing to do anymore
 
         self.simulate_until(9)
         self.assertTrue(request.status == RequestStatus.OK)
@@ -160,24 +160,24 @@ class TestInterpreter(TestCase):
 
         request = self.send_request("Front-end", "show")
         self.simulate_until(1)
-        self.assertEqual(100.0, front_end.utilisation) # The front-end should be busy
-        self.assertEqual(0.0, db.utilisation) # DB has nothing to do
+        self.assertEqual(100.0, front_end.workers.utilisation) # The front-end should be busy
+        self.assertEqual(0.0, db.workers.utilisation) # DB has nothing to do
 
         self.simulate_until(2)
-        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
-        self.assertEqual(0.0, db.utilisation) # DB has not yet received the request
+        self.assertEqual(0.0, front_end.workers.utilisation) # The front-end should be released
+        self.assertEqual(0.0, db.workers.utilisation) # DB has not yet received the request
 
         self.simulate_until(3)
-        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
-        self.assertEqual(100.0, db.utilisation) # DB busy thinking
+        self.assertEqual(0.0, front_end.workers.utilisation) # The front-end should be released
+        self.assertEqual(100.0, db.workers.utilisation) # DB busy thinking
 
         self.simulate_until(4)
-        self.assertEqual(100.0, front_end.utilisation) # Front end has received the acceptance ack and is replying
-        self.assertEqual(100.0, db.utilisation) # DB busy sending answer
+        self.assertEqual(100.0, front_end.workers.utilisation) # Front end has received the acceptance ack and is replying
+        self.assertEqual(100.0, db.workers.utilisation) # DB busy sending answer
 
         self.simulate_until(5)
-        self.assertEqual(0.0, front_end.utilisation) # Front end has nothing to do
-        self.assertEqual(0.0, db.utilisation) # DB has nothing to do anymore
+        self.assertEqual(0.0, front_end.workers.utilisation) # Front end has nothing to do
+        self.assertEqual(0.0, db.workers.utilisation) # DB has nothing to do anymore
 
         self.simulate_until(6)
         self.assertTrue(request.status == RequestStatus.OK)
@@ -196,19 +196,19 @@ class TestInterpreter(TestCase):
         request = self.send_request("Front-end", "show")
 
         self.simulate_until(1)
-        self.assertEqual(100.0, front_end.utilisation) # The front-end should be busy
+        self.assertEqual(100.0, front_end.workers.utilisation) # The front-end should be busy
 
         self.simulate_until(2)
-        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+        self.assertEqual(0.0, front_end.workers.utilisation) # The front-end should be released
 
         self.simulate_until(3)
-        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+        self.assertEqual(0.0, front_end.workers.utilisation) # The front-end should be released
 
         self.simulate_until(4)
-        self.assertEqual(100.0, front_end.utilisation) # Front end has received the acceptance ack and is replying
+        self.assertEqual(100.0, front_end.workers.utilisation) # Front end has received the acceptance ack and is replying
 
         self.simulate_until(5)
-        self.assertEqual(0.0, front_end.utilisation) # Front end has nothing to do
+        self.assertEqual(0.0, front_end.workers.utilisation) # Front end has nothing to do
 
         self.simulate_until(6)
         self.assertTrue(request.status == RequestStatus.ERROR)
@@ -227,19 +227,19 @@ class TestInterpreter(TestCase):
         request = self.send_request("Front-end", "show")
 
         self.simulate_until(1)
-        self.assertEqual(100.0, front_end.utilisation) # The front-end should be busy
+        self.assertEqual(100.0, front_end.workers.utilisation) # The front-end should be busy
 
         self.simulate_until(2)
-        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+        self.assertEqual(0.0, front_end.workers.utilisation) # The front-end should be released
 
         self.simulate_until(3)
-        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+        self.assertEqual(0.0, front_end.workers.utilisation) # The front-end should be released
 
         self.simulate_until(7)
-        self.assertEqual(100.0, front_end.utilisation) # Front-end forward the error
+        self.assertEqual(100.0, front_end.workers.utilisation) # Front-end forward the error
 
         self.simulate_until(8)
-        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+        self.assertEqual(0.0, front_end.workers.utilisation) # The front-end should be released
 
         self.simulate_until(9)
         self.assertTrue(request.status == RequestStatus.ERROR)
@@ -258,19 +258,19 @@ class TestInterpreter(TestCase):
         request = self.send_request("Front-end", "show")
 
         self.simulate_until(1)
-        self.assertEqual(100.0, front_end.utilisation) # The front-end should be busy
+        self.assertEqual(100.0, front_end.workers.utilisation) # The front-end should be busy
 
         self.simulate_until(2)
-        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+        self.assertEqual(0.0, front_end.workers.utilisation) # The front-end should be released
 
         self.simulate_until(3)
-        self.assertEqual(0.0, front_end.utilisation) # The front-end should be released
+        self.assertEqual(0.0, front_end.workers.utilisation) # The front-end should be released
 
         self.simulate_until(4)
-        self.assertEqual(100.0, front_end.utilisation) # Front end has received the acceptance ack and is replying
+        self.assertEqual(100.0, front_end.workers.utilisation) # Front end has received the acceptance ack and is replying
 
         self.simulate_until(5)
-        self.assertEqual(0.0, front_end.utilisation) # Front end has nothing to do
+        self.assertEqual(0.0, front_end.workers.utilisation) # Front end has nothing to do
 
         self.simulate_until(6)
         self.assertTrue(request.status == RequestStatus.ERROR)

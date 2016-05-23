@@ -23,7 +23,7 @@ from mad.evaluation import Symbols, Evaluation, SimulationFactory
 
 from mad.simulation.events import Dispatcher
 from mad.simulation.service import Service, Operation
-from mad.simulation.workers import Worker
+from mad.simulation.workers import Worker, WorkerPoolWrapper, WorkerPool
 from mad.simulation.monitoring import Monitor, Logger
 from mad.simulation.client import ClientStub
 from mad.simulation.tasks import FIFOTaskPool, LIFOTaskPool, TaskPoolWrapper
@@ -40,6 +40,10 @@ class Factory(SimulationFactory):
 
     def create_simulation(self, data_store):
         return Simulation(data_store)
+
+    def create_worker_pool(self, environment):
+        workers = [ self.create_worker(id, environment) for id in range(1, 2) ]
+        return WorkerPoolWrapper(environment, WorkerPool(workers))
 
     def create_monitor(self, name, environment, period):
         return Monitor(name, environment, period)

@@ -81,6 +81,35 @@ class WorkerPool:
             self.stopped_workers.remove(worker)
 
 
+class WorkerPoolDecorator(WorkerPool):
+
+    def __init__(self, delegate):
+        self.delegate = delegate
+
+    def __getattr__(self, name):
+        return getattr(self.delegate, name)
+
+
+class WorkerPoolWrapper(SimulatedEntity, WorkerPoolDecorator):
+
+    def __init__(self, environment, delegate):
+        SimulatedEntity.__init__(self, Symbols.WORKER_POOL, environment)
+        WorkerPoolDecorator.__init__(self, delegate)
+
+    def _new_worker(self, identifier):
+        environment = self.environment.create_local_environment()
+        environment.define(Symbols.SERVICE, self)
+        return self.factory.create_worker(identifier, environment)
+
+    def set_capacity(self, capacity):
+        error = self.capacity - capacity
+        if error < 0:
+            new_workers = [self._new_worker(id) for id in range(-error)] # FIXME: worker ID seems wrong
+            self.add_workers(new_workers)
+        elif error > 0:
+            self.shutdown(error)
+
+
 class WorkerStatus(Enum):
     STARTING, IDLE, BUSY = range(3)
 
@@ -95,9 +124,23 @@ class Worker(SimulatedEntity):
         self.environment.define(Symbols.WORKER, self)
         self.identifier = identifier
 
+    def boot_up(self):
+        # TODO: block the thread for some time, by calling compute
+        pass
+
+    def perform(self):
+        # TODO: notify the listener that the thread is active
+        pass
+
     def compute(self, duration, continuation):
         self.simulation.schedule.after(duration, continuation)
 
     def release(self):
+        # TODO change the meaning of this operation (it should be called by the service/scheduler)
+        # TODO notify the listener that the thread is idle
         service = self.look_up(Symbols.SERVICE)
         service.release(self)
+
+    def shutdown(self):
+        # TODO: notify that the thread is shutting down
+        pass

@@ -35,6 +35,7 @@ class Symbols:
     THROTTLING = "!throttling"
     QUEUE = "!queue"
     WORKER = "!worker"
+    WORKER_POOL = "!worker_pool"
 
 
 class SimulationFactory:
@@ -88,6 +89,9 @@ class SimulationFactory:
     def create_tail_drop(self, environment, capacity, task_pool):
         self._abort(self.create_tail_drop.__name__)
 
+    def create_worker_pool(self, environment):
+        self._abort(self.create_worker_pool.__name__)
+
     def _abort(self, caller_name):
         raise NotImplementedError("Method '%s::%s' is abstract and must not be directly called!" % (self.__class__.__name__, caller_name))
 
@@ -124,6 +128,8 @@ class Evaluation:
         service_environment.define(Symbols.LISTENER, self.factory.create_listener())
         Evaluation(service_environment, Settings(), self.factory).result
         Evaluation(service_environment, service.body, self.factory).result
+        worker_pool = self.factory.create_worker_pool(service_environment)
+        service_environment.define(Symbols.WORKER_POOL, worker_pool)
         service = self.factory.create_service(service.name, service_environment)
         self._define(service.name, service)
         monitor = self.factory.create_monitor(Symbols.MONITOR, service_environment, None)

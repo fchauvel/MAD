@@ -17,7 +17,6 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
  * Features
     * Services
         * Monitoring
-            * Client status (not only service)
             * Per operation
                 * emission rate
             * current timeout
@@ -51,8 +50,13 @@ See the [official documentation](http://www.pythonhosted.org/MAD).
     * Merge throttling and Task pool into Bounded task pool
     * Autoscaling should read statistics from the monitor
     * Monitor should also account for worker counts
- * Quid of Caching
-    * Message-Queue/PubSub as a concept?
+    * Events pushed by each state machine should be an enumeration (data-driven)
+ * Concepts ideas
+    * Caching
+    * Server side Proxy
+    * Client side proxies / circuit breaker?
+    * Message-Queue/PubSub?
+    * Deamons as processes that would run periodically within a service
 
  
 ## NEXT RELEASE CHANGE LOG
