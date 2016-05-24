@@ -78,6 +78,20 @@ class Listener:
     def timeout_of(self, request):
         raise NotImplementedError("Listener::timeout_of is abstract")
 
+    # Workers
+
+    def worker_created(self, worker):
+        raise NotImplementedError("Listener::worker_created is abstract")
+
+    def worker_busy(self, worker):
+        raise NotImplementedError("Listener::worker_busy is abstract")
+
+    def worker_idle(self, worker):
+        raise NotImplementedError("Listener::worker_idle is abstract")
+
+    def worker_shutdown(self, worker):
+        raise NotImplementedError("Listener::worker_shutdown is abstract")
+
 
 class Dispatcher(Listener):
     """
@@ -140,7 +154,22 @@ class Dispatcher(Listener):
     def timeout_of(self, request):
         self._dispatch(self.timeout_of.__name__, request)
 
+    # Workers
+
+    def worker_created(self, worker):
+        self._dispatch(self.worker_created.__name__, worker)
+
+    def worker_busy(self, worker):
+        self._dispatch(self.worker_busy.__name__, worker)
+
+    def worker_idle(self, worker):
+        self._dispatch(self.worker_idle.__name__, worker)
+
+    def worker_shutdown(self, worker):
+        self._dispatch(self.worker_shutdown.__name__, worker)
+
     def _dispatch(self, method, *parameters):
+        # TODO: Could this method could be made generic?
         for each_listener in self._listeners:
             delegate = getattr(each_listener, method)
             delegate(*parameters)

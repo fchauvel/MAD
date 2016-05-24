@@ -33,6 +33,7 @@ from mad.simulation.requests import RequestStatus
 FAKE_REQUEST = "a request"
 FAKE_TASK = "a task"
 FAKE_SERVICE = "service"
+FAKE_WORKER = "a worker"
 
 
 class DispatcherTests(TestCase):
@@ -58,7 +59,7 @@ class DispatcherTests(TestCase):
             ("task_created", [FAKE_TASK]),
             ("task_accepted", [FAKE_TASK]),
             ("task_rejected", [FAKE_TASK]),
-            ("task_assigned_to", [FAKE_TASK, "a worker"]),
+            ("task_assigned_to", [FAKE_TASK, FAKE_WORKER]),
             ("task_activated", [FAKE_TASK]),
             ("task_paused", [FAKE_TASK]),
             ("task_failed", [FAKE_TASK]),
@@ -69,7 +70,12 @@ class DispatcherTests(TestCase):
             ("rejection_of", [FAKE_REQUEST]),
             ("success_of", [FAKE_REQUEST]),
             ("failure_of", [FAKE_REQUEST]),
-            ("timeout_of", [FAKE_REQUEST])
+            ("timeout_of", [FAKE_REQUEST]),
+            ("worker_created", [FAKE_WORKER]),
+            ("worker_created", [FAKE_WORKER]),
+            ("worker_busy", [FAKE_WORKER]),
+            ("worker_idle", [FAKE_WORKER]),
+            ("worker_shutdown", [FAKE_WORKER]),
         ]
 
         for (method_name, parameters) in invocations:
