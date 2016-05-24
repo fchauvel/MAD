@@ -93,7 +93,7 @@ class Listener:
         raise NotImplementedError("Listener::worker_shutdown is abstract")
 
 
-class Dispatcher(Listener):
+class Dispatcher:
     """
     Simply dispatch events to other listeners that registered
     """
@@ -105,72 +105,14 @@ class Dispatcher(Listener):
         assert isinstance(listener, Listener), INVALID_LISTENER.format(type(listener))
         self._listeners.add(listener)
 
-    # Server side tasks
+    def __getattr__(self, method_name):
+        def dispatch(*parameters):
+            for each_listener in self._listeners:
+                self.__dispatch(each_listener, method_name, *parameters)
+        return dispatch
 
-    def task_created(self, task):
-        self._dispatch(self.task_created.__name__, task)
-
-    def task_accepted(self, task):
-        self._dispatch(self.task_accepted.__name__, task)
-
-    def task_rejected(self, task):
-        self._dispatch(self.task_rejected.__name__, task)
-
-    def task_activated(self, task):
-        self._dispatch(self.task_activated.__name__, task)
-
-    def task_paused(self, task):
-        self._dispatch(self.task_paused.__name__, task)
-
-    def task_assigned_to(self, task, worker):
-        self._dispatch(self.task_assigned_to.__name__, task, worker)
-
-    def task_failed(self, task):
-        self._dispatch(self.task_failed.__name__, task)
-
-    def task_successful(self, task):
-        self._dispatch(self.task_successful.__name__, task)
-
-    def task_cancelled(self, task):
-        self._dispatch(self.task_cancelled.__name__, task)
-
-    # Client side request handling
-
-    def posting_of(self, service, request):
-        self._dispatch(self.posting_of.__name__, service, request)
-
-    def acceptance_of(self, request):
-        self._dispatch(self.acceptance_of.__name__, request)
-
-    def rejection_of(self, request):
-        self._dispatch(self.rejection_of.__name__, request)
-
-    def success_of(self, request):
-        self._dispatch(self.success_of.__name__, request)
-
-    def failure_of(self, request):
-        self._dispatch(self.failure_of.__name__, request)
-
-    def timeout_of(self, request):
-        self._dispatch(self.timeout_of.__name__, request)
-
-    # Workers
-
-    def worker_created(self, worker):
-        self._dispatch(self.worker_created.__name__, worker)
-
-    def worker_busy(self, worker):
-        self._dispatch(self.worker_busy.__name__, worker)
-
-    def worker_idle(self, worker):
-        self._dispatch(self.worker_idle.__name__, worker)
-
-    def worker_shutdown(self, worker):
-        self._dispatch(self.worker_shutdown.__name__, worker)
-
-    def _dispatch(self, method, *parameters):
-        # TODO: Could this method could be made generic?
-        for each_listener in self._listeners:
-            delegate = getattr(each_listener, method)
-            delegate(*parameters)
-
+    def __dispatch(self, listener, method_name, *parameters):
+        method = getattr(listener, method_name)
+        assert method, "Listener {:s} has no method {:s}".format(listener, method_name)
+        assert hasattr(method, '__call__'), "{:s} is not a callable!".format(method_name)
+        method(*parameters)
