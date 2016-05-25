@@ -25,10 +25,11 @@ from tests.fakes import InMemoryDataStorage
 from mad.log import Log
 from mad.evaluation import Symbols
 from mad.simulation.factory import Factory
-from mad.simulation.monitoring import OperationStatistics, TasksStatistics, Monitor, Probe, Statistics, Logger
+from mad.simulation.monitoring import OperationStatistics, TasksStatistics, WorkersStatistics, Monitor, Probe, Statistics, Logger
 from mad.simulation.events import Dispatcher
 from mad.simulation.requests import Request
 from mad.simulation.tasks import Task, TaskStatus
+from mad.simulation.workers import WorkerStatus
 
 
 def a_request(operation="foo", response_time=5):
@@ -43,6 +44,88 @@ def a_task(status=None, **request):
     task.request = a_request(**request)
     task.status = status or TaskStatus.CREATED
     return task
+
+
+def a_worker(status):
+    worker = MagicMock()
+    worker.status = status
+    return worker
+
+
+class WorkerStatisticsTests(TestCase):
+
+    def setUp(self):
+        self.workers = WorkersStatistics()
+
+    def test_worker_created(self):
+        self.workers.worker_created("a worker")
+
+        self._verify(starting=1, idle=0, busy=0, shutdown=0)
+        self._verify(utilisation=0.)
+
+    def test_worker_idle(self):
+        self.workers.worker_created("a worker")
+        self.workers.worker_idle(a_worker(WorkerStatus.STARTING))
+
+        self._verify(starting=0, idle=1, busy=0, shutdown=0)
+        self._verify(utilisation=0.)
+
+    def test_worker_idle_rejects_idle_workers(self):
+        with self.assertRaises(ValueError):
+            self.workers.worker_idle(a_worker(WorkerStatus.IDLE))
+
+    def test_worker_busy(self):
+        self.workers.worker_created("a worker")
+        self.workers.worker_idle(a_worker(WorkerStatus.STARTING))
+        self.workers.worker_busy(a_worker(WorkerStatus.IDLE))
+
+        self._verify(starting=0, idle=0, busy=1, shutdown=0)
+        self._verify(utilisation=100.)
+
+    def test_worker_busy_only_accepts_idle_workers(self):
+        def do_test(status):
+            with self.assertRaises(ValueError):
+                self.workers.worker_busy(a_worker(status))
+
+        for each_status in [WorkerStatus.STARTING, WorkerStatus.BUSY]:
+            do_test(each_status)
+
+    def test_worker_idle_again(self):
+        self.workers.worker_created(a_worker(WorkerStatus.STARTING))
+        self.workers.worker_idle(a_worker(WorkerStatus.STARTING))
+        self.workers.worker_busy(a_worker(WorkerStatus.IDLE))
+        self.workers.worker_idle(a_worker(WorkerStatus.BUSY))
+
+        self._verify(starting=0, idle=1, busy=0, shutdown=0)
+        self._verify(utilisation=0.)
+
+    def test_worker_idle_rejects_idle_workers(self):
+        with self.assertRaises(ValueError):
+            self.workers.worker_idle(a_worker(WorkerStatus.IDLE))
+
+    def test_worker_shutdown(self):
+        self.workers.worker_created(a_worker(WorkerStatus.STARTING))
+        self.workers.worker_idle(a_worker(WorkerStatus.STARTING))
+        self.workers.worker_busy(a_worker(WorkerStatus.IDLE))
+        self.workers.worker_idle(a_worker(WorkerStatus.BUSY))
+        self.workers.worker_shutdown(a_worker(WorkerStatus.IDLE))
+
+        self._verify(starting=0, idle=0, busy=0, shutdown=1)
+        self._verify(utilisation=None)
+
+    def test_worker_shutdown_only_accepts_idle_workers(self):
+        def do_test(status):
+            with self.assertRaises(ValueError):
+                self.workers.worker_shutdown(a_worker(status))
+
+        for each_status in [WorkerStatus.STARTING, WorkerStatus.BUSY]:
+            do_test(each_status)
+
+
+    def _verify(self, **counters):
+        for (counter_name, expected_value) in counters.items():
+            self.assertEqual(expected_value, getattr(self.workers, counter_name))
+
 
 
 class TasksStatisticsTests(TestCase):

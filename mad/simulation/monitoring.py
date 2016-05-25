@@ -24,9 +24,56 @@ from mad.simulation.service import Operation
 from mad.simulation.commons import SimulatedEntity
 from mad.simulation.events import Listener
 from mad.simulation.tasks import TaskStatus
+from mad.simulation.workers import WorkerStatus
 from mad.simulation.client import ClientStub
 
 MISSING_VALUE = "NA"
+
+
+class WorkersStatistics(Listener):
+
+    def __init__(self):
+        self.starting = 0
+        self.idle = 0
+        self.busy = 0
+        self.shutdown = 0
+
+    @staticmethod
+    def _assert_status(worker, legal_states):
+        if not worker.status in legal_states:
+            raise ValueError("Invalid worker status {} (expecting {})".format(worker.status.name, legal_states))
+
+    def worker_created(self, worker):
+        self.starting += 1
+
+    def worker_idle(self, worker):
+        self._assert_status(worker, [WorkerStatus.STARTING, WorkerStatus.BUSY])
+        if worker.status == WorkerStatus.STARTING:
+            self.starting -= 1
+            self.idle += 1
+        else: #worker.status == WorkerStatus.BUSY
+            self.busy -= 1
+            self.idle += 1
+
+    def worker_busy(self, worker):
+        self._assert_status(worker, [WorkerStatus.IDLE])
+        self.idle -= 1
+        self.busy += 1
+
+    def worker_shutdown(self, worker):
+        self._assert_status(worker, [WorkerStatus.IDLE])
+        self.idle -= 1
+        self.shutdown += 1
+
+    @property
+    def utilisation(self):
+        if self.alive == 0:
+            return None
+        return 100 * (self.busy / self.alive)
+
+    @property
+    def alive(self):
+        return self.starting + self.busy + self.idle
 
 
 class TasksStatistics(Listener):
