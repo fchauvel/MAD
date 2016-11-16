@@ -445,14 +445,14 @@ class MonitorTests(TestCase):
         self.storage = InMemoryDataStorage(None)
         self.simulation = self.factory.create_simulation(self.storage)
 
-    def test_throughput_calculation(self):
+    def test_cumulaive_success_calculation(self):
         period = 10
         self.monitor = self._create_monitor(period)
 
         (success, rejection, error) = (10, 3, 4)
         self._run_scenario(success, rejection, error)
 
-        expected = (success) / period
+        expected = success
         self.assertEqual(expected, self.monitor._throughput())
 
     def test_reliability_with_only_errors(self):

@@ -328,8 +328,6 @@ class Statistics(Listener):
     def resuming(self, request):
         pass
 
-
-
     # Client side events
 
     def posting_of(self, service, request):
@@ -454,7 +452,7 @@ class Monitor(SimulatedEntity):
         for each_probe in self.probes:
             observations[each_probe.name] = each_probe.formatted(self)
         self.report(**observations)
-        self.statistics.reset()
+        #self.statistics.reset()
 
     def _queue_length(self):
         return self.tasks.active
@@ -483,7 +481,7 @@ class Monitor(SimulatedEntity):
         return self.statistics.reliability
 
     def _throughput(self):
-        return self.statistics.success_count / self.period
+        return self.statistics.success_count
 
     def _response_time(self):
         return self.statistics.response_time

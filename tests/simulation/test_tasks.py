@@ -125,7 +125,8 @@ class FIFOTaskPoolTests(TestCase, AbstractTaskPoolTests):
         self.pool = FIFOTaskPool()
 
     def test_breaking_tie(self):
-        next_task = self._put_a_task()
+        next_task = self._put_a_task\
+            ()
         self._put_a_task()
         self._put_a_task()
 

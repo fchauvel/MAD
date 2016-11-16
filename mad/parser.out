@@ -1,0 +1,312 @@
+Created by PLY version 3.8 (http://www.dabeaz.com/ply)
+
+Unused terminals:
+
+    REAL
+
+Grammar
+
+Rule 0     S' -> query
+Rule 1     unit -> definition_list
+Rule 2     definition_list -> definition definition_list
+Rule 3     definition_list -> definition
+Rule 4     definition -> define_service
+Rule 5     definition -> define_client
+Rule 6     define_service -> SERVICE IDENTIFIER OPEN_CURLY_BRACKET settings operation_list CLOSE_CURLY_BRACKET
+Rule 7     define_service -> SERVICE IDENTIFIER OPEN_CURLY_BRACKET operation_list CLOSE_CURLY_BRACKET
+Rule 8     settings -> SETTINGS OPEN_CURLY_BRACKET setting_list CLOSE_CURLY_BRACKET
+Rule 9     setting_list -> setting setting_list
+Rule 10    setting_list -> setting
+Rule 11    setting -> queue
+Rule 12    setting -> autoscaling
+Rule 13    setting -> throttling
+Rule 14    queue -> QUEUE COLON LIFO
+Rule 15    queue -> QUEUE COLON FIFO
+Rule 16    throttling -> THROTTLING COLON NONE
+Rule 17    throttling -> THROTTLING COLON TAIL_DROP OPEN_BRACKET NUMBER CLOSE_BRACKET
+Rule 18    autoscaling -> AUTOSCALING OPEN_CURLY_BRACKET autoscaling_setting_list CLOSE_CURLY_BRACKET
+Rule 19    autoscaling_setting_list -> autoscaling_setting autoscaling_setting_list
+Rule 20    autoscaling_setting_list -> autoscaling_setting
+Rule 21    autoscaling_setting -> PERIOD COLON NUMBER
+Rule 22    autoscaling_setting -> LIMITS COLON OPEN_SQUARE_BRACKET NUMBER COMMA NUMBER CLOSE_SQUARE_BRACKET
+Rule 23    operation_list -> define_operation operation_list
+Rule 24    operation_list -> define_operation
+Rule 25    define_client -> CLIENT IDENTIFIER OPEN_CURLY_BRACKET EVERY NUMBER OPEN_CURLY_BRACKET action_list CLOSE_CURLY_BRACKET CLOSE_CURLY_BRACKET
+Rule 26    define_operation -> OPERATION IDENTIFIER OPEN_CURLY_BRACKET action_list CLOSE_CURLY_BRACKET
+Rule 27    action_list -> action action_list
+Rule 28    action_list -> action
+Rule 29    action -> invoke
+Rule 30    action -> query
+Rule 31    action -> think
+Rule 32    action -> fail
+Rule 33    action -> retry
+Rule 34    action -> ignore
+Rule 35    think -> THINK NUMBER
+Rule 36    fail -> FAIL NUMBER
+Rule 37    fail -> FAIL
+Rule 38    query -> QUERY IDENTIFIER SLASH IDENTIFIER
+Rule 39    query -> QUERY IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET query_option_list CLOSE_CURLY_BRACKET
+Rule 40    query_option_list -> query_option COMMA query_option_list
+Rule 41    query_option_list -> query_option
+Rule 42    query_option -> timeout
+Rule 43    query_option -> priority
+Rule 44    timeout -> TIMEOUT COLON NUMBER
+Rule 45    priority -> PRIORITY COLON NUMBER
+Rule 46    invoke -> INVOKE IDENTIFIER SLASH IDENTIFIER
+Rule 47    invoke -> INVOKE IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET PRIORITY COLON NUMBER CLOSE_CURLY_BRACKET
+Rule 48    retry -> RETRY OPEN_CURLY_BRACKET action_list CLOSE_CURLY_BRACKET
+Rule 49    retry -> RETRY OPEN_BRACKET retry_option_list CLOSE_BRACKET OPEN_CURLY_BRACKET action_list CLOSE_CURLY_BRACKET
+Rule 50    retry_option_list -> retry_option COMMA retry_option_list
+Rule 51    retry_option_list -> retry_option
+Rule 52    retry_option -> LIMIT COLON NUMBER
+Rule 53    retry_option -> DELAY COLON IDENTIFIER OPEN_BRACKET NUMBER CLOSE_BRACKET
+Rule 54    ignore -> IGNORE OPEN_CURLY_BRACKET action_list CLOSE_CURLY_BRACKET
+
+Terminals, with rules where they appear
+
+AUTOSCALING          : 18
+CLIENT               : 25
+CLOSE_BRACKET        : 17 49 53
+CLOSE_CURLY_BRACKET  : 6 7 8 18 25 25 26 39 47 48 49 54
+CLOSE_SQUARE_BRACKET : 22
+COLON                : 14 15 16 17 21 22 44 45 47 52 53
+COMMA                : 22 40 50
+DELAY                : 53
+EVERY                : 25
+FAIL                 : 36 37
+FIFO                 : 15
+IDENTIFIER           : 6 7 25 26 38 38 39 39 46 46 47 47 53
+IGNORE               : 54
+INVOKE               : 46 47
+LIFO                 : 14
+LIMIT                : 52
+LIMITS               : 22
+NONE                 : 16
+NUMBER               : 17 21 22 22 25 35 36 44 45 47 52 53
+OPEN_BRACKET         : 17 49 53
+OPEN_CURLY_BRACKET   : 6 7 8 18 25 25 26 39 47 48 49 54
+OPEN_SQUARE_BRACKET  : 22
+OPERATION            : 26
+PERIOD               : 21
+PRIORITY             : 45 47
+QUERY                : 38 39
+QUEUE                : 14 15
+REAL                 : 
+RETRY                : 48 49
+SERVICE              : 6 7
+SETTINGS             : 8
+SLASH                : 38 39 46 47
+TAIL_DROP            : 17
+THINK                : 35
+THROTTLING           : 16 17
+TIMEOUT              : 44
+error                : 
+
+Nonterminals, with rules where they appear
+
+action               : 27 28
+action_list          : 25 26 27 48 49 54
+autoscaling          : 12
+autoscaling_setting  : 19 20
+autoscaling_setting_list : 18 19
+define_client        : 5
+define_operation     : 23 24
+define_service       : 4
+definition           : 2 3
+definition_list      : 1 2
+fail                 : 32
+ignore               : 34
+invoke               : 29
+operation_list       : 6 7 23
+priority             : 43
+query                : 30 0
+query_option         : 40 41
+query_option_list    : 39 40
+queue                : 11
+retry                : 33
+retry_option         : 50 51
+retry_option_list    : 49 50
+setting              : 9 10
+setting_list         : 8 9
+settings             : 6
+think                : 31
+throttling           : 13
+timeout              : 42
+unit                 : 
+
+Parsing method: LALR
+
+state 0
+
+    (0) S' -> . query
+    (38) query -> . QUERY IDENTIFIER SLASH IDENTIFIER
+    (39) query -> . QUERY IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET query_option_list CLOSE_CURLY_BRACKET
+
+    QUERY           shift and go to state 2
+
+    query                          shift and go to state 1
+
+state 1
+
+    (0) S' -> query .
+
+
+
+state 2
+
+    (38) query -> QUERY . IDENTIFIER SLASH IDENTIFIER
+    (39) query -> QUERY . IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET query_option_list CLOSE_CURLY_BRACKET
+
+    IDENTIFIER      shift and go to state 3
+
+
+state 3
+
+    (38) query -> QUERY IDENTIFIER . SLASH IDENTIFIER
+    (39) query -> QUERY IDENTIFIER . SLASH IDENTIFIER OPEN_CURLY_BRACKET query_option_list CLOSE_CURLY_BRACKET
+
+    SLASH           shift and go to state 4
+
+
+state 4
+
+    (38) query -> QUERY IDENTIFIER SLASH . IDENTIFIER
+    (39) query -> QUERY IDENTIFIER SLASH . IDENTIFIER OPEN_CURLY_BRACKET query_option_list CLOSE_CURLY_BRACKET
+
+    IDENTIFIER      shift and go to state 5
+
+
+state 5
+
+    (38) query -> QUERY IDENTIFIER SLASH IDENTIFIER .
+    (39) query -> QUERY IDENTIFIER SLASH IDENTIFIER . OPEN_CURLY_BRACKET query_option_list CLOSE_CURLY_BRACKET
+
+    $end            reduce using rule 38 (query -> QUERY IDENTIFIER SLASH IDENTIFIER .)
+    OPEN_CURLY_BRACKET shift and go to state 6
+
+
+state 6
+
+    (39) query -> QUERY IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET . query_option_list CLOSE_CURLY_BRACKET
+    (40) query_option_list -> . query_option COMMA query_option_list
+    (41) query_option_list -> . query_option
+    (42) query_option -> . timeout
+    (43) query_option -> . priority
+    (44) timeout -> . TIMEOUT COLON NUMBER
+    (45) priority -> . PRIORITY COLON NUMBER
+
+    TIMEOUT         shift and go to state 7
+    PRIORITY        shift and go to state 9
+
+    query_option_list              shift and go to state 8
+    timeout                        shift and go to state 11
+    priority                       shift and go to state 10
+    query_option                   shift and go to state 12
+
+state 7
+
+    (44) timeout -> TIMEOUT . COLON NUMBER
+
+    COLON           shift and go to state 13
+
+
+state 8
+
+    (39) query -> QUERY IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET query_option_list . CLOSE_CURLY_BRACKET
+
+    CLOSE_CURLY_BRACKET shift and go to state 14
+
+
+state 9
+
+    (45) priority -> PRIORITY . COLON NUMBER
+
+    COLON           shift and go to state 15
+
+
+state 10
+
+    (43) query_option -> priority .
+
+    COMMA           reduce using rule 43 (query_option -> priority .)
+    CLOSE_CURLY_BRACKET reduce using rule 43 (query_option -> priority .)
+
+
+state 11
+
+    (42) query_option -> timeout .
+
+    COMMA           reduce using rule 42 (query_option -> timeout .)
+    CLOSE_CURLY_BRACKET reduce using rule 42 (query_option -> timeout .)
+
+
+state 12
+
+    (40) query_option_list -> query_option . COMMA query_option_list
+    (41) query_option_list -> query_option .
+
+    COMMA           shift and go to state 16
+    CLOSE_CURLY_BRACKET reduce using rule 41 (query_option_list -> query_option .)
+
+
+state 13
+
+    (44) timeout -> TIMEOUT COLON . NUMBER
+
+    NUMBER          shift and go to state 17
+
+
+state 14
+
+    (39) query -> QUERY IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET query_option_list CLOSE_CURLY_BRACKET .
+
+    $end            reduce using rule 39 (query -> QUERY IDENTIFIER SLASH IDENTIFIER OPEN_CURLY_BRACKET query_option_list CLOSE_CURLY_BRACKET .)
+
+
+state 15
+
+    (45) priority -> PRIORITY COLON . NUMBER
+
+    NUMBER          shift and go to state 18
+
+
+state 16
+
+    (40) query_option_list -> query_option COMMA . query_option_list
+    (40) query_option_list -> . query_option COMMA query_option_list
+    (41) query_option_list -> . query_option
+    (42) query_option -> . timeout
+    (43) query_option -> . priority
+    (44) timeout -> . TIMEOUT COLON NUMBER
+    (45) priority -> . PRIORITY COLON NUMBER
+
+    TIMEOUT         shift and go to state 7
+    PRIORITY        shift and go to state 9
+
+    query_option_list              shift and go to state 19
+    timeout                        shift and go to state 11
+    priority                       shift and go to state 10
+    query_option                   shift and go to state 12
+
+state 17
+
+    (44) timeout -> TIMEOUT COLON NUMBER .
+
+    COMMA           reduce using rule 44 (timeout -> TIMEOUT COLON NUMBER .)
+    CLOSE_CURLY_BRACKET reduce using rule 44 (timeout -> TIMEOUT COLON NUMBER .)
+
+
+state 18
+
+    (45) priority -> PRIORITY COLON NUMBER .
+
+    COMMA           reduce using rule 45 (priority -> PRIORITY COLON NUMBER .)
+    CLOSE_CURLY_BRACKET reduce using rule 45 (priority -> PRIORITY COLON NUMBER .)
+
+
+state 19
+
+    (40) query_option_list -> query_option COMMA query_option_list .
+
+    CLOSE_CURLY_BRACKET reduce using rule 40 (query_option_list -> query_option COMMA query_option_list .)
+

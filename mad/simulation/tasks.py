@@ -205,7 +205,6 @@ class Task:
         self.request = request
         self.status = TaskStatus.CREATED
 
-
     @property
     def priority(self):
         return self.request.priority
